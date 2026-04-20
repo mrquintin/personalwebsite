@@ -1,0 +1,148 @@
+================================================================================
+REVISION R01 — SMOOTHER ACCORDION EXPANSION
+================================================================================
+
+REVISES
+-------
+  Prompt 02 (navigation_paradigm) — the accordion behavior spec.
+  Prompt 03 (landing_boot_sequence) — the content fade-in timing.
+  Prompt 12 (motion_easter_eggs)   — the "state transitions" subsection.
+
+ISSUE
+-----
+The accordion currently expands into panels in a way that feels abrupt.
+The user's feedback: "make the transitions between pages in the
+accordion smoother; pages [should] open up very smoothly to display
+their contents."
+
+The observable problem: the expansion width animation and the content
+appearance are happening on the same short timeline, so the content
+appears while the panel is still growing, producing a pop-in effect.
+The fix is a longer, better-eased expansion, a correctly sequenced
+content reveal, and a content that is positionally settled BEFORE it
+becomes visible.
+
+WHAT SMOOTH MEANS HERE (a precise definition)
+---------------------------------------------
+Smooth does NOT mean slow. It means (1) no positional jumps during the
+animation, (2) easing that decelerates cleanly toward rest, (3) content
+that does not "re-flow" after it becomes visible, (4) no flicker, (5)
+synchronized choreography of multiple animated properties (width,
+opacity, translate) so they feel like one gesture rather than three
+competing ones.
+
+REQUIRED CHANGES
+----------------
+1. EASING AND DURATION.
+   - Replace the --d-norm (240ms) duration for the panel width
+     animation with 420ms.
+   - Replace the existing --ease curve with a clearly decelerating
+     curve: cubic-bezier(0.22, 1, 0.36, 1) (a classic "ease-out-quint"
+     shape). This curve starts fast, ends slow, and removes the
+     perceived "snap" at rest.
+   - Keep --d-fast (160ms) and --d-slow (420ms) as separate tokens —
+     the change is which of them the accordion consumes. Introduce
+     --d-accordion: 420ms and --ease-accordion: cubic-bezier(0.22, 1,
+     0.36, 1) in tokens.css so they are reusable.
+
+2. CHOREOGRAPHY.
+   Sequence the three animations in one uninterrupted gesture:
+
+     t = 0ms                  panel width begins expanding (420ms)
+     t = 0ms                  collapsing panels begin compressing (420ms)
+     t = 0ms                  collapsing panels' body content fades to 0 (180ms)
+     t = 260ms                expanding panel's body content fades in
+                              from opacity 0 + translateY 6px (260ms)
+     t = 520ms                animation complete; cursor / focus moved
+
+   Rationale: the expanding panel's content must not appear until the
+   panel is nearly at its final width. If content appears early, it
+   reflows as the width grows, and reflow during animation is the
+   primary cause of the "unsmooth" feeling. A 260ms delay on content
+   fade-in is just after the width animation has consumed ~62% of its
+   duration, when positional change becomes imperceptible.
+
+3. NO CONTENT REFLOW AFTER VISIBILITY.
+   - The expanding panel's content is laid out during the compressed
+     state, hidden behind opacity: 0 + pointer-events: none. The
+     browser completes layout before the animation begins, so the
+     content's final position is known from t = 0. Only opacity and a
+     small translateY animate.
+   - Do NOT animate any flex/grid property on elements inside the
+     panel body. Only animate the panel's outer width.
+   - For any content that depends on the final container width
+     (e.g., a graph that sizes to parent), attach a ResizeObserver
+     that debounces its resize calc by 500ms so it fires ONCE after
+     the animation is complete, not continuously during it.
+
+4. COLLAPSING PANELS — QUIET EXIT.
+   When a panel collapses from expanded to spine:
+     - The body content's opacity goes to 0 over 180ms (fast — we
+       want it gone before the width change becomes distracting).
+     - After opacity is 0, display: none is applied so it does not
+       participate in layout during the width animation.
+     - Width then animates back to spine width (420ms, same curve).
+     - The spine's vertical title fades IN at t = 180ms with a 180ms
+       fade, so by the time width settles the spine is legible.
+
+5. WILL-CHANGE AND COMPOSITING.
+   - Add `will-change: flex-basis, opacity` to the panel during the
+     animation only (via a transient class applied on animation start
+     and removed on animation end). Leaving will-change permanent
+     creates a long-term memory cost; apply it surgically.
+   - Ensure body content that fades uses `transform: translateY` and
+     `opacity`, never `top` / `margin-top`, so the browser can
+     composite these on the GPU.
+
+6. INTERRUPTIBILITY.
+   If the user clicks a second panel before the first has settled, the
+   new animation must take over from the CURRENT state, not from the
+   expected final state. Use framer-motion's `animate()` or a library
+   that supports animation hand-off. A naive CSS transition that
+   restarts from the current rendered state (not from its previous
+   keyframe) is acceptable. The user should never observe a rubber-
+   band or snap-back.
+
+7. REDUCED MOTION.
+   prefers-reduced-motion: ALL of the above is replaced with an
+   instantaneous state change. No fades, no delays. The only visible
+   difference is the content swap.
+
+8. FIRST-LOAD BOOT.
+   On first load, after the boot sequence dismisses, the initial
+   expansion of panel 01 should use the SAME 420ms choreography, not
+   appear instantly. This establishes the motion language on first
+   impression.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Opening an accordion panel visually completes in ~420ms with no
+    perceptible pop-in, reflow, or snap at rest.
+  - Content inside the expanding panel does not reflow or flicker at
+    any point during the animation.
+  - Collapsing a panel removes its body before the width changes.
+  - Rapidly toggling between panels never produces a flash of mixed
+    content, a rubber-band, or a stuck intermediate width.
+  - prefers-reduced-motion produces instantaneous state changes.
+  - Chrome DevTools "Performance" panel shows the animation staying
+    above 60fps on a mid-tier laptop.
+
+DO NOT
+------
+  - Do not extend the duration above 450ms. Longer than this feels
+    sluggish; the brief calls for smooth, not slow.
+  - Do not add staggered per-element fade-ins inside the panel body
+    ("reveal on scroll" style). The body fades in as one block. Over-
+    choreographed entry animations are the opposite of what the user
+    asked for.
+  - Do not use `height: auto` transitions. Animate flex-basis (or
+    grid-template-columns on the parent if the accordion is
+    grid-based) — both of these animate correctly without the auto-
+    height workaround.
+
+STRETCH
+-------
+  - Expose a tiny dev-only toggle in the URL (?motion=slow) that
+    doubles all accordion durations. Useful for capturing smooth
+    marketing video or demoing the transition to colleagues.
+================================================================================

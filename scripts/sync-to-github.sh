@@ -20,10 +20,9 @@ Or, in this project root:
   git init
   git branch -M main
   git remote add origin https://github.com/mrquintin/personalwebsite.git
-  git fetch origin && git checkout -b main origin/main    # if the remote already has commits
-  # …or commit locally and: git push -u origin main
+  git fetch origin && git checkout -b main origin/main
 
-Then run ./scripts/sync-to-github.sh again.
+Then run this script again.
 EOF
   exit 1
 fi
@@ -149,7 +148,6 @@ check_deployments_for_sha() {
 }
 
 outgoing_changed_files() {
-  # Files changed on HEAD compared to remote (what this push will ship).
   if git rev-parse --verify "origin/${branch}" >/dev/null 2>&1; then
     git diff --name-only "origin/${branch}"...HEAD
     return 0
@@ -170,6 +168,9 @@ verify_ci_if_deps_changed() {
   fi
   if ! command -v npm >/dev/null 2>&1; then
     echo "warning: npm not found — skip verify:ci." >&2
+    return 0
+  fi
+  if ! grep -q '"verify:ci"' package.json 2>/dev/null; then
     return 0
   fi
   local changed
@@ -220,7 +221,6 @@ main() {
   clean_stale_git_locks
   ensure_origin_remote
 
-  local branch
   branch="$(resolve_branch)"
 
   git fetch origin "${branch}" 2>/dev/null || git fetch origin 2>/dev/null || true

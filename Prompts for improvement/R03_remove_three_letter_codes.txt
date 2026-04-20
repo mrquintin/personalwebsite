@@ -1,0 +1,158 @@
+================================================================================
+REVISION R03 — REMOVE THREE-LETTER CODES FROM PANEL LABELS
+================================================================================
+
+REVISES
+-------
+  Prompt 02 (navigation_paradigm) — the "panels" subsection and the
+    spine rendering spec.
+  Prompt 03 (landing_boot_sequence) — the "PANEL SPINES (collapsed
+    state)" subsection and all teaser components that display the
+    three-letter code.
+  Prompt 05 (projects_index) — the CODE column in the projects table
+    and any filter UI that displays codes.
+  Prompt 06 (project_detail_framework) — the dossier Header's
+    "DOSSIER :: {CODE} · {TITLE}" banner.
+  Prompt 07, 08, 09 (per-project bespoke pages) — every reference to
+    HVM / PRP / THS.
+  Prompt 04 (command_palette) — any palette entry or filter that uses
+    a code (e.g., ">hvm" direct-jump shorthand).
+  Prompt 13 (voice_and_copy) — the page-by-page pass lines that
+    reference codes in H1s.
+
+ISSUE
+-----
+The spines currently display TWO identifiers: the three-letter code
+(ABT, HVM, PRP, THS, CV) and the full title rendered vertically. The
+user wants only the vertical title. Quoted feedback:
+
+  "remove the abbreviated titles on the labels and just keep the
+   vertical titles in the base of the labels."
+
+REQUIRED CHANGES
+----------------
+1. SPINE RENDERING.
+   Update the PanelSpine component to display ONLY:
+     - Optional: the panel's number ("01", "02", ...) at the top of
+       the spine, in --fg-mute. This was part of the original spec
+       and is not an "abbreviated title"; the user's feedback
+       explicitly targets the code, not the number. DEFAULT: keep
+       the number. If Michael confirms he also wants the number
+       gone, drop it in a follow-up.
+     - The full title rendered vertically — one character per line,
+       monospace, centered, at the base of the spine. This is the
+       "vertical title in the base" the user called out.
+     - Nothing else. No three-letter code anywhere on the spine.
+
+2. SPINE WIDTH.
+   With the code removed, the spine's vertical composition is
+   shorter. The spine width can stay at 56–80px, but the title should
+   now sit roughly centered vertically, with the number (if kept) at
+   the top, and the title stack beginning around 40% from the top.
+   Visually, the spine should NOT read as empty — if anything, the
+   title has room to breathe.
+
+3. HEADER BANNER (DOSSIER LINE).
+   Update the classification banner from:
+      ─── DOSSIER :: HVM · HIVEMIND ─────── UNCLASSIFIED
+   to:
+      ─── DOSSIER :: HIVEMIND ─────── UNCLASSIFIED
+   The title alone, no code prefix. Every page that uses the dossier
+   Header inherits this change automatically if the Header component
+   is the single source — confirm no project page has hardcoded its
+   own "CODE · TITLE" string.
+
+4. PROJECTS INDEX.
+   Remove the CODE column from the /projects table. The TITLE column
+   becomes the primary identifier. Sort and filter logic that keyed
+   off `code` should use `slug` instead — slugs are URL-safe and
+   unambiguous, and they remain internal (not user-visible).
+
+5. DATA MODEL.
+   - In the Project type, the `code` field becomes optional and is
+     NOT rendered anywhere in the UI. It MAY remain in the data as a
+     legacy identifier but must not leak to any surface.
+   - Preferred: remove the `code` field entirely from src/content/
+     projects/*.ts and from the Project type. Fewer fields is cleaner.
+
+6. COMMAND PALETTE.
+   - Remove palette entries like "/>hvm" direct-jump shortcuts.
+   - Fuzzy matching already handles short queries correctly — typing
+     "hiv" will still match "Hivemind" as its top result without the
+     code.
+   - Update the filter scopes (Prompt 04's "/nav", "/act", "/qry",
+     "/prj") to drop any "/>code" pattern. The rest of the filter
+     vocabulary is unchanged.
+
+7. COPY REGISTRY.
+   - In src/content/microcopy.ts, remove any strings that embed the
+     codes ("HVM · Hivemind", etc.).
+   - Update the voice-guide examples accordingly.
+
+8. STATUS BAR / TOP RAIL.
+   NOTE: R04 removes the bottom status bar entirely. If a top rail
+   is retained for navigation on non-landing pages, the code column
+   should also be removed from that rail. Titles (or abbreviated
+   first words, if horizontal space demands) replace them.
+
+9. SEO / OG TITLES.
+   Update the per-route <title> format from:
+      "HVM · Hivemind — Michael Quintin"
+   to:
+      "Hivemind — Michael Quintin"
+   And the OG image composition: remove the code line; the
+   composition becomes:
+      "michael quintin"
+      "hivemind"
+      "{url}"
+
+10. AUDIT CHECKLIST (run across the whole repo).
+    Before merging, grep for:
+      - "HVM", "PRP", "THS", "ABT", "CV" as standalone tokens in
+        .tsx/.ts/.mdx/.md files. Each hit is either (a) a deletion
+        target, or (b) a false positive inside prose — leave those
+        alone.
+      - The three-character code pattern `[A-Z]{3}` inside string
+        literals in JSX — high-signal for remnants.
+      - The sequence "DOSSIER :: " — verify every occurrence reads
+        "DOSSIER :: TITLE" not "DOSSIER :: CODE · TITLE".
+
+ACCEPTANCE CRITERIA
+-------------------
+  - No three-letter code is visible on any page of the site.
+  - Spines render the vertical title at the base; the top optionally
+    shows the number in --fg-mute.
+  - The /projects index table has no CODE column; TITLE is the
+    primary identifier.
+  - Every dossier Header banner reads "DOSSIER :: TITLE" with no
+    code prefix.
+  - Command palette results no longer include code-based shortcuts;
+    fuzzy search still finds each project cleanly.
+  - OG images and <title> tags do not include codes.
+  - A grep for "HVM", "PRP", or "THS" as standalone tokens in
+    .tsx/.ts files returns zero UI-facing hits.
+
+DO NOT
+------
+  - Do not rename project slugs. The URL slugs (/hivemind,
+    /purposeless-efficiency, /theseus) are unchanged and remain the
+    canonical URL identifiers.
+  - Do not replace the codes with icons, glyphs, or abbreviated
+    words ("HIVE", "BOOK"). The user wants the title, not a shorter
+    stand-in.
+  - Do not re-introduce codes as tooltips or title attributes. If
+    removing, remove.
+  - Do not leave dead CSS rules scoped to the code element. Delete
+    them with the markup.
+
+STRETCH
+-------
+  - If the vertical title reads poorly on very narrow spines (e.g.,
+    "PURPOSELESS EFFICIENCY" becomes 22 characters tall and extends
+    past the viewport), support a per-panel override in the panel
+    config that sets a shorter display title for the spine only —
+    e.g., display "PURPOSELESS" with an ellipsis or "PURP. EFFIC."
+    as a two-line stack. The header banner still uses the full
+    title. This is a rendering-only concession; data remains the
+    full title.
+================================================================================

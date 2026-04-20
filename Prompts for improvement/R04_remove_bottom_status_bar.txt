@@ -1,0 +1,153 @@
+================================================================================
+REVISION R04 — REMOVE THE BOTTOM STATUS BAR
+================================================================================
+
+REVISES
+-------
+  Prompt 02 (navigation_paradigm) — the "STATUS RAIL" subsection.
+  Prompt 12 (motion_easter_eggs) — the "TICKER" subsection and the
+    status-bar flash-on-change behavior.
+  Prompt 13 (voice_and_copy) — status-bar microcopy entries.
+  Prompt 15 (a11y_perf_seo_iteration) — status-bar aria-live behavior.
+
+ISSUE
+-----
+The user wants the fixed bar at the bottom of the viewport removed.
+Quoted feedback:
+
+  "that tab at the bottom of the website, can you remove that?"
+
+Interpretation: "that tab" refers to the StatusBar described in
+Prompt 02 — the monospace 28–32px bar fixed to the bottom of every
+page, containing the breadcrumb path, the UTC clock, the Cmd+K hint,
+the F1 help hint, and the build version. (If the user actually meant a
+different bottom element, the executing agent should surface that
+question before proceeding.)
+
+REQUIRED CHANGES
+----------------
+1. DELETE THE STATUSBAR COMPONENT.
+   - Remove src/components/shell/StatusBar.tsx.
+   - Remove its mount from src/components/shell/Shell.tsx.
+   - Delete any CSS / tokens that existed only for the status bar:
+     --z-statusbar (unless referenced elsewhere), any bottom-padding
+     that was reserved to prevent content from sliding under the bar.
+   - Remove the status-bar flash-on-change behavior from the motion
+     layer (Prompt 12 layer 3 — the TICKER). The flash-on-change
+     pattern is retained for OTHER numeric contexts (book word count,
+     UTC-based numeric displays where they appear inline on a page).
+     Only the ticker that lived IN the bar is removed.
+
+2. RELOCATE OR DROP EACH SEGMENT.
+   The status bar contained five segments. Handle each explicitly:
+
+     (a) BREADCRUMB PATH (e.g., "~/projects/hivemind/README").
+         DROP. The dossier Header on each project page already
+         displays the breadcrumb as Line 2 ("~/projects/{slug}/README").
+         A second breadcrumb in the status bar was redundant.
+
+     (b) UTC CLOCK.
+         DROP. A live clock on a personal site adds no information
+         the visitor needs. The "operator" feel is carried by the
+         command palette, the monospace chrome, and the dossier
+         format — not by a ticking clock.
+
+     (c) ⌘K PALETTE HINT.
+         RELOCATE. The palette is still the primary navigation. The
+         hint moves to a small, unobtrusive affordance:
+           - A 28×28 monospace key-cap-style element fixed to the
+             TOP-RIGHT of the viewport, displaying "⌘K" in mono, with
+             a hairline border and --fg-mute color. Clickable;
+             opens the palette. Tooltip on hover: "Command palette".
+           - On mobile (<768px) the key-cap becomes a small
+             circular button with a "⌘" glyph, same position.
+         This preserves discoverability without returning a bar to
+         the bottom.
+
+     (d) F1 HELP HINT.
+         DROP as a visible UI element. Retain F1 as a keyboard
+         shortcut that opens the HelpModal. The help modal itself
+         is also reachable via the palette as a "Keyboard
+         shortcuts" query command (Prompt 04). The hint is removed
+         because a hint for a help shortcut is inventory an
+         operator doesn't need; they will find it via the palette
+         or try F1 intuitively.
+
+     (e) BUILD VERSION.
+         RELOCATE. Move to the Colophon block on /about (Prompt 10).
+         The Colophon already lists the site's construction; the
+         build version fits there. Render as a monospace line:
+           "build v0.3.1 · deployed 2026-04-12"
+         Replaces nothing in Colophon; extends it.
+
+3. PAGE LAYOUT UPDATE.
+   With the status bar gone:
+     - Every page gains ~32px of vertical real estate at the bottom.
+     - Remove any `padding-bottom: 32px` or similar reservation on
+       <main>.
+     - Full-viewport compositions (the accordion landing, the
+       Theseus principle graph) now genuinely fill the viewport.
+
+4. ARIA-LIVE BEHAVIOR.
+   The status bar was the site's only aria-live="polite" region.
+   Most page state changes do not need announcement, but a few do
+   (e.g., "copied to clipboard" toast). Handle these via:
+     - A dedicated hidden aria-live region in the Shell, rendered as
+       role="status", with no visual presence. Toasts still render
+       visually (top-right corner, see below) AND push into this
+       region for assistive tech.
+     - The toast system from Prompt 12 moves to the top-right
+       corner (below the ⌘K key-cap). Toasts remain visually
+       present for ~2.4s; the hidden aria-live region announces
+       them to screen readers.
+
+5. CHANGELOG AND CRITIQUE DOCS.
+   Add an entry in docs/CHANGELOG.md:
+     - Changed: Removed bottom status bar. ⌘K hint relocated to
+       top-right; build version relocated to /about colophon.
+     - Removed: UTC clock, status ticker, status-bar breadcrumb.
+
+6. COMMAND PALETTE HINT IN PLACEHOLDERS.
+   Prompts that previously referenced the status bar's ⌘K hint (for
+   example, the /projects header strip line that ends with "⌘K to
+   search") still display ⌘K hints IN THE PAGE. Only the bar's
+   copy of the hint is removed. Do not strip inline hints from page
+   bodies.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - No fixed bar or tab at the bottom of any page. The viewport's
+    bottom edge belongs to the page content.
+  - ⌘K key-cap affordance visible at top-right of every page, opens
+    the palette on click.
+  - F1 still opens the help modal; no visible hint for it.
+  - Build version appears only in /about's Colophon.
+  - Toasts still render and are announced to screen readers.
+  - @media print produces a clean print (no bottom bar to hide,
+    which simplifies the print stylesheet).
+  - No dead code references to the removed component.
+
+DO NOT
+------
+  - Do not replace the bottom bar with a bottom tab-strip, a bottom
+    toast zone, or any alternative bottom ornament. The bottom is
+    now empty.
+  - Do not move the breadcrumb to the TOP as a second fixed bar.
+    The dossier Header carries breadcrumbs on pages that have them;
+    the accordion landing does not need a breadcrumb because there
+    is no parent route.
+  - Do not remove the HelpModal itself. Only the hint disappears.
+  - Do not silently remove the build version from the site entirely.
+    It moves to Colophon; it is not deleted.
+
+STRETCH
+-------
+  - Make the top-right ⌘K key-cap contextual: on pages where the
+    palette would most help (e.g., /projects, /theseus), give it a
+    slight pulse animation (1 pulse every 8s) to invite first-time
+    visitors to try it. Disable after a successful palette open in
+    the session. Respect prefers-reduced-motion.
+  - When a user is typing into a focusable input (not the palette),
+    hide the ⌘K key-cap with a fade to avoid chrome competing with
+    the field. Restore on blur.
+================================================================================

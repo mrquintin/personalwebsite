@@ -1,0 +1,153 @@
+================================================================================
+REVISION R02 — REMOVE LABEL MORPH; LABEL FADES OUT IN PLACE
+================================================================================
+
+REVISES
+-------
+  Prompt 02 (navigation_paradigm) — the "URL sync" + "Transitions"
+    subsections, AND the implicit shared-element morph to a full-page
+    header.
+  Prompt 03 (landing_boot_sequence) — any teaser behavior that
+    positions the panel label as a page-header anchor.
+  Prompt 06 (project_detail_framework) — the dossier Header component
+    should NOT receive a morphing element from the accordion label.
+  Prompt 12 (motion_easter_eggs) — the "state transitions" subsection
+    that specified framer-motion layoutId travel between "/" and
+    "/:panel".
+
+ISSUE
+-----
+The current behavior zaps the accordion label from its spine position
+to the left side of the page as the panel expands, treating the label
+as a shared element that morphs into the page's header. The user does
+not want this. Quoted feedback:
+
+  "the label [should] not zap over to the left side of each page when
+   you open something in the accordion, such that the accordion opens
+   [and] the text that was previously the label of the accordion tab
+   disappears and the content appears in the expanded space that was
+   originally the tab itself."
+
+Interpretation: the label is a property of the SPINE, not a property
+of the page inside the spine. When a spine expands into a panel, the
+spine's label vanishes in place. The page's content then populates the
+expanded area. No element travels, no element morphs, no element
+re-parents into a new header position.
+
+REQUIRED CHANGES
+----------------
+1. REMOVE SHARED-ELEMENT MORPH.
+   - Delete any framer-motion `layoutId` attributes that connect the
+     accordion spine's title to the project-page Header's title.
+   - Delete any `layoutId` connections for the classification banner,
+     breadcrumb, or subtitle between accordion-teaser and full-page.
+   - The accordion teaser and the full-page Header are now INDEPENDENT
+     elements. They may contain the same text content, but they do
+     not animate from one to the other.
+
+2. SPINE LABEL ON EXPAND — FADE OUT IN PLACE.
+   When a spine expands:
+     - The label's opacity animates from 1 to 0 over 180ms with a
+       linear curve (or ease-out if linear reads too mechanical).
+     - The label does NOT translate, rotate, or scale during the fade.
+       It stays exactly where it was. It simply disappears.
+     - Once opacity reaches 0, the label element is removed from the
+       flow (display: none or unmounted) so it does not affect the
+       layout of the expanded panel's body content.
+     - Timing relative to R01's choreography: this 180ms fade starts
+       at t = 0, in parallel with the panel width expansion.
+
+3. EXPANDED BODY POPULATES THE EX-SPINE AREA.
+   The body content of the expanded panel is laid out against the
+   panel's full final width (from t = 0, hidden at opacity 0). At
+   t = 260ms it fades in. The visitor's impression:
+     - The spine's label fades out.
+     - The panel stretches to full width.
+     - The content fades in within the new area.
+   There is no sense of the label "becoming" the content. The label
+   is gone; the content arrives.
+
+4. FULL-PAGE HEADERS ARE JUST RENDERED.
+   On direct navigation to /about, /hivemind, etc. (by URL or by
+   palette, not via accordion expansion), the dossier Header renders
+   normally as a static element. No "fly in from the left." No
+   opacity fade-in. It is already there when the page paints. This
+   matches the principle from Prompt 06: "Do not animate the header
+   in. The classified banner should already be there when the page
+   paints."
+
+5. PROFILE: ACCORDION EXPANSION VS. ROUTE NAVIGATION.
+   There are two ways a panel's full content can appear:
+
+     (a) ACCORDION EXPANSION (on "/"): the spine expands in place;
+         the label fades, the content appears. The URL hash updates
+         (e.g., /#03) but the route does not change.
+
+     (b) ROUTE NAVIGATION (to /hivemind, /about, etc.): the accordion
+         is no longer the container. The whole page is the container.
+         The dossier header, metadata pane, and body render on mount.
+         No shared-element morph from anything that was previously on
+         "/".
+
+   These are two independent rendering paths. Removing the morph
+   simplifies the mental model: each surface is responsible for its
+   own layout. The surface-to-surface relationship is textual
+   (both show the project's title), not animated.
+
+6. HELPERS TO DELETE.
+   Audit the codebase for any of the following and remove:
+     - <motion.div layoutId="panel-title-03"> and siblings for each
+       panel code.
+     - <motion.div layoutId="panel-banner-03"> and siblings.
+     - Any LayoutGroup wrapper that was shared across the accordion
+       and the full-page routes.
+     - Any helper like useSharedLayout(panel) used only for the
+       accordion-to-page morph.
+
+7. STATE DURING THE FADE.
+   During the 180ms label fade, the spine's interactive state
+   (aria-expanded, focus ring, keyboard event handlers) transitions
+   to the expanded panel's content region. The fade is visual only;
+   the semantic ownership flips instantly on click/keyboard activation
+   so screen readers and keyboard focus arrive at the right place
+   immediately.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Clicking a spine causes the label to fade in place (no travel)
+    while the panel expands.
+  - No element visibly moves from the spine's position to a page
+    header position at any time.
+  - Direct-URL navigation to /hivemind or /about renders the dossier
+    header as a static element on first paint, with no entrance
+    animation.
+  - No framer-motion layoutId attributes remain on any text element
+    that was previously shared between accordion and full page.
+  - Reduced-motion: label disappears instantly on expand; no fade.
+  - Manual screen-reader test: focus lands on the panel's content
+    region (not on an orphaned, fading label) immediately on expand.
+
+DO NOT
+------
+  - Do not replace the morph with a different morph. The user has
+    explicitly rejected travel.
+  - Do not add a crossfade between the label and the page header.
+    The label is not related to the page header; they are two
+    different renderings.
+  - Do not delay the panel content's arrival to make the label's
+    departure feel smoother. They are independently timed (see R01's
+    choreography): label exits at t = 0–180ms, content enters at
+    t = 260–520ms. This gap is intentional and reads as clean.
+  - Do not move the label's text into the page header visually. The
+    page header reads the title from the same data source, but it is
+    a separate DOM node in a separate component.
+
+NOTES
+-----
+This revision simplifies the codebase by removing the shared-layout
+wiring. The original design specified a layoutId morph for
+typographic polish; the user has correctly identified that for this
+site's aesthetic, the morph reads as a gimmick. The new behavior is
+more operator-appropriate: things appear, things disappear, things
+are where they are. Nothing travels.
+================================================================================

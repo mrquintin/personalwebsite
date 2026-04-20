@@ -4,7 +4,7 @@
     {
       "label": "Sync to GitHub",
       "type": "shell",
-      "command": "./scripts/sync-to-github.sh",
+      "command": "bash \"${workspaceFolder}/scripts/sync-to-github.sh\"",
       "options": {
         "cwd": "${workspaceFolder}"
       },
