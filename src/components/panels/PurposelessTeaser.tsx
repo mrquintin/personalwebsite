@@ -24,11 +24,15 @@ export default function PurposelessTeaser() {
         fontSize: "var(--t-md-size)", color: "var(--fg-dim)",
         maxWidth: "60ch", marginBottom: "var(--s-5)",
       }}>
-        <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }}>"</span>
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }} aria-hidden="true">
+          {"\u201c"}
+        </span>
         {PURPOSELESS_TEASER.pullQuote.length > 220
           ? PURPOSELESS_TEASER.pullQuote.slice(0, 219) + "…"
           : PURPOSELESS_TEASER.pullQuote}
-        <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }}>"</span>
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }} aria-hidden="true">
+          {"\u201d"}
+        </span>
       </div>
       <div style={{ fontFamily: "var(--font-mono)", color: "var(--fg-dim)", marginBottom: "var(--s-5)" }}>
         MS WORDS: {progressBar(pct)} {pct}%

@@ -25,7 +25,12 @@ export default function Palette({ buildVersion, suppressed }: Props) {
 
   const history = useMemo<string[]>(() => {
     if (typeof window === "undefined") return [];
-    try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]"); } catch { return []; }
+    void open;
+    try {
+      return JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]");
+    } catch {
+      return [];
+    }
   }, [open]);
 
   // Scope filter: queries starting with /nav, /act, /qry, /prj, />xxx

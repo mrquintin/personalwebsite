@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ProjectsTable from "@/components/projects/ProjectsTable";
 import { loadProjects } from "@/lib/projects/loader";
 
@@ -12,7 +13,9 @@ export default function ProjectsPage() {
   return (
     <div className="dossier">
       <h1 className="sr-only">Projects</h1>
-      <ProjectsTable projects={projects} />
+      <Suspense fallback={<div className="sr-only">Loading projects…</div>}>
+        <ProjectsTable projects={projects} />
+      </Suspense>
     </div>
   );
 }

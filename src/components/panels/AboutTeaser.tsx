@@ -14,7 +14,9 @@ export default function AboutTeaser() {
         {ABOUT_TEASER.quotes.map((q, i) => (
           <li key={i} style={{ paddingBottom: "var(--s-2)" }}>
             <Link href="/about" style={{ color: "inherit" }}>
-              "{q.length > 88 ? q.slice(0, 87) + "…" : q}"
+              <span aria-hidden="true">{"\u201c"}</span>
+              {q.length > 88 ? q.slice(0, 87) + "…" : q}
+              <span aria-hidden="true">{"\u201d"}</span>
             </Link>
           </li>
         ))}
