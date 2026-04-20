@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
-import pkg from "./package.json" with { type: "json" };
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pkg = require("./package.json");
 
 const nextConfig: NextConfig = {
   env: {

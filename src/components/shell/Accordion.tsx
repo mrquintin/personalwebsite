@@ -53,10 +53,11 @@ export default function Accordion({ initialExpandedIndex = 1, panelContent }: Pr
   useHotkey({ key: "ArrowLeft" },  () => setFocusIndex((i) => Math.max(1, i - 1)));
   useHotkey({ key: "Escape" }, () => collapseToNeutral());
   useHotkey({ key: "Enter" }, () => expand(focusIndex));
-  for (const n of [1, 2, 3, 4, 5]) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useHotkey({ key: String(n) }, () => expand(n));
-  }
+  useHotkey({ key: "1" }, () => expand(1));
+  useHotkey({ key: "2" }, () => expand(2));
+  useHotkey({ key: "3" }, () => expand(3));
+  useHotkey({ key: "4" }, () => expand(4));
+  useHotkey({ key: "5" }, () => expand(5));
 
   return (
     <div

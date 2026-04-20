@@ -2,70 +2,85 @@
 
 **Live site (canonical):** [https://personalwebsite-beta-nine.vercel.app](https://personalwebsite-beta-nine.vercel.app)
 
-> **Vercel — Root directory:** the repository root (`.`) — this is the “site directory” (the folder that contains the Next.js `package.json` Vercel must build). If the app is ever moved into a subfolder, set **Root Directory** in the Vercel project to that folder and update this README.
+The Next.js app under `src/app/` is the **canonical** site. Legacy
+static HTML/CSS/JS under `public/` is deprecated; the Next app at `/`
+owns the routes. Legacy content is retained under `public/` for
+reference and may be archived to `public/_legacy/` in a follow-up.
 
-**Repository:** [github.com/mrquintin/personalwebsite](https://github.com/mrquintin/personalwebsite)
+## Stack
 
-## What this is
+- Next.js 15 (App Router) + React 19 + TypeScript.
+- Vanilla CSS with CSS custom properties — see `src/styles/tokens.css`.
+- No Tailwind, no Radix, no MDX runtime, no UI libraries — by choice.
+- Content lives as TypeScript modules in `src/content/` (CMS-in-git).
 
-- **Next.js** (App Router) at the repo root: `package.json`, `next.config.ts`, `src/`, and static assets under `public/`.
-- **Legacy static pages** (HTML/CSS/JS) are served from `public/` (e.g. `public/index.html` at `/index.html`, `public/pages/…`). The **default route `/`** is rendered by `src/app`, not the static `index.html` in `public/`.
-- **Do not** use a top-level `pages/` directory for static HTML — Next.js reserves that name for the [Pages Router](https://nextjs.org/docs/pages). Static HTML routes live under `public/pages/`.
+## Authoring docs (authoritative)
+
+- `docs/design-philosophy.md` — visual rules and forbidden patterns.
+- `docs/voice-guide.md` — copy voice + forbidden marketing words.
+- `docs/easter-eggs.md` — what is intentionally hidden on the site.
+- `docs/CHANGELOG.md`, `docs/critique-log.md`, `docs/visitor-log.md` —
+  iteration-loop surfaces.
 
 ## Local development
 
 ```bash
 npm install
-npm run dev
+npm run dev           # http://localhost:3000
+npm run build
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Deploy (production)
-
-Push to **`main`**. GitHub notifies Vercel; Vercel runs **`npm install`** (or uses the detected lockfile workflow) and **`npm run build`**, then serves the Next.js deployment.
-
-- **Production branch:** `main`.
-- **Framework:** Next.js (default **Build**: `next build`; **Output:** handled by Vercel — no static `output: "export"` here, so no custom output directory unless you change `next.config.ts`).
-- **Environment variables:** none required for this app today. Add any future secrets under **Project → Settings → Environment Variables**. Prefix browser-exposed vars with **`NEXT_PUBLIC_`**.
-
-## Sync to GitHub (one-shot)
-
-From the repo root:
+### Copy lint
 
 ```bash
-./scripts/sync-to-github.sh
+npx tsx scripts/lint-copy.ts
 ```
 
-Or:
+Fails the build if any word from `src/content/forbidden-words.ts`
+appears in `src/` or `docs/`.
+
+## Adding a project
+
+1. Create `src/content/projects/<slug>.ts` (see existing files).
+2. Add one import line to `src/lib/projects/loader.ts`.
+3. (Optional) Create `src/app/<slug>/page.tsx` and set
+   `customPage: "/<slug>"` on the project metadata.
+
+## Routes
+
+| Route                       | What it is                                   |
+| --------------------------- | -------------------------------------------- |
+| `/`                         | Accordion landing + boot sequence            |
+| `/about`                    | Biography, identity, beliefs, work ledger    |
+| `/hivemind`                 | Bespoke dossier — strategic analytical software |
+| `/purposeless-efficiency`   | Book page (serif surface)                    |
+| `/theseus`                  | Principle graph + Noosphere console          |
+| `/resume`                   | CV with print stylesheet + PDF link          |
+| `/projects`                 | Sortable, filterable index                   |
+| `/projects/[slug]`          | Generic dossier (redirects if custom page set) |
+| `/changelog`                | Site changelog                               |
+| `/styleguide`               | Developer-only token reference (unlinked)    |
+| `*`                         | 404 in operator voice                        |
+
+## Keyboard
+
+- `⌘K` / `Ctrl+K` — command palette
+- `F1` — help modal
+- `←` / `→` — accordion focus
+- `1`–`5` — expand accordion panel by index
+- `Esc` — collapse accordion to neutral / close palette
+
+## Deploy
+
+Push to `main`. Vercel builds the Next.js app. See the legacy README
+notes preserved below for Vercel / CI / sync-script specifics.
+
+### Sync script
 
 ```bash
 npm run sync
 ```
 
-**Behavior (summary):** resolves the current branch (on detached HEAD uses **`main`**), optionally removes stale `.git/*.lock` files when no process holds them, refuses a no-op push when you are already synced with **`origin`** (unless interactive **y** or **`SYNC_FORCE=1`**), commits pending changes with message **`Sync: latest changes`** when needed, pushes to **`origin`** (`mrquintin/personalwebsite`). After push, optionally watches the **`ci.yml`** workflow via **`gh`**, **`curl`**s the canonical URL from this README, and optionally checks GitHub Deployments for failure states.
-
-| Variable             | Meaning |
-|----------------------|---------|
-| **`SYNC_FORCE=1`**   | Non-interactive: bypass the “already up to date, skip push” guard so scripts can proceed (still no push if there is literally nothing to push). |
-| **`SYNC_SKIP_WATCH=1`** | Skip `gh run watch` for the CI workflow. |
-
-**Cursor / VS Code:** run the task **“Sync to GitHub”** (`.vscode/tasks.json`).
-
-## CI & dependencies
-
-- **GitHub Actions:** `.github/workflows/ci.yml` — **name:** `CI` — runs on pushes to `main` and on pull requests (`npm ci`, `npm run lint`, `npm run build`).
-- **Dependabot:** `.github/dependabot.yml` — npm and GitHub Actions updates on a weekly schedule.
-
-## `vercel.json`
-
-Not required for this setup (standard Next.js on Vercel). Add one later only if you need headers, redirects, or a non-default static export layout.
-
----
-
-### Site directory (mental model)
-
-| Term | Meaning here |
-|------|----------------|
-| **Site directory** | The folder Vercel uses as **Root Directory** — must contain **`package.json`** for the Next.js app. |
-| **This repo** | **Root Directory = `.`** (repository root). |
+Runs `scripts/sync-to-github.sh`. Supports `SYNC_FORCE=1` and
+`SYNC_SKIP_WATCH=1` as before.

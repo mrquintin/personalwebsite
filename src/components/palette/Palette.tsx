@@ -102,7 +102,11 @@ export default function Palette({ buildVersion, suppressed }: Props) {
       const next = [cmd.id, ...cur.filter((x) => x !== cmd.id)].slice(0, HISTORY_MAX);
       sessionStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     } catch {}
-    Promise.resolve(cmd.run({ router: { push: router.push }, toast: setToast, close }));
+    Promise.resolve(cmd.run({
+      router: { push: (href: string) => router.push(href) },
+      toast: setToast,
+      close,
+    }));
   }, [router, close]);
 
   if (!open) return (
