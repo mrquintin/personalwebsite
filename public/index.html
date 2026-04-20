@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Michael Quintin — Portfolio</title>
+  <meta name="description" content="Personal portfolio of Michael Quintin — projects, writing, and achievements.">
+
+  <!-- Fonts: Barlow (geometric sans, Palantir-adjacent) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="nav" id="nav">
+    <div class="container">
+      <a href="#" class="nav-logo">Michael Quintin</a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#about">About</a>
+        <a href="#projects">Work</a>
+        <a href="#resume">Resume</a>
+        <a href="#blog">Blog</a>
+        <a href="pages/ontology.html">Ontology</a>
+        <a href="#contact">Contact</a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <!-- Sun icon (shown in dark mode) -->
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m-8-9H3m16 0h1m-2.636-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+          </svg>
+          <!-- Moon icon (shown in light mode) -->
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="display:none">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>
+          </svg>
+        </button>
+      </div>
+
+      <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span>Building things</span>
+          <span>that matter.</span>
+        </h1>
+        <p class="hero-subtitle">
+          I design and build projects across disciplines — from software and research
+          to creative work and beyond. This is where I document the journey.
+        </p>
+        <a href="#projects" class="hero-cta">
+          View My Work
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
+      <div class="scroll-indicator">Scroll</div>
+    </div>
+  </section>
+
+
+  <!-- ===== ABOUT ===== -->
+  <section class="section" id="about">
+    <div class="container">
+      <div class="divider" style="margin-bottom:var(--space-xl)"></div>
+      <span class="section-label reveal">01 — About</span>
+      <div class="about-grid">
+        <div class="about-text reveal">
+          <p>
+            <!-- EDIT: Replace with your own bio -->
+            I'm Michael Quintin — a maker, thinker, and builder. I work at the intersection of
+            technology and creativity, pursuing projects that push boundaries and solve
+            real problems.
+          </p>
+          <p>
+            Whether it's writing a research paper, developing a VR experience, or
+            building software from scratch, I approach every project with rigor,
+            curiosity, and attention to craft.
+          </p>
+        </div>
+        <div class="about-stats reveal">
+          <!-- EDIT: Update these numbers -->
+          <div class="stat-item">
+            <div class="stat-number">12+</div>
+            <div class="stat-label">Projects Completed</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Years of Experience</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Disciplines</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">&infin;</div>
+            <div class="stat-label">Curiosity</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== PROJECTS / PORTFOLIO ===== -->
+  <section class="section" id="projects">
+    <div class="container">
+      <div class="divider" style="margin-bottom:var(--space-xl)"></div>
+      <span class="section-label reveal">02 — Work</span>
+      <h2 class="section-title reveal">Selected Projects</h2>
+
+      <!-- Filter buttons — categories auto-populate from project data -->
+      <div class="filter-bar reveal" id="filterBar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <!-- JS auto-generates category buttons here -->
+      </div>
+
+      <div class="projects-grid" id="projectsGrid">
+        <!-- Projects are rendered by JS from projects/projects.json -->
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== RESUME / CV ===== -->
+  <section class="section" id="resume">
+    <div class="container">
+      <div class="divider" style="margin-bottom:var(--space-xl)"></div>
+      <span class="section-label reveal">03 — Resume</span>
+      <h2 class="section-title reveal">Experience &amp; Skills</h2>
+
+      <div class="timeline" id="timeline">
+        <!-- Timeline items rendered from JS data -->
+      </div>
+
+      <span class="section-label reveal" style="margin-top:var(--space-xl)">Skills</span>
+      <div class="skills-grid" id="skillsGrid">
+        <!-- Skills rendered from JS data -->
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== BLOG ===== -->
+  <section class="section" id="blog">
+    <div class="container">
+      <div class="divider" style="margin-bottom:var(--space-xl)"></div>
+      <span class="section-label reveal">04 — Writing</span>
+      <h2 class="section-title reveal">Blog &amp; Articles</h2>
+
+      <div class="blog-grid" id="blogGrid">
+        <!-- Blog posts rendered from JS data -->
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== CONTACT ===== -->
+  <section class="section" id="contact">
+    <div class="container">
+      <div class="divider" style="margin-bottom:var(--space-xl)"></div>
+      <span class="section-label reveal">05 — Contact</span>
+      <h2 class="section-title reveal">Let's Connect</h2>
+
+      <div class="contact-grid">
+        <div class="contact-info reveal">
+          <h3>Have a project in mind, or just want to say hello? I'd love to hear from you.</h3>
+          <div class="contact-links">
+            <a href="mailto:your@email.com" class="contact-link">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              your@email.com
+            </a>
+            <a href="https://github.com/" target="_blank" class="contact-link">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              GitHub
+            </a>
+            <a href="https://linkedin.com/" target="_blank" class="contact-link">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z"/></svg>
+              LinkedIn
+            </a>
+          </div>
+        </div>
+
+        <form class="contact-form reveal" id="contactForm" onsubmit="return false;">
+          <div class="form-group">
+            <input type="text" placeholder="Name" required>
+          </div>
+          <div class="form-group">
+            <input type="email" placeholder="Email" required>
+          </div>
+          <div class="form-group">
+            <textarea placeholder="Message" required></textarea>
+          </div>
+          <button type="submit" class="form-submit">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container">
+      <span class="footer-text">&copy; 2026 Michael Quintin. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="#hero">Top</a>
+        <a href="https://github.com/" target="_blank">GitHub</a>
+        <a href="https://linkedin.com/" target="_blank">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+
+
+  <script src="/js/site.js"></script>
+</body>
+</html>
