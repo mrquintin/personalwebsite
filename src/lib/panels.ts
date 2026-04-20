@@ -15,6 +15,11 @@ export const PANELS: PanelDef[] = [
   { id: "05", code: "CV",  title: "Resume",                  href: "/resume",                  index: 5 },
 ];
 
+// Optional 6th panel revealed only on very wide displays (>=1680px).
+export const PANEL_LOG: PanelDef = {
+  id: "06", code: "LOG", title: "Changelog", href: "/changelog", index: 6,
+};
+
 export function getPanelByCode(code: string): PanelDef | undefined {
   return PANELS.find((p) => p.code === code.toUpperCase());
 }

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { COPY } from "@/content/microcopy";
+import progress from "@/content/projects/purposeless-efficiency/progress";
 
 function formatBreadcrumb(path: string): string {
   if (path === "/") return "~/index";
@@ -73,7 +74,14 @@ export default function StatusBar({ buildVersion }: Props) {
       <span>{time}</span>
       <span aria-hidden="true">│</span>
       <span style={{ color: "var(--fg-dim)" }}>
-        {flash ?? COPY.ticker[tickerIdx]}
+        {(() => {
+          if (flash) return flash;
+          if (path === "/purposeless-efficiency") {
+            const pct = Math.round((progress.words / progress.target) * 100);
+            return `PRP · ${progress.words.toLocaleString()} / ${progress.target.toLocaleString()} (${pct}%)`;
+          }
+          return COPY.ticker[tickerIdx];
+        })()}
       </span>
       <span style={{ marginLeft: "auto" }}>
         <span>{COPY.paletteHint}</span>

@@ -94,8 +94,10 @@ export default function ProjectsTable({ projects }: Props) {
     else { setSortKey(k); setSortDir("desc"); }
   }
 
+  const detail = rows[sel];
+
   return (
-    <div>
+    <div className="projects-table-wrap">
       <div style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-4)" }}>
         {COPY.projects.headerPrefix} — {projects.length} loaded · sort: {sortKey} {sortDir === "asc" ? "↑" : "↓"}
       </div>
@@ -178,6 +180,28 @@ export default function ProjectsTable({ projects }: Props) {
             ))}
           </tbody>
         </table>
+      )}
+      {detail && (
+        <aside className="projects-detail" aria-label="selected project preview">
+          <div style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "var(--t-xs-size)" }}>
+            {detail.code} · {detail.title}
+          </div>
+          <div style={{ color: "var(--fg-mute)", fontFamily: "var(--font-mono)", fontSize: "var(--t-xxs-size)", marginTop: "var(--s-1)" }}>
+            updated {detail.updatedISO}
+          </div>
+          <p style={{ color: "var(--fg)", fontFamily: "var(--font-sans)", fontSize: "var(--t-xs-size)", marginTop: "var(--s-3)", lineHeight: 1.5 }}>
+            {detail.summary}
+          </p>
+          {detail.links.slice(0, 3).length > 0 && (
+            <ul style={{ marginTop: "var(--s-3)", fontFamily: "var(--font-mono)", fontSize: "var(--t-xxs-size)" }}>
+              {detail.links.slice(0, 3).map((l, i) => (
+                <li key={i} style={{ color: "var(--fg-dim)", padding: "2px 0" }}>
+                  · <a href={l.href} target={l.external ? "_blank" : undefined} rel="noopener" style={{ color: "var(--fg)" }}>{l.label}</a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
       )}
     </div>
   );

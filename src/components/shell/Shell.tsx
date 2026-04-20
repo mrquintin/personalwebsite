@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 import StatusBar from "./StatusBar";
 import TopRail from "./TopRail";
 import HelpModal from "./HelpModal";
+import NavigationLogger from "./NavigationLogger";
 import Palette from "@/components/palette/Palette";
 import EasterEggs from "@/components/easter/EasterEggs";
 import { Analytics } from "@vercel/analytics/next";
@@ -36,6 +37,7 @@ export default function Shell({ children, buildVersion }: Props) {
       <Palette buildVersion={buildVersion} />
       <HelpModal />
       <EasterEggs />
+      <NavigationLogger />
       <Analytics />
     </>
   );

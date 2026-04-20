@@ -5,6 +5,7 @@ import ThesisCard from "@/components/projects/theseus/ThesisCard";
 import PrincipleGraph from "@/components/projects/theseus/PrincipleGraph";
 import NoosphereConsole from "@/components/projects/theseus/NoosphereConsole";
 import PrinciplesList from "@/components/projects/theseus/PrinciplesList";
+import ExportPrinciples from "@/components/projects/theseus/ExportPrinciples";
 import thesis from "@/content/projects/theseus/thesis";
 import principles from "@/content/projects/theseus/principles";
 import feed from "@/content/projects/theseus/noosphere-feed";
@@ -49,6 +50,7 @@ export default function TheseusPage() {
           ── FIRST PRINCIPLES ({principles.length}) ──
         </h2>
         <PrinciplesList principles={principles} />
+        <ExportPrinciples principles={principles} />
       </section>
 
       <section id="methodology" style={{ marginBottom: "var(--s-7)" }}>

@@ -14,7 +14,9 @@ export default function ProjectsPage() {
     <div className="dossier">
       <h1 className="sr-only">Projects</h1>
       <Suspense fallback={<div className="sr-only">Loading projects…</div>}>
-        <ProjectsTable projects={projects} />
+        <div className="projects-layout">
+          <ProjectsTable projects={projects} />
+        </div>
       </Suspense>
     </div>
   );
