@@ -12,13 +12,16 @@ type Props = {
   selected: boolean;
   indices: number[];
   id: string;
+  pending?: boolean;
+  disabled?: boolean;
   onActivate: () => void;
   onMouseEnter: () => void;
 };
 
-export default function ResultRow({ cmd, selected, indices, id, onActivate, onMouseEnter }: Props) {
+export default function ResultRow({
+  cmd, selected, indices, id, pending, disabled, onActivate, onMouseEnter,
+}: Props) {
   const title = cmd.title;
-  // Highlight matched indices
   const chars = title.split("").map((ch, i) => {
     const hit = indices.includes(i);
     return (
@@ -32,14 +35,16 @@ export default function ResultRow({ cmd, selected, indices, id, onActivate, onMo
       id={id}
       role="option"
       aria-selected={selected}
-      onMouseDown={(e) => { e.preventDefault(); onActivate(); }}
+      aria-disabled={disabled}
+      onMouseDown={(e) => { e.preventDefault(); if (!disabled) onActivate(); }}
       onMouseEnter={onMouseEnter}
       className="palette-row"
       data-selected={selected}
+      style={{ opacity: disabled && !pending ? 0.4 : 1, cursor: disabled ? "not-allowed" : "pointer" }}
     >
-      <span className="palette-glyph">{GLYPH[cmd.kind]}</span>
+      <span className="palette-glyph">{pending ? <span className="cursor-blink">⠿</span> : GLYPH[cmd.kind]}</span>
       <span className="palette-title">{chars}</span>
-      {cmd.context && <span className="palette-ctx">{cmd.context}</span>}
+      {cmd.context && <span className="palette-ctx">{pending ? "running…" : cmd.context}</span>}
     </div>
   );
 }

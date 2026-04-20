@@ -4,6 +4,8 @@ import StatusBar from "./StatusBar";
 import TopRail from "./TopRail";
 import HelpModal from "./HelpModal";
 import Palette from "@/components/palette/Palette";
+import EasterEggs from "@/components/easter/EasterEggs";
+import { Analytics } from "@vercel/analytics/next";
 import { usePathname } from "next/navigation";
 
 type Props = { children: ReactNode; buildVersion: string };
@@ -33,6 +35,8 @@ export default function Shell({ children, buildVersion }: Props) {
       <StatusBar buildVersion={buildVersion} />
       <Palette buildVersion={buildVersion} />
       <HelpModal />
+      <EasterEggs />
+      <Analytics />
     </>
   );
 }

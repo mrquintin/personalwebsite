@@ -2,15 +2,21 @@
 
 Document each so future maintenance does not strip them by accident.
 
-- **404 page.** A deliberate ASCII directory listing in operator voice.
-  Source: `src/app/not-found.tsx`.
+- **404 page.** Operator-voice ASCII directory listing. `src/app/not-found.tsx`.
 - **Boot sequence.** Plays once per session; skippable on any keypress
-  or click. Source: `src/components/boot/BootSequence.tsx`.
+  or click. `src/components/boot/BootSequence.tsx`.
 - **Accordion neutral state.** Press Escape on `/` to flatten the
   accordion to equal-width spines.
-- **Print stylesheet on /purposeless-efficiency.** Adds a small folio
-  line at the bottom of the printed page (`I · Purposeless Efficiency
-  · Michael Quintin`). Source: `src/styles/print.css`.
-
-Not yet shipped (see prompt 12 for spec): Konami code, `clear` command,
-hold ⌘+Shift+T overlay, palette `sudo`, time-based late-night status.
+- **Accordion hover-expand.** Desktop only (>=768px, fine pointer).
+- **Konami code.** ↑↑↓↓←→←→BA opens the palette and toasts
+  "you have good taste. welcome." (`Palette.tsx`).
+- **`clear`.** On `/`, type `clear` and Enter to flash "screen cleared."
+  and reset the accordion to neutral. (`EasterEggs.tsx`)
+- **⌘+Shift+T.** Hold to reveal an ASCII page outline overlay listing
+  every H1/H2/H3 on the page. Release to dismiss. (`EasterEggs.tsx`)
+- **`sudo`.** Prefix any palette query with `sudo ` to get a theatrical
+  permission-granted toast before the command runs.
+- **Late-night.** Between 00:00 and 06:00 local, a one-shot session
+  flash reads "STATUS: late — respect your sleep."
+- **Print stylesheet on /purposeless-efficiency.** Adds a folio line at
+  the bottom of the printed page. `src/styles/print.css`.

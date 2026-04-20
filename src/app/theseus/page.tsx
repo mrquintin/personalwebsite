@@ -8,7 +8,7 @@ import PrinciplesList from "@/components/projects/theseus/PrinciplesList";
 import thesis from "@/content/projects/theseus/thesis";
 import principles from "@/content/projects/theseus/principles";
 import feed from "@/content/projects/theseus/noosphere-feed";
-import methodology from "@/content/projects/theseus/methodology";
+import Methodology from "@/content/projects/theseus/methodology.mdx";
 
 export const metadata: Metadata = {
   title: "THS · Theseus",
@@ -56,7 +56,7 @@ export default function TheseusPage() {
           ── METHODOLOGY ──
         </h2>
         <div className="synopsis">
-          {methodology.map((p, i) => <p key={i}>{p}</p>)}
+          <Methodology />
         </div>
       </section>
 

@@ -6,16 +6,20 @@ import { join } from "node:path";
 import { FORBIDDEN_WORDS } from "../src/content/forbidden-words";
 
 const ROOTS = ["src", "docs"];
-const EXTS = [".ts", ".tsx", ".md"];
+const EXTS = [".ts", ".tsx", ".md", ".mdx"];
 const EXCLUDE = new Set(["node_modules", ".next", "public", ".git", "tools"]);
 const SELF = "src/content/forbidden-words.ts";
+// Files allowed to mention the forbidden words for documentary purposes.
+const ALLOW = new Set([
+  "docs/voice-guide.md",
+]);
 
 async function walk(p: string, out: string[] = []): Promise<string[]> {
   const s = await stat(p);
   if (s.isDirectory()) {
     if (EXCLUDE.has(p.split("/").pop()!)) return out;
     for (const ent of await readdir(p)) await walk(join(p, ent), out);
-  } else if (EXTS.some((e) => p.endsWith(e)) && !p.endsWith(SELF)) {
+  } else if (EXTS.some((e) => p.endsWith(e)) && !p.endsWith(SELF) && !ALLOW.has(p)) {
     out.push(p);
   }
   return out;

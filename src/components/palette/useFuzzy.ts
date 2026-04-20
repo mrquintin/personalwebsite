@@ -1,47 +1,38 @@
 "use client";
-// Tiny fuzzy matcher: rewards in-order character matches and word-boundary matches.
-// Sufficient for ~50 commands; replace with fuse.js if the registry grows large.
+import Fuse, { type IFuseOptions } from "fuse.js";
+import { useMemo } from "react";
+
 export type Match = { score: number; indices: number[] };
 
-export function fuzzyScore(needle: string, hay: string): Match | null {
-  if (!needle) return { score: 0, indices: [] };
-  const n = needle.toLowerCase();
-  const h = hay.toLowerCase();
-  let i = 0, j = 0, score = 0, prev = -2;
-  const indices: number[] = [];
-  while (i < n.length && j < h.length) {
-    if (n[i] === h[j]) {
-      // word-boundary bonus
-      const isBoundary = j === 0 || /[\s\-_/.]/.test(h[j - 1]);
-      score += isBoundary ? 4 : 1;
-      // adjacency bonus
-      if (j === prev + 1) score += 2;
-      indices.push(j);
-      prev = j;
-      i++;
-    }
-    j++;
-  }
-  if (i < n.length) return null;
-  // length penalty so shorter strings rank higher
-  score -= h.length * 0.01;
-  return { score, indices };
+const FUSE_OPTS: IFuseOptions<{ title: string; keywords?: string[] }> = {
+  keys: [
+    { name: "title", weight: 0.7 },
+    { name: "keywords", weight: 0.3 },
+  ],
+  threshold: 0.4,
+  ignoreLocation: true,
+  includeMatches: true,
+  includeScore: true,
+  minMatchCharLength: 1,
+};
+
+export function useFuse<T extends { title: string; keywords?: string[] }>(items: T[]) {
+  return useMemo(() => new Fuse(items, FUSE_OPTS), [items]);
 }
 
+// Backward-compatible API used by Palette.tsx — ranks items, returns highlight indices on the title.
 export function fuzzyRank<T extends { title: string; keywords?: string[] }>(
-  items: T[],
-  query: string,
+  items: T[], query: string,
 ): { item: T; match: Match }[] {
   if (!query) return items.map((item) => ({ item, match: { score: 0, indices: [] } }));
-  const out: { item: T; match: Match }[] = [];
-  for (const item of items) {
-    const candidates = [item.title, ...(item.keywords ?? [])];
-    let best: Match | null = null;
-    for (const c of candidates) {
-      const m = fuzzyScore(query, c);
-      if (m && (!best || m.score > best.score)) best = m;
+  const fuse = new Fuse(items, FUSE_OPTS);
+  const hits = fuse.search(query, { limit: 50 });
+  return hits.map((h) => {
+    const titleMatch = h.matches?.find((m) => m.key === "title");
+    const indices: number[] = [];
+    if (titleMatch?.indices) {
+      for (const [a, b] of titleMatch.indices) for (let i = a; i <= b; i++) indices.push(i);
     }
-    if (best) out.push({ item, match: best });
-  }
-  return out.sort((a, b) => b.match.score - a.match.score);
+    return { item: h.item, match: { score: -(h.score ?? 0), indices } };
+  });
 }

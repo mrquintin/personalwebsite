@@ -88,6 +88,35 @@
   z-index: var(--z-toast);
 }
 
+/* ----- accordion mobile (<768px): stack vertically ----- */
+@media (max-width: 767px) {
+  .accordion {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: calc(100vh - var(--statusbar-h));
+  }
+  .accordion .panel {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: var(--border-hair);
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+  }
+  .accordion .panel-spine {
+    flex-direction: row !important;
+    height: 56px !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 0 var(--s-4) !important;
+    gap: var(--s-4);
+  }
+  .accordion .panel .panel-spine span[aria-hidden="true"] {
+    writing-mode: horizontal-tb !important;
+    transform: none !important;
+    white-space: normal;
+  }
+}
+
 /* ----- generic dossier chrome ----- */
 .dossier { padding: var(--s-6) var(--s-7); max-width: 1200px; margin: 0 auto; }
 .dossier-header { font-family: var(--font-mono); margin-bottom: var(--s-6); }

@@ -21,11 +21,22 @@ export function actionCommands(): Command[] {
       } },
     { id: "action.download-resume", kind: "action", section: "Actions",
       title: "Download resume PDF", context: "/resume.pdf",
-      run: async ({ toast }) => {
+      run: async ({ toast, close }) => {
         toast("· download started");
-        const a = document.createElement("a");
-        a.href = "/resume.pdf"; a.download = "michael-quintin-cv.pdf";
-        document.body.appendChild(a); a.click(); a.remove();
+        try {
+          const res = await fetch("/resume.pdf");
+          if (!res.ok) throw new Error(String(res.status));
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = "michael-quintin-cv.pdf";
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+          toast("✓ download ready");
+        } catch {
+          toast("! resume.pdf not found — pdf pending");
+        }
+        close();
       } },
     { id: "action.toggle-theme", kind: "action", section: "Actions",
       title: "Toggle theme (dark / light)",
@@ -44,8 +55,14 @@ export function actionCommands(): Command[] {
       title: "Open GitHub profile", context: "github.com/mrquintin ↗",
       run: ({ close }) => { window.open("https://github.com/mrquintin", "_blank", "noopener"); close(); } },
     { id: "ext.linkedin", kind: "action", section: "External",
-      title: "Open LinkedIn", context: "linkedin.com/in/michaelquintin ↗",
-      run: ({ close }) => { window.open("https://linkedin.com/in/michaelquintin", "_blank", "noopener"); close(); } },
+      title: "Open LinkedIn", context: "linkedin.com/in/michael-quintin-5555b4283 ↗",
+      run: ({ close }) => {
+        window.open("https://www.linkedin.com/in/michael-quintin-5555b4283/", "_blank", "noopener");
+        close();
+      } },
+    { id: "ext.x", kind: "action", section: "External",
+      title: "Open X profile", context: "x.com/quintinpublic ↗",
+      run: ({ close }) => { window.open("https://x.com/quintinpublic", "_blank", "noopener"); close(); } },
     { id: "ext.thesescodex", kind: "action", section: "External",
       title: "Open thesescodex.com", context: "thesescodex.com ↗",
       run: ({ close }) => { window.open("https://thesescodex.com", "_blank", "noopener"); close(); } },

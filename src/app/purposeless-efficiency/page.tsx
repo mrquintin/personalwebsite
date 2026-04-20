@@ -11,7 +11,7 @@ import project from "@/content/projects/purposeless-efficiency";
 import progress from "@/content/projects/purposeless-efficiency/progress";
 import pillars from "@/content/projects/purposeless-efficiency/pillars";
 import arc from "@/content/projects/purposeless-efficiency/arc";
-import preface from "@/content/projects/purposeless-efficiency/preface";
+import Preface from "@/content/projects/purposeless-efficiency/preface.mdx";
 
 export const metadata: Metadata = {
   title: "PRP · Purposeless Efficiency",
@@ -55,9 +55,7 @@ export default function PurposelessPage() {
       <section id="synopsis" style={{ margin: "var(--s-7) 0" }}>
         <h2 className="pe-title-mono" style={{ color: "var(--fg-mute)" }}>── PREFACE ──</h2>
         <article className="pe-prose" style={{ marginTop: "var(--s-4)" }}>
-          {preface.map((p, i) => (
-            <p key={i} className={i === 0 ? "first-block" : undefined}>{p}</p>
-          ))}
+          <Preface />
         </article>
       </section>
 

@@ -69,6 +69,12 @@ export default function ProjectsTable({ projects }: Props) {
   useHotkey({ key: "j" }, () => setSel((s) => Math.min(rows.length - 1, s + 1)));
   useHotkey({ key: "k" }, () => setSel((s) => Math.max(0, s - 1)));
   useHotkey({ key: "Enter" }, () => activate(rows[sel]));
+  useHotkey({ key: "Enter", meta: true, preventDefault: true }, () => {
+    const p = rows[sel];
+    if (!p) return;
+    const dest = p.customPage ?? `/projects/${p.slug}`;
+    window.open(dest, "_blank", "noopener");
+  });
   useHotkey({ key: "/", preventDefault: true }, () => {
     setFilterFocus(true);
     setTimeout(() => filterRef.current?.focus(), 0);

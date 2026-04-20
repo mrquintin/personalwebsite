@@ -1,6 +1,9 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import * as Dialog from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Command } from "@/lib/commands/types";
 import { buildRegistry } from "@/lib/commands/registry";
 import { fuzzyRank } from "./useFuzzy";
@@ -18,6 +21,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -26,14 +30,10 @@ export default function Palette({ buildVersion, suppressed }: Props) {
   const history = useMemo<string[]>(() => {
     if (typeof window === "undefined") return [];
     void open;
-    try {
-      return JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]");
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]"); }
+    catch { return []; }
   }, [open]);
 
-  // Scope filter: queries starting with /nav, /act, /qry, /prj, />xxx
   const { scope, queryText } = useMemo(() => {
     const m = q.match(/^\/(nav|act|qry|prj|>)([^\s]*)\s?(.*)$/);
     if (!m) return { scope: "all" as const, queryText: q };
@@ -62,11 +62,9 @@ export default function Palette({ buildVersion, suppressed }: Props) {
     return ranked;
   }, [q, history, registry, ranked]);
 
-  // Open / close hotkeys
   useHotkey({ key: "k", meta: true, preventDefault: true, enabled: !suppressed }, () => {
     setOpen((o) => !o);
   });
-  useHotkey({ key: "Escape", enabled: open }, () => setOpen(false));
   useHotkey({ key: "ArrowDown", enabled: open, preventDefault: true }, () => {
     setSel((s) => Math.min(items.length - 1, s + 1));
   });
@@ -76,13 +74,31 @@ export default function Palette({ buildVersion, suppressed }: Props) {
   useHotkey({ key: "Enter", enabled: open, preventDefault: true }, () => {
     activate(items[sel]?.item);
   });
-
-  // F1 → help (handled by HelpModal; we just dispatch)
   useHotkey({ key: "F1", preventDefault: true, enabled: !suppressed }, () => {
     window.dispatchEvent(new CustomEvent("operator:open-help"));
   });
 
-  // Reset on open
+  // Konami code easter egg → open palette + custom command
+  useEffect(() => {
+    const SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+    let i = 0;
+    function on(e: KeyboardEvent) {
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === SEQ[i]) {
+        i++;
+        if (i === SEQ.length) {
+          i = 0;
+          setOpen(true);
+          setToast("you have good taste. welcome.");
+        }
+      } else {
+        i = k === SEQ[0] ? 1 : 0;
+      }
+    }
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setQ("");
@@ -90,7 +106,6 @@ export default function Palette({ buildVersion, suppressed }: Props) {
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [open]);
 
-  // Toast auto-dismiss
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1800);
@@ -100,77 +115,98 @@ export default function Palette({ buildVersion, suppressed }: Props) {
   const close = useCallback(() => setOpen(false), []);
 
   const activate = useCallback((cmd?: Command) => {
-    if (!cmd) return;
-    // Push to history
+    if (!cmd || pendingId) return;
+    // sudo theatre
+    if (q.startsWith("sudo ")) {
+      setToast("operator.michael.quintin ALL=(ALL) ALL — permission granted");
+    }
     try {
       const cur: string[] = JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]");
       const next = [cmd.id, ...cur.filter((x) => x !== cmd.id)].slice(0, HISTORY_MAX);
       sessionStorage.setItem(HISTORY_KEY, JSON.stringify(next));
     } catch {}
+    setPendingId(cmd.id);
     Promise.resolve(cmd.run({
       router: { push: (href: string) => router.push(href) },
       toast: setToast,
       close,
-    }));
-  }, [router, close]);
-
-  if (!open) return (
-    <>
-      {toast && <div className="toast">{toast}</div>}
-    </>
-  );
+    })).finally(() => setPendingId(null));
+  }, [router, close, pendingId, q]);
 
   return (
     <>
-      <div className="palette-backdrop" onMouseDown={close} aria-hidden="true" />
-      <div
-        className="palette"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-      >
-        <div className="palette-input-row">
-          <span className="palette-chevron">›</span>
-          <input
-            ref={inputRef}
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setSel(0); }}
-            placeholder={COPY.paletteOpen}
-            spellCheck={false}
-            autoComplete="off"
-            role="combobox"
-            aria-expanded="true"
-            aria-controls="palette-results"
-            aria-activedescendant={items[sel] ? `palette-row-${sel}` : undefined}
-          />
-          <kbd className="palette-kbd">ESC</kbd>
-        </div>
-        <div className="palette-divider" />
-        <div
-          className="palette-results"
-          id="palette-results"
-          role="listbox"
-          aria-live="polite"
-          aria-label={`${items.length} results`}
-        >
-          {items.length === 0 && (
-            <div className="palette-empty">no commands matched. / to filter.</div>
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <AnimatePresence>
+          {open && (
+            <Dialog.Portal forceMount>
+              <Dialog.Overlay asChild>
+                <motion.div
+                  className="palette-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.16 }}
+                />
+              </Dialog.Overlay>
+              <Dialog.Content asChild aria-label="Command palette">
+                <motion.div
+                  className="palette"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.16 }}
+                >
+                  <VisuallyHidden asChild><Dialog.Title>Command palette</Dialog.Title></VisuallyHidden>
+                  <VisuallyHidden asChild><Dialog.Description>Type a command or fuzzy-search the site.</Dialog.Description></VisuallyHidden>
+                  <div className="palette-input-row">
+                    <span className="palette-chevron">›</span>
+                    <input
+                      ref={inputRef}
+                      value={q}
+                      onChange={(e) => { setQ(e.target.value); setSel(0); }}
+                      placeholder={COPY.paletteOpen}
+                      spellCheck={false}
+                      autoComplete="off"
+                      role="combobox"
+                      aria-expanded="true"
+                      aria-controls="palette-results"
+                      aria-activedescendant={items[sel] ? `palette-row-${sel}` : undefined}
+                    />
+                    <kbd className="palette-kbd">ESC</kbd>
+                  </div>
+                  <div className="palette-divider" />
+                  <div
+                    className="palette-results"
+                    id="palette-results"
+                    role="listbox"
+                    aria-live="polite"
+                    aria-label={`${items.length} results`}
+                  >
+                    {items.length === 0 && (
+                      <div className="palette-empty">no commands matched. / to filter.</div>
+                    )}
+                    {items.map((r, i) => (
+                      <ResultRow
+                        key={r.item.id}
+                        cmd={r.item}
+                        indices={r.match.indices}
+                        selected={i === sel}
+                        pending={pendingId === r.item.id}
+                        disabled={pendingId !== null && pendingId !== r.item.id}
+                        id={`palette-row-${i}`}
+                        onActivate={() => activate(r.item)}
+                        onMouseEnter={() => setSel(i)}
+                      />
+                    ))}
+                  </div>
+                  <div className="palette-divider" />
+                  <div className="palette-footer">{COPY.paletteFooter}</div>
+                </motion.div>
+              </Dialog.Content>
+            </Dialog.Portal>
           )}
-          {items.map((r, i) => (
-            <ResultRow
-              key={r.item.id}
-              cmd={r.item}
-              indices={r.match.indices}
-              selected={i === sel}
-              id={`palette-row-${i}`}
-              onActivate={() => activate(r.item)}
-              onMouseEnter={() => setSel(i)}
-            />
-          ))}
-        </div>
-        <div className="palette-divider" />
-        <div className="palette-footer">{COPY.paletteFooter}</div>
-      </div>
+        </AnimatePresence>
+      </Dialog.Root>
       {toast && <div className="toast">{toast}</div>}
     </>
   );

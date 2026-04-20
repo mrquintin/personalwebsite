@@ -82,6 +82,13 @@ export default function Accordion({ initialExpandedIndex = 1, panelContent }: Pr
             state={visualState}
             onActivate={() => (isExpanded ? collapseToNeutral() : expand(p.index))}
             onFocusInto={() => setFocusIndex(p.index)}
+            onHover={() => {
+              // hover-to-expand on desktop only (>=768px) and only when a fine pointer is present
+              if (typeof window === "undefined") return;
+              if (!window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 768px)").matches) return;
+              if (state.mode === "expanded" && state.index === p.index) return;
+              expand(p.index);
+            }}
           >
             {panelContent[p.code]}
           </Panel>

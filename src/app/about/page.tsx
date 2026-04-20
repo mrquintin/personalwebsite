@@ -5,9 +5,10 @@ import BeliefsList from "@/components/about/BeliefsList";
 import WorkLedger from "@/components/about/WorkLedger";
 import Colophon from "@/components/about/Colophon";
 import identity from "@/content/about/identity";
-import biography from "@/content/about/biography";
+import Biography from "@/content/about/biography.mdx";
 import beliefs from "@/content/about/beliefs";
 import colophon from "@/content/about/colophon";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 export const metadata: Metadata = {
   title: "ABT · Michael Quintin",
@@ -32,7 +33,7 @@ export default function AboutPage() {
       <section style={{ marginBottom: "var(--s-7)" }}>
         <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── BIOGRAPHY ──</h2>
         <div className="synopsis">
-          {biography.map((p, i) => <p key={i}>{p}</p>)}
+          <Biography />
         </div>
       </section>
 
@@ -55,13 +56,27 @@ export default function AboutPage() {
         <p style={{ fontFamily: "var(--font-mono)", color: "var(--fg-dim)" }}>
           Direct: <a href="mailto:michael@hivemind.ai" style={{ color: "var(--fg-hi)" }}>michael@hivemind.ai</a>
           {" · LinkedIn: "}
-          <a href="https://linkedin.com/in/michaelquintin" style={{ color: "var(--fg)" }}>/in/michaelquintin</a>
+          <a href="https://www.linkedin.com/in/michael-quintin-5555b4283/" style={{ color: "var(--fg)" }}>
+            /in/michael-quintin-5555b4283
+          </a>
+          {" · X: "}
+          <a href="https://x.com/quintinpublic" style={{ color: "var(--fg)" }}>
+            @quintinpublic
+          </a>
           {" · GitHub: "}
           <a href="https://github.com/mrquintin" style={{ color: "var(--fg)" }}>/mrquintin</a>
         </p>
       </section>
 
       <Colophon {...colophon} />
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: identity.name,
+        jobTitle: identity.roles.join(", "),
+        url: "https://personalwebsite-beta-nine.vercel.app/about",
+        sameAs: identity.channels.filter(c => c.href.startsWith("http")).map(c => c.href),
+      }} />
     </div>
   );
 }

@@ -8,10 +8,11 @@ type Props = {
   state: "collapsed" | "neutral" | "expanded";
   onActivate: () => void;
   onFocusInto: () => void;
+  onHover?: () => void;
   children: ReactNode;
 };
 
-export default function Panel({ panel, state, onActivate, onFocusInto, children }: Props) {
+export default function Panel({ panel, state, onActivate, onFocusInto, onHover, children }: Props) {
   const expanded = state === "expanded";
   return (
     <section
@@ -19,6 +20,7 @@ export default function Panel({ panel, state, onActivate, onFocusInto, children 
       aria-labelledby={`spine-label-${panel.code}`}
       id={`panel-body-${panel.code}`}
       className="panel"
+      onMouseEnter={onHover}
       style={{
         flex: state === "expanded" ? "1 1 0" : state === "neutral" ? "1 1 0" : "0 0 80px",
         minWidth: state === "collapsed" ? 56 : 80,
