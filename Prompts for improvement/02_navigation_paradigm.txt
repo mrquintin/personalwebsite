@@ -1,0 +1,185 @@
+================================================================================
+PROMPT 02 — NAVIGATION PARADIGM (ACCORDION + COMMAND PALETTE + STATUS RAIL)
+================================================================================
+
+TASK
+----
+Design and implement the site's navigation system and top-level information
+architecture. This prompt does NOT build page content — it builds the
+shell that all pages live inside. Deliverable: a working layout shell at
+src/app/layout.tsx plus supporting components under src/components/shell/.
+
+THE PARADIGM
+------------
+Three simultaneous navigation layers, each with a different user in mind:
+
+  1. THE ACCORDION (primary / visual)
+     The landing page is a horizontal accordion of five vertical panels,
+     rendered full-viewport-height:
+
+         ┌─────┬─────┬──────────────────────────┬─────┬─────┐
+         │ 01  │ 02  │                          │ 04  │ 05  │
+         │ ABT │ HVM │       [ EXPANDED ]       │ THS │ CV  │
+         │     │     │                          │     │     │
+         │     │     │  PURPOSELESS EFFICIENCY  │     │     │
+         │     │     │                          │     │     │
+         └─────┴─────┴──────────────────────────┴─────┴─────┘
+
+     Collapsed panels are 56–80px wide, showing only a monospace vertical
+     spine: the panel number, a three-letter code, and a rotated title.
+     The expanded panel occupies the remaining width and renders a
+     full workspace. Hover OR click expands a panel; keyboard arrows
+     cycle. The site's home "/" IS this accordion. There is no separate
+     landing hero.
+
+     The five panels, in order (memorize the codes; they are reused
+     throughout the site and in the command palette):
+       01 · ABT · About
+       02 · HVM · Hivemind
+       03 · PRP · Purposeless Efficiency
+       04 · THS · Theseus
+       05 · CV  · Resume
+
+     When a panel is expanded, the other four compress to spines. Spines
+     remain clickable and keyboard-focusable. This is the "never-seen"
+     element the brief asked for — most portfolios are scroll-down
+     single-pages; this is a horizontal, compressible operator's console.
+
+  2. THE COMMAND PALETTE (primary / keyboard)
+     Cmd+K (Ctrl+K on Windows/Linux) opens a fuzzy-search palette over
+     any page. The palette is the single source of truth for navigation
+     actions. It searches: panels, sub-pages, project sections, resume
+     items, individual paragraphs (optional stretch), external links,
+     and scriptable commands (toggle theme, download resume, copy email,
+     etc.). Full spec is in 04_command_palette.txt. This prompt only
+     wires the palette's visibility/open-close into the shell — the
+     palette component itself is built in Prompt 04.
+
+  3. THE STATUS RAIL (ambient / always visible)
+     A single 28–32px tall status bar fixed to the bottom of the
+     viewport, plus an optional matching top bar. The status bar uses
+     monospace and is structured like a Bloomberg terminal footer:
+
+        ~/projects/hivemind/README   │   14:32:07 UTC   │   ⌘K palette   │   F1 help   │   v0.3.1
+
+     Segments, left-to-right:
+       - Breadcrumb as file path. Reflects current route.
+       - Live UTC clock, ticking by second.
+       - "⌘K palette" hint (reverse-video on hover/focus).
+       - "F1 help" opens a keyboard shortcut cheat-sheet modal.
+       - Build version pulled from package.json at build time.
+
+     The optional top bar is reserved for panel spines when NOT on the
+     landing accordion. On project subpages, the top bar collapses into a
+     horizontal strip of the same five panel codes, acting as persistent
+     navigation. Think of the landing as the "expanded" view of this
+     rail, and every other page as the "collapsed" view with a single
+     panel open below it.
+
+ROUTING
+-------
+Use Next.js App Router. Route layout:
+
+  /                      → landing accordion (client component; sets
+                           which panel is expanded based on hash or
+                           query, defaults to 01-ABT)
+  /about                 → expanded panel 01
+  /hivemind              → expanded panel 02 (full project dossier)
+  /purposeless-efficiency → expanded panel 03
+  /theseus               → expanded panel 04
+  /resume                → expanded panel 05
+  /projects              → full projects index (Bloomberg-style) — this
+                           is reachable from the command palette and
+                           from the accordion, and lists all projects
+                           not otherwise promoted to a spine.
+
+  Rule: the accordion-landing and the route-per-panel render the SAME
+  underlying panel component. Moving from "/" with panel 03 expanded to
+  "/purposeless-efficiency" should feel like the accordion dropping away
+  and the panel growing to full-bleed — with a shared layout transition
+  (framer-motion layoutId) so elements morph instead of re-rendering.
+
+BEHAVIORAL SPEC
+---------------
+Expansion:
+  - Only one panel may be "expanded" at a time.
+  - Panels can be in one of three states: collapsed (spine),
+    preview (about 40% width, triggered by hover on desktop only), and
+    expanded (filling remaining width).
+  - Clicking a spine expands it. Clicking the same panel again when
+    already expanded collapses it back to even 20%/20%/20%/20%/20%
+    split (a "neutral" all-equal state — the boot default).
+  - Keyboard: left/right arrows cycle focus across spines; Enter
+    expands; Escape collapses to neutral; 1–5 number keys jump directly
+    to the matching panel.
+
+Transitions:
+  - Accordion widths use `flex-basis` animated with the --d-norm duration
+    and --ease curve from the token system.
+  - Content inside an expanding panel fades up 8px with 120ms delay.
+  - prefers-reduced-motion: skip all of the above; state changes are
+    instantaneous.
+
+URL sync:
+  - Expansion state persists in the URL as a hash (e.g., /#03) so a user
+    can bookmark "the accordion with Purposeless Efficiency open."
+  - On first load without a hash, expand panel 01 by default but after
+    the boot sequence (see Prompt 03). Without the boot sequence,
+    default to neutral equal-width.
+
+FILES TO PRODUCE
+----------------
+  src/app/layout.tsx                          root layout; mounts shell
+  src/components/shell/Shell.tsx              wraps children; renders
+                                              status bar, palette mount,
+                                              and skip-link
+  src/components/shell/StatusBar.tsx          bottom status bar
+  src/components/shell/TopRail.tsx            top rail (panel spines when
+                                              not on landing)
+  src/components/shell/Accordion.tsx          the five-panel accordion
+  src/components/shell/Panel.tsx              single panel, collapsed or
+                                              expanded
+  src/components/shell/PanelSpine.tsx         the vertical monospace spine
+  src/components/shell/HelpModal.tsx          F1 cheat-sheet (minimal)
+  src/lib/panels.ts                           the canonical list of the
+                                              five panels, exported, so
+                                              every surface (palette,
+                                              rail, accordion) agrees
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Five panels render on "/". Each expands on click and on hover.
+  - Keyboard: arrows, Enter, Escape, 1–5 all work as specified.
+  - Status bar is present on every route, ticks UTC time, shows the
+    current file-path breadcrumb, and reflects the real build version
+    from package.json (pass it in at build time via next.config.ts env).
+  - F1 opens a help modal listing every shortcut.
+  - Cmd+K opens the palette (palette contents are a stub for this prompt;
+    just "Command palette — implemented in prompt 04").
+  - No external UI libraries (shadcn, Radix, etc.) required — you MAY
+    use Radix for the Dialog primitive behind the help modal and the
+    palette for accessibility's sake; nothing else.
+  - The page passes a manual screen-reader smoke test: tab order is
+    rail → panels → status, landmarks are roled (<nav>, <main>, etc.),
+    the accordion exposes aria-expanded and aria-controls correctly.
+
+DO NOT
+------
+  - Do not add a traditional top navigation bar (links like Home | About |
+    Work | Contact). The accordion IS the navigation. The status bar and
+    palette are the redundancies.
+  - Do not use hamburger menus on mobile. On mobile (<768px), the
+    accordion becomes a VERTICAL accordion (panels stack), and the
+    command palette remains the fast path.
+  - Do not add breadcrumb DOM that overlaps the status bar's path segment.
+  - Do not install Tailwind in this prompt unless already present. Use
+    CSS modules or styled-jsx (Next.js supports it) against the tokens
+    defined in Prompt 01.
+
+STRETCH
+-------
+  - Implement the shared layoutId morph between "/" (accordion) and
+    "/:panel" (full-bleed panel) using framer-motion. The panel header
+    and breadcrumb should visually travel from the accordion to the
+    full page instead of re-mounting.
+================================================================================

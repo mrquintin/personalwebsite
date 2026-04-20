@@ -1,0 +1,196 @@
+================================================================================
+PROMPT 14 — TECH STACK CONSOLIDATION (RUN FIRST)
+================================================================================
+
+TASK
+----
+Resolve the inconsistency between the Next.js app and the legacy static
+HTML/CSS/JS under /public, and establish the canonical stack before any
+feature work begins. This is a housekeeping prompt but it is the most
+important one: every later prompt assumes the outcome here.
+
+CURRENT STATE (audit before changing anything)
+----------------------------------------------
+From inspection of the repo as of this writing:
+
+  - Root is a Next.js 15 App Router project.
+    - package.json depends on next@^15.1.0, react@^19.0.0,
+      react-dom@^19.0.0, typescript@^5.
+    - src/app/layout.tsx mounts a nearly empty layout (no Shell, no
+      tokens).
+    - src/app/page.tsx is a placeholder:
+        <main style={{ padding: "2rem", fontFamily: "system-ui" }}>
+          <h1>Michael Quintin</h1>
+          <p>Personal site — push to main to deploy on Vercel.</p>
+        </main>
+    - src/app/globals.css is a 9-line reset.
+  - A rich legacy static site exists under /public:
+      public/index.html                a full portfolio template (Barlow
+                                       font, hero, projects, resume,
+                                       blog, contact, footer). NOT
+                                       routed at "/" — Next's src/app
+                                       owns "/".
+      public/css/style.css
+      public/js/site.js
+      public/pages/ontology.html       relevant to Theseus (Prompt 09)
+      public/pages/project-detail.html legacy template
+      public/blog/post-template.html   legacy template
+      public/projects/_template/       legacy data scaffolding
+      public/projects/sample-project/  legacy placeholder
+      public/js/ontology-data.js       likely reusable for Theseus
+  - README.md mentions both the Next.js app and "legacy static pages"
+    and acknowledges they coexist. The README says new work should use
+    src/app and pages are reachable from public/pages/.
+  - tools/publish.py, tools/config.json, tools/requirements.txt —
+    unclear purpose; audit.
+  - Vercel is the deploy target; canonical URL:
+      https://personalwebsite-beta-nine.vercel.app
+  - CNAME suggests a custom domain is intended.
+  - CI is GitHub Actions; dependabot enabled.
+
+DECISION TREE (execute in this order)
+-------------------------------------
+1. Make the Next.js app the canonical site.
+   - Every new page lives under src/app/.
+   - The shell described in Prompt 02 wraps everything.
+   - Tokens from Prompt 01 are in src/styles/tokens.css and loaded by
+     src/app/layout.tsx.
+
+2. Demote the legacy /public site to ARCHIVE status.
+   - Move public/index.html → public/_legacy/index.html so it no longer
+     resolves at the root (if you care to keep it reachable for
+     reference; otherwise delete it — git history preserves it).
+   - Move public/pages/, public/blog/, public/projects/, public/css/,
+     public/js/ all under public/_legacy/ or delete outright.
+   - EXCEPTION: public/js/ontology-data.js and
+     public/pages/ontology.html contain data that will be ported to
+     /theseus (Prompt 09). Do NOT delete them until the port is done.
+     Copy their data into src/content/projects/theseus/ first, then
+     archive.
+   - Audit tools/publish.py and tools/config.json. If they are bound
+     to the legacy site, archive. If they support the Next.js
+     workflow (unlikely), keep.
+
+3. Install canonical dependencies.
+   Add as dependencies (current stable as of May 2025; agent should
+   verify latest at install time):
+     - next (already present)
+     - react, react-dom (already present)
+     - typescript (already present)
+     - @next/mdx, @mdx-js/loader, @mdx-js/react     // for MDX prose
+     - framer-motion                                 // for shared layoutId morph
+     - zustand                                       // for palette + state
+     - @radix-ui/react-dialog                        // a11y primitives for palette + modals
+     - @radix-ui/react-visually-hidden
+     - cmdk (Linear-style command menu) — OPTIONAL; Prompt 04 can use
+       this as its backbone instead of hand-rolling
+     - fuse.js or fzf.js                             // fuzzy match
+     - clsx                                          // class composition
+     - zod                                           // content schema validation
+     - next-sitemap                                  // sitemap.xml
+     - @vercel/analytics                             // optional, off by default
+   As dev dependencies:
+     - eslint, eslint-config-next (already present)
+     - @typescript-eslint/*
+     - prettier, prettier-plugin-tailwindcss (IF Tailwind is adopted;
+       see step 4)
+     - axe-core @ 4.x                                // a11y checks
+     - playwright @ latest                            // a single e2e
+                                                       test that runs
+                                                       in CI
+     - vitest + @testing-library/react               // optional — only
+                                                       if component
+                                                       tests warranted
+
+4. Decide on Tailwind vs CSS modules.
+   RECOMMENDATION: adopt Tailwind, but configured as a thin mapping
+   over the tokens from Prompt 01. Reasons:
+     - The visual system is token-heavy and Tailwind's arbitrary
+       values and theme extension make token consumption terse.
+     - Agents (Claude Code, Cursor) produce faster, more consistent
+       Tailwind output than CSS modules.
+     - Utility-first co-locates layout with markup, which suits
+       dense terminal layouts.
+   If rejected, CSS modules are fine and arguably more idiomatic for
+   the aesthetic. Pick one and commit. DO NOT MIX.
+
+   If adopting Tailwind:
+     - Install tailwindcss@4 (or latest stable), postcss, autoprefixer.
+     - Configure tailwind.config.ts to read tokens from tokens.css via
+       CSS variables. Extend theme.colors so that `text-fg` maps to
+       `color: var(--fg)`, etc.
+     - Disable default base for headings — keep them unstyled and let
+       components control.
+     - Keep globals.css minimal.
+
+5. MDX wiring.
+   Configure next.config.ts to parse .mdx files. Each MDX file imports
+   a small set of components (H1, H2, P, Quote, DropCap, etc.) from a
+   registry at src/components/mdx/. These components render MDX prose
+   in the book-page style for Purposeless Efficiency, and in the
+   dossier style elsewhere.
+
+6. Env and config.
+   - Create .env.example with documented vars (none required today;
+     placeholder for future: RESEND_API_KEY, GITHUB_TOKEN, etc.).
+   - Update next.config.ts: enable typedRoutes, strict TS, and pass
+     through NEXT_PUBLIC_BUILD_VERSION from package.json version.
+   - Update tsconfig: "strict": true (should already be true), add
+     path aliases:
+         "@/*": ["./src/*"]
+         "@content/*": ["./src/content/*"]
+         "@styles/*": ["./src/styles/*"]
+
+7. CI.
+   - .github/workflows/ci.yml already runs lint and build. Extend to:
+     - Type check (tsc --noEmit).
+     - Run scripts/lint-copy.ts from Prompt 13.
+     - Playwright smoke test: load "/", verify the accordion renders,
+       verify Cmd+K opens the palette.
+
+8. Document.
+   Update README.md:
+     - State unambiguously that the Next.js app is canonical.
+     - Point to docs/design-philosophy.md (Prompt 01) and
+       docs/voice-guide.md (Prompt 13) as authoritative.
+     - Describe the content layout: src/content/ is a CMS-in-git.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - npm run build succeeds with zero warnings under Next.js 15.
+  - The Next.js route "/" renders the new shell (once Prompt 02 lands
+    the Shell; this prompt only installs deps and moves legacy code,
+    so the placeholder page.tsx from the current repo is still visible
+    after this prompt runs — but no longer the final state).
+  - Legacy pages are either archived under public/_legacy/ or deleted.
+  - public/js/ontology-data.js is copied into
+    src/content/projects/theseus/ontology-data.raw.ts with a TODO
+    note to convert to the Prompt 09 schema.
+  - tools/ directory has been either archived or validated as still
+    relevant.
+  - Every dependency listed above is installed and its version is
+    pinned with a caret range (^).
+  - MDX compiles: a trivial test.mdx at src/content/test.mdx renders
+    via a temporary /test route (route should be removed at end of
+    prompt).
+  - README.md reflects the new canonical stack and layout.
+
+DO NOT
+------
+  - Do not introduce a second framework (Astro, SvelteKit, etc.).
+    Next.js is the decision.
+  - Do not set up Contentful, Sanity, or any headless CMS. The
+    content layer is TypeScript modules and MDX files in the repo.
+    This is deliberate — Michael is the only author.
+  - Do not migrate the legacy /public site's functionality piece by
+    piece into the Next app in this prompt. Migrate the DATA (like
+    ontology-data.js), not the UI. UI is rebuilt from Prompt 02
+    onward.
+
+STRETCH
+-------
+  - Add a Playwright "visual regression" test suite with 4 baseline
+    screenshots: /, /projects, /hivemind placeholder, the palette
+    open state. Fails the build on >0.5% pixel diff. Useful as the
+    site stabilizes.
+================================================================================

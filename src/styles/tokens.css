@@ -1,0 +1,112 @@
+/* ---------------------------------------------------------------------------
+ * tokens.css — operator's portfolio
+ * Canonical custom properties. Consumed by every component.
+ * Dark is canonical; light is opt-in (toggle implemented separately).
+ * --------------------------------------------------------------------------- */
+
+:root,
+:root[data-theme="dark"] {
+  /* surface */
+  --bg-0:        oklch(0.14 0 0);
+  --bg-1:        oklch(0.17 0 0);
+  --bg-2:        oklch(0.21 0 0);
+  --bg-3:        oklch(0.26 0 0);
+  --rule:        oklch(0.32 0 0);
+
+  /* foreground */
+  --fg-mute:     oklch(0.55 0 0);
+  --fg-dim:      oklch(0.72 0 0);
+  --fg:          oklch(0.92 0 0);
+  --fg-hi:       oklch(1.00 0 0);
+
+  /* accent + state */
+  --accent:      oklch(0.78 0.17 65);
+  --accent-dim:  oklch(0.55 0.12 65);
+  --danger:      oklch(0.68 0.19 25);
+  --ok:          oklch(0.72 0.15 145);
+
+  /* type stacks */
+  --font-mono:  "Berkeley Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans:  "Inter", "Söhne", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+
+  /* type scale (size / line-height) */
+  --t-xxs-size: 11px;  --t-xxs-lh: 16px;
+  --t-xs-size:  12px;  --t-xs-lh:  18px;
+  --t-sm-size:  13px;  --t-sm-lh:  20px;
+  --t-base-size:15px;  --t-base-lh:24px;
+  --t-md-size:  17px;  --t-md-lh:  28px;
+  --t-lg-size:  22px;  --t-lg-lh:  30px;
+  --t-xl-size:  30px;  --t-xl-lh:  36px;
+  --t-2xl-size: 44px;  --t-2xl-lh: 48px;
+  --t-3xl-size: 64px;  --t-3xl-lh: 64px;
+
+  /* spacing (8px base, with 4px half-step) */
+  --s-0:   0;
+  --s-1:   4px;
+  --s-2:   8px;
+  --s-3:   12px;
+  --s-4:   16px;
+  --s-5:   24px;
+  --s-6:   32px;
+  --s-7:   48px;
+  --s-8:   64px;
+  --s-9:   96px;
+  --s-10:  128px;
+
+  /* borders */
+  --r-0: 0;
+  --r-1: 2px;
+  --border-hair:   1px solid var(--rule);
+  --border-double: 3px double var(--rule);
+
+  /* z-index semantic */
+  --z-rail:      40;
+  --z-statusbar: 50;
+  --z-palette:   80;
+  --z-toast:     90;
+  --z-boot:     100;
+
+  /* duration + easing */
+  --d-flash: 120ms;
+  --d-fast:  160ms;
+  --d-norm:  240ms;
+  --d-slow:  420ms;
+  --ease:    cubic-bezier(0.2, 0.0, 0.0, 1.0);
+
+  /* layout */
+  --statusbar-h: 28px;
+  --toprail-h:   32px;
+  --measure-prose: 72ch;
+  --measure-book:  64ch;
+
+  color-scheme: dark;
+}
+
+/* light: derived by lightness inversion, low chroma, accent retained */
+:root[data-theme="light"] {
+  --bg-0:        oklch(0.98 0 0);
+  --bg-1:        oklch(0.95 0 0);
+  --bg-2:        oklch(0.91 0 0);
+  --bg-3:        oklch(0.86 0 0);
+  --rule:        oklch(0.78 0 0);
+  --fg-mute:     oklch(0.48 0 0);
+  --fg-dim:      oklch(0.34 0 0);
+  --fg:          oklch(0.18 0 0);
+  --fg-hi:       oklch(0.08 0 0);
+  --accent:      oklch(0.62 0.18 65);
+  --accent-dim:  oklch(0.48 0.13 65);
+  --danger:      oklch(0.55 0.20 25);
+  --ok:          oklch(0.55 0.16 145);
+  color-scheme: light;
+}
+
+/* prefers-reduced-motion: collapse durations */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --d-flash: 0ms;
+    --d-fast:  0ms;
+    --d-norm:  0ms;
+    --d-slow:  0ms;
+  }
+}

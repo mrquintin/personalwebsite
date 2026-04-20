@@ -1,0 +1,172 @@
+================================================================================
+PROMPT 05 — PROJECTS INDEX PAGE
+================================================================================
+
+TASK
+----
+Build the /projects route: a Bloomberg-style index of every project. The
+three featured projects (Hivemind, Purposeless Efficiency, Theseus) are
+rendered here alongside any future additions. This page is a list, not a
+gallery. No cards. No grid of images. A data table.
+
+WHY
+---
+The brief explicitly says: "feature my projects through... each one [is]
+a custom interface and custom upload" and "have the interface ready to
+support showing projects." So the index must be (a) extensible — any new
+project file adds itself — and (b) structurally terminal-like, where
+each row is a piece of data, not a glossy thumbnail.
+
+PHILOSOPHY
+----------
+The index is a "lineup." Think Bloomberg's MOST ACTIVE / ADVANCERS /
+DECLINERS view, or the index page of a classified archive. Columns are
+informational. Rows are tight. Sorting and filtering are inline. The
+detail is reached by pressing Enter on a row or clicking the row.
+
+ROUTE SPEC
+----------
+  /projects
+    - Renders the projects table.
+    - Wrapped in the shell from Prompt 02 (status bar + top rail).
+    - Page H1 is ">> projects — 3 loaded" (where "3" updates as
+      projects are added; the ">> " prefix and the count are part of the
+      terminal rhythm).
+
+DATA MODEL
+----------
+Projects are defined as TypeScript modules under
+src/content/projects/{slug}.ts with this shape:
+
+  export const project: Project = {
+    slug: "hivemind",
+    code: "HVM",                       // three-letter terminal code
+    title: "Hivemind",
+    tagline: "Strategic analytical software.",
+    kind: "company" | "book" | "software" | "research" | "website" | "other",
+    status: "active" | "draft" | "shipping" | "shipped" | "archived",
+    startedISO: "2024-06-01",
+    updatedISO: "2026-04-12",
+    stage?: string,                    // freeform, e.g., "Seed",
+                                       // "manuscript, MS v4", etc.
+    links: { label: string; href: string; external?: boolean }[],
+    summary: string,                   // 2–3 sentences, plaintext
+    customPage?: string,               // route to a bespoke page if any
+    mediaHeroSrc?: string,             // optional — for the detail page
+    classification?: "public" | "restricted" | "private", // visual cue
+  };
+
+Each project also exports any bespoke page content needed by its custom
+route (see the per-project prompts 07/08/09).
+
+The index page imports all projects via a loader that globs
+src/content/projects/*.ts — do NOT maintain a manual list. If a new file
+is added, it appears.
+
+VISUAL SPEC
+-----------
+A single full-width table. Monospace throughout. Row height 40px.
+
+Columns, left-to-right:
+
+  #       —  row index (01, 02, 03, ...). Mono, --fg-mute, 40px wide.
+  CODE    —  three-letter code (HVM, PRP, THS). Mono, --fg, 60px.
+  TITLE   —  project title. Mono, --fg-hi, flex-1, truncates with ellipsis.
+  KIND    —  "company" / "book" / ... rendered in uppercase, --fg-mute.
+  STATUS  —  small pill badge. Styling:
+                active    → --accent on --bg-2
+                draft     → --fg-dim on --bg-2
+                shipping  → --ok on --bg-2
+                shipped   → --fg-mute on --bg-2
+                archived  → --fg-mute on --bg-1 with 1px outline
+             Pills are square, 20px tall, 6px horizontal padding,
+             uppercase, --t-xxs. No rounded corners.
+  STARTED —  ISO date, mono, --fg-mute.
+  UPDATED —  ISO date with relative suffix: "2026-04-12 · 8d ago".
+             Relative portion in --fg-dim.
+  STAGE   —  freeform short string, --fg.
+  ACTIONS —  two kbd-styled cues: "↵ open" and "⌘↵ tab".
+
+Hover a row: background --bg-3, cursor pointer.
+Focused row: left-edge 2px --accent stripe.
+Row click: navigate to customPage if set, else /projects/{slug}.
+
+HEADER STRIP
+------------
+Above the table, a status bar line in monospace:
+
+  >> projects — 3 loaded · sort: updated ↓ · filter: all · ⌘K to search
+
+Filter is driven by query string (?kind=book) and UI is a sequence of
+monospace pills for each `kind`, plus an "all" pill.
+Sort is driven by column header clicks; header arrow ↓ / ↑ indicates
+state. Default sort is updated descending. Persist across reloads via
+URL query.
+
+EMPTY / FUTURE STATE
+--------------------
+When a project's customPage is not yet implemented, the row still
+navigates to /projects/{slug} which falls back to the generic
+project-detail framework (Prompt 06). The row renders normally.
+
+For projects the user has flagged as "coming soon" (a convention:
+set status="draft" + add a `visibility: "teaser"` flag in the module),
+the row still appears, but links are disabled and a small inline hint
+reads "[ in progress · no page yet ]" in --fg-mute at the end of the
+title column. This matches the brief's stated preference: "don't
+actually upload any products onto the website and list them... just
+instead have the interface ready to support showing projects."
+
+KEYBOARD
+--------
+  - j/k or arrow down/up: move row selection.
+  - Enter: open the selected row.
+  - Cmd+Enter: open in new tab.
+  - / : focus the filter input (inline, appears on first `/` press).
+  - Esc: clear filter and deselect.
+
+FILES TO PRODUCE
+----------------
+  src/app/projects/page.tsx
+  src/components/projects/ProjectsTable.tsx
+  src/components/projects/StatusPill.tsx
+  src/lib/projects/loader.ts               // globs src/content/projects/*.ts
+  src/lib/projects/sort.ts
+  src/lib/projects/filter.ts
+  src/content/projects/hivemind.ts         // minimal metadata; bespoke
+                                           // page is in Prompt 07
+  src/content/projects/purposeless-efficiency.ts
+  src/content/projects/theseus.ts
+
+ACCEPTANCE CRITERIA
+-------------------
+  - /projects renders the three featured projects as rows.
+  - Sorting by any column works; URL reflects the sort state.
+  - Filter by kind works; URL reflects the filter state.
+  - Keyboard navigation works; rows are activatable with Enter.
+  - Adding a new file at src/content/projects/x.ts without changing
+    any other code adds a new row to the table.
+  - The table renders under 16ms on re-sort with three rows (trivial;
+    the harder test comes later with many rows — design should still
+    use useMemo).
+
+DO NOT
+------
+  - Do not render hero images on this page. Detail pages may, this page
+    may not.
+  - Do not add pagination. The expected count for a long time is <20.
+  - Do not include kind-based icons; kind is textual.
+  - Do not hide "draft" or "archived" projects by default. They remain
+    visible, styled appropriately. The visitor deserves to see what
+    exists.
+
+STRETCH
+-------
+  - Add a right-hand detail pane that previews the hovered/selected
+    project — project code, summary, last-updated, top 3 links. Width
+    ~320px. Shown only at >=1280px viewport. Visually, this mimics a
+    Bloomberg two-pane layout (list | detail).
+  - Add a "diff" column toggle that, when enabled, shows the Δ between
+    last week's updatedISO and this week's — for example, a small "+"
+    if a project was updated within the last 7 days.
+================================================================================

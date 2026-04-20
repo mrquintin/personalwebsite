@@ -1,0 +1,186 @@
+================================================================================
+PROMPT 13 — VOICE AND COPY
+================================================================================
+
+TASK
+----
+Establish and apply the writing voice used everywhere on the site:
+headings, microcopy, status messages, button labels, alt text, error
+messages. This prompt produces (a) a voice guide at
+docs/voice-guide.md, and (b) a pass over every component's string
+literals to bring them into compliance.
+
+PHILOSOPHY
+----------
+Copy is UI. Every string on the site is an opportunity to signal the
+genre of the person behind it. Michael's brief asks for accuracy and
+rigor over warmth. His work (strategic software, a book on corporatism
+and economic revolution, a knowledge system for contradiction
+detection) is serious. The voice must not embarrass the work.
+
+VOICE PRINCIPLES (write these into voice-guide.md)
+--------------------------------------------------
+1. DECLARATIVE OVER DESCRIPTIVE.
+   - Say: "Projects. 3 loaded."
+   - Not: "Check out some of the amazing projects I've been working on!"
+   The first is a log entry. The second is an advertisement. This site
+   is a log.
+
+2. NO MARKETING ADJECTIVES.
+   Forbidden words: revolutionary, game-changing, cutting-edge,
+   seamless, effortless, empowering, delightful (unless ironic),
+   passionate, synergy, ecosystem, leverage (as verb), unlock,
+   unleash, robust, innovative, thought-leader, visionary, disrupt,
+   disruption. If a sentence contains any of these, rewrite it.
+
+3. NO EXCLAMATION MARKS.
+   Except in boot sequence error states ("! disk full"), where they
+   are a Unix convention, not enthusiasm.
+
+4. NO EMOJI IN CHROME.
+   Emoji are allowed only within user-authored content inside MDX
+   prose (if the writer wants them). Never in UI chrome, labels,
+   button text, navigation, or error messages.
+
+5. USE ASCII AND UNICODE BOX DRAWING AS ORNAMENT.
+   "──" "──" "··" "→" "↗" "⟶" "⌘" "⎋" "⏎" — these are the ornament.
+   They do work that decoration can't.
+
+6. TIMESTAMPS ARE ISO-8601 UTC.
+   Not "3 days ago" as the primary form. Relative time MAY appear as
+   a suffix in parentheses. "2026-04-12 · 8d ago" is canonical.
+
+7. BUTTONS ARE VERBS. LINKS ARE NOUNS.
+   - Button: "Download PDF", "Copy email", "Open full dossier"
+   - Link: "hivemind.ai", "Book I", "Principle P-014"
+   Never button text like "Submit" or "OK" or "Click here."
+
+8. ERROR COPY IS DIAGNOSTIC, NOT APOLOGETIC.
+   - Do: "404. No file at /projects/foo. Try ⌘K to search."
+   - Don't: "Oh no! We couldn't find that page 😢 Go back home?"
+
+9. PLACEHOLDERS ARE NOT INSTRUCTIONS.
+   - Placeholder: "command or search" (describes what the input
+     holds)
+   - Not: "Type here to search" (instructs, patronizes)
+
+10. NO "WE."
+    The site is Michael's. There is no "we." Use "I" sparingly in
+    biographical prose. Use no pronoun at all in UI copy where
+    possible. Log-entry voice is person-less.
+
+THE PAGE-BY-PAGE PASS
+---------------------
+Apply the principles concretely across the site. This subsection is a
+checklist; do each.
+
+/  (landing accordion)
+  - No hero headline "Building things that matter" — delete.
+  - Status bar first segment on /: "~/index"
+  - First visit status-bar flash replacing the ticker: "session
+    initialized · ⌘K to search"
+
+/about
+  - DOSSIER :: ABT · MICHAEL QUINTIN
+  - Subtitle TODO(michael); place "operator · writer · founder" as
+    default.
+  - Beliefs list must be declarative one-liners.
+
+/hivemind
+  - DOSSIER :: HVM · HIVEMIND
+  - Subtitle: "Strategic analytical software."
+  - Capability statuses are single-word lowercase ("shipping",
+    "alpha", "planned") — never sentence case.
+
+/purposeless-efficiency
+  - Title is allowed to be typographically large and literary.
+  - Author attribution in small caps monospace.
+  - Preface and excerpt copy are under Michael's control; this
+    voice guide applies to chrome only, not to the book.
+  - "manuscript · in progress" is the default status; no marketing
+    ("coming soon!").
+
+/theseus
+  - Subtitle: "A knowledge system for ideological contradiction."
+  - Noosphere console entries lowercase, verb-first where possible.
+  - Event kinds are 3–4 letter labels uppercase.
+
+/projects
+  - Header: ">> projects — N loaded"
+  - Empty filter result: "no projects matched filter. / to edit."
+
+/resume
+  - Summary is 2–3 declarative sentences.
+  - Download action label: "Download PDF" — not "Grab my resume!"
+  - References line: "Available on request."
+
+Command palette
+  - Placeholder: "command or search — ESC to close"
+  - Item titles are verbs: "Go to ...", "Copy ...", "Download ...",
+    "Open ..."
+  - Section headers in uppercase: "NAVIGATE", "ACTIONS", "INFO",
+    "PROJECTS".
+
+Boot sequence
+  - Copy is canonical from Prompt 03. Do not edit.
+
+Error states
+  - 404: see Prompt 12, Easter Egg F.
+  - Generic runtime error: "! process crashed. error: {message}.
+    ⌘K to navigate."
+
+Toasts
+  - "✓ copied"
+  - "· download started"
+  - "! clipboard permission denied"
+  All monospace, lowercase except "!" severity markers.
+
+MICROCOPY REGISTRY
+------------------
+Create src/content/microcopy.ts with all UI strings pulled out. Every
+component that currently has a string literal imports from this
+registry. Benefits:
+  - One diff to change voice across the site.
+  - Trivial to audit.
+  - A single place to add i18n later.
+
+FILES TO PRODUCE
+----------------
+  docs/voice-guide.md           — the 10 principles + rationale +
+                                  examples.
+  src/content/microcopy.ts       — central string registry.
+  src/content/forbidden-words.ts — array of marketing adjectives.
+  scripts/lint-copy.ts           — CI-time script that greps the repo
+                                   for forbidden words in .tsx, .mdx,
+                                   .md, and .ts (excluding node_modules
+                                   and the forbidden-words file
+                                   itself). Fails the build on hit.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - docs/voice-guide.md is readable in under 3 minutes.
+  - microcopy.ts centralizes at least 90% of UI strings (excluding
+    long prose and MDX body content).
+  - The CI script fails if a forbidden word is introduced.
+  - Every error state, toast, button, and placeholder on the site has
+    been reviewed and conforms.
+
+DO NOT
+------
+  - Do not translate existing placeholder copy into "better" copy
+    without running it past Michael when it is biographical. Chrome
+    copy and status strings are the site's; biographical prose is
+    his.
+  - Do not add localization infrastructure in this prompt. The
+    microcopy registry is prep for future i18n, not an i18n system.
+
+STRETCH
+-------
+  - A visible "copy score" in dev builds: a small HUD in the corner
+    showing how many forbidden words were caught in the last compile.
+    Disabled in production.
+  - A "voice test" snippet inside docs/voice-guide.md offering the
+    reader two versions of the same button label (one marketing, one
+    operator) and asking which is which. Teaches the voice by
+    contrast.
+================================================================================

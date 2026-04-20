@@ -1,0 +1,200 @@
+================================================================================
+PROMPT 08 — PROJECT: PURPOSELESS EFFICIENCY (THE BOOK)
+================================================================================
+
+TASK
+----
+Build /purposeless-efficiency: a bespoke page for Michael's book,
+"Purposeless Efficiency" — the first of a five-book series. The page is
+a literary object inside the operator's workstation. It is the ONLY
+surface on the site that uses a serif typeface. It is the only surface
+on the site where "beauty" is allowed to take precedence over "density."
+
+SOURCE MATERIAL
+---------------
+From the transcript: "I'm also writing a book, a book called — well, five
+books, a five-book series. The first one I'm about to finish. The first
+one is called Purposeless Efficiency. It's a big project of mine,
+something that I love working on, and it talks about corporatism, it
+talks about gamification of industry, incumbency, complacency, and
+economic revolution."
+
+Use those five themes (corporatism, gamification of industry, incumbency,
+complacency, economic revolution) as the scaffolding of the page's
+content architecture.
+
+PHILOSOPHY
+----------
+Every other page on this site argues through structure. This one argues
+through prose. It must feel like stepping out of a terminal into a
+library. The transition is the point — the terminal is the operator's
+world, and this is the operator's mind at rest. The reader arrives here
+from an accordion spine that is typographically jarring on purpose.
+
+VISUAL SPEC
+-----------
+Break discipline, carefully.
+
+  - Background changes to a slightly warmer paper: oklch(0.20 0.01 75)
+    instead of the site's default bg-1 — barely perceptible but
+    present. Alternatively, a very faint vertical rule down the
+    gutter margins suggesting a bound page.
+  - Body prose: Source Serif 4 at --t-md, measured line-length 64ch,
+    line-height 1.7. Hyphenation on. Optical margin alignment where
+    possible (hanging punctuation).
+  - Drop caps on each major section (CSS :first-letter, scaled 3x,
+    floated left, aligned to cap-height).
+  - All chrome (status bar, breadcrumb, page header) remains monospace.
+    ONLY the body is serif. This tri-face tension is the whole point.
+
+PAGE COMPOSITION
+----------------
+  1. HEADER (scaffold, UNCLASSIFIED):
+       DOSSIER :: PRP · PURPOSELESS EFFICIENCY
+       Subtitle in monospace --fg-dim:
+         "Book I of the series · manuscript in progress"
+       Breadcrumb: ~/projects/purposeless-efficiency/manuscript
+
+  2. COVER + OVERVIEW STRIP:
+       Left (40%): A monumental title block in serif:
+             "Purposeless
+              Efficiency"
+         set at ~--t-3xl, 1.0 line-height, tight tracking, italic "i"
+         in Efficiency if the face supports it. Author below in
+         small caps monospace: "MICHAEL QUINTIN". Subtitle in italic
+         serif at --t-md:
+             "Book I · on corporatism, gamification, incumbency,
+              complacency, and economic revolution"
+
+       Right (60%): A tabular METADATA PANE (mono, reuse scaffold):
+             SERIES     Five volumes
+             VOLUME     I of V
+             STATUS     Manuscript · MS v{n} · {n} words / {target}
+             UPDATED    2026-04-12 · 8d ago
+             FORMATS    digital · print (planned)
+             RIGHTS     All rights reserved
+             ORDER      (not yet available — join the list)
+
+  3. PROGRESS LINE:
+       A full-width 1px rule with an overlaid progress bar in monospace:
+             ████████████░░░  92,143 / 100,000 words · ms v4
+
+       The bar is made of Unicode box-drawing characters, not a DIV
+       animation. Update via src/content/projects/purposeless-efficiency/
+       progress.ts — a single number updated by hand.
+
+  4. PREFACE (serif body):
+       2–4 paragraphs by Michael explaining why this book exists.
+       Voice: declarative, intellectual, slightly cold. Placeholder
+       copy is acceptable; mark with TODO(michael). DO NOT invent
+       biographical anecdotes.
+
+  5. THE FIVE PILLARS:
+       A vertical accordion (note: distinct from the landing accordion
+       — this one is a classical vertical list where clicking a pillar
+       expands it in place). Five items, one per theme:
+
+         § I  Corporatism           — what it has done to work, and what
+                                      it calls "ambition."
+         § II Gamification          — the industry of scoring, ranking,
+                                      grinding; and its psychological
+                                      residue.
+         § III Incumbency           — why the machine does not die when
+                                      it should.
+         § IV Complacency           — the citizen's withdrawal, and the
+                                      elite's.
+         § V  Economic Revolution   — what comes next, and how we avoid
+                                      the failure modes of the last one.
+
+       Each pillar header is in serif italic; body copy (one or two
+       paragraphs expanded) is serif. Collapsed rows show the §
+       numeral, the title, and a single-line seed quote in small
+       italic.
+
+  6. EXCERPT:
+       A single pull-out chapter or scene — 500–1500 words — rendered
+       as a reading surface (measure 64ch, drop cap, wide top margin).
+       Source the content from src/content/projects/purposeless-
+       efficiency/excerpt.mdx. If no excerpt is available yet, omit the
+       block entirely and leave a single monospace line:
+             "— excerpt coming soon —"
+
+  7. THE FIVE-BOOK ARC:
+       A horizontal strip (at desktop widths) showing the planned
+       volumes:
+             I. Purposeless Efficiency   [writing]
+             II. {title TBD}             [planning]
+             III. {title TBD}             [planning]
+             IV. {title TBD}              [planning]
+             V. {title TBD}               [planning]
+       Each slot is a small card in monospace with a serif title.
+       Titles II–V can be placeholder "TBD" — or, if Michael wants,
+       authored working titles. Mark clearly as "provisional."
+
+  8. NOTIFY LIST / RIGHTS:
+       A quiet row — no splash — reading:
+             "To be notified when Book I is available, write
+              {email} · subject: PRP / NOTIFY. For foreign rights,
+              film, or press inquiries: write the same address with
+              subject PRP / RIGHTS."
+       Monospace, --fg-dim, email in --fg-hi. No form. (A form would
+       feel commercial; the ascetic directness is right for this page.)
+
+  9. CITATION BLOCK (reuse scaffold patterns):
+       A copy-ready citation in monospace, a BibTeX block beneath it,
+       and a copy button that copies the BibTeX. Default citation:
+             Quintin, M. (forthcoming). Purposeless Efficiency.
+             Book I of a five-volume series.
+
+DATA CONTRACT
+-------------
+  src/content/projects/purposeless-efficiency.ts          metadata (Prompt 05)
+  src/content/projects/purposeless-efficiency/
+    ├─ progress.ts         { words: 92143, target: 100000, msVersion: 4 }
+    ├─ preface.mdx
+    ├─ pillars.ts          [{ numeral, title, seed, body }]
+    ├─ excerpt.mdx         optional
+    ├─ arc.ts              [{ numeral, title, status }]
+    └─ quotes.ts           pull-quotes for use on the landing teaser
+
+FILES TO PRODUCE
+----------------
+  src/app/purposeless-efficiency/page.tsx
+  src/components/projects/book/TitleBlock.tsx
+  src/components/projects/book/ProgressLine.tsx
+  src/components/projects/book/Pillars.tsx
+  src/components/projects/book/Excerpt.tsx
+  src/components/projects/book/Arc.tsx
+  src/components/projects/book/NotifyRow.tsx
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Serif body, monospace chrome. No sans on this page.
+  - Progress bar updates correctly from a single source of truth.
+  - Pillars expand and collapse with keyboard (space, enter) and mouse.
+  - Excerpt respects measure (64ch) even on wide viewports.
+  - Arc strip scrolls horizontally on narrow viewports.
+  - Citation and BibTeX are copyable with a visible copy affordance.
+  - Reading this page feels slower and more deliberate than every
+    other page on the site. That is the whole test.
+
+DO NOT
+------
+  - Do not add book reviews, blurbs, or "praise for" blocks until the
+    book has been published and real ones exist. Inventing them is
+    contemptible.
+  - Do not auto-play an audiobook clip.
+  - Do not add a 3D tilting book cover on hover. This is a book, not a
+    gimmick.
+  - Do not set drop caps on paragraphs that are too short (<4 lines) —
+    they should only appear on block-opening paragraphs.
+
+STRETCH
+-------
+  - A "margin notes" mode: toggleable small annotations anchored in the
+    right margin, in monospace, sourced from an annotations file. Used
+    in the excerpt. A delight for careful readers.
+  - A word-count ticker in the status bar specifically on this page:
+    "PRP · 92,143 / 100,000 (92%)". Replaces the UTC clock segment
+    only while the page is mounted.
+================================================================================

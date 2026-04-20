@@ -1,0 +1,181 @@
+================================================================================
+PROMPT 03 — LANDING PAGE + BOOT SEQUENCE
+================================================================================
+
+TASK
+----
+Build the landing experience at "/". This consists of two phases:
+  (a) A short, skippable boot sequence that plays on first load in the
+      session (not on subsequent visits within the same sessionStorage
+      lifetime).
+  (b) The accordion landing itself, with its five panels, rendering
+      against the shell built in Prompt 02.
+
+PHILOSOPHY
+----------
+The boot sequence is a deliberate delay. Normally this would be a sin.
+Here it serves one purpose: it establishes genre. By the end of two
+seconds, a visitor has been told: "This is not a portfolio. This is a
+workstation. You have been given an account. Behave accordingly."
+
+Keep it short. Make it skippable. Honor prefers-reduced-motion.
+
+BOOT SEQUENCE SPEC
+------------------
+Full-viewport overlay, z-index var(--z-boot), background var(--bg-0),
+monospace, text colored var(--fg). A centered block, max-width 720px,
+renders the following lines over ~1.8 seconds total, one line at a
+time, ~150ms per line with a trailing blinking cursor:
+
+    [ OK ]  boot: operator.console v0.3.1
+    [ OK ]  kernel: mqos-26.0.4
+    [ OK ]  identity: michael.quintin
+    [ OK ]  role: operator · writer · founder
+    [ OK ]  channels: 5 panels loaded (ABT, HVM, PRP, THS, CV)
+    [ OK ]  command palette: ⌘K
+    [ OK ]  session: READY
+    ~$ _
+
+  - "[ OK ]" renders in var(--ok). Everything else in var(--fg).
+  - A single line appears at a time; each line animates with a 1-frame
+    typewriter reveal (not a char-by-char typewriter — too cute — just
+    line-by-line reveal with 8px upward translate fading in over 120ms).
+  - The final "~$ _" cursor blinks for ~400ms, then the overlay fades
+    to 0 over --d-slow and removes itself from the DOM.
+  - A "Skip [esc]" hint is fixed to the bottom-right corner throughout.
+    Pressing Escape or any mouse click / keypress dismisses immediately.
+  - The overlay is written to sessionStorage as shown=true so it does
+    not replay on intra-session navigation. It plays once per session.
+  - prefers-reduced-motion: skip entirely. Do not render the overlay at
+    all.
+  - The overlay must be marked aria-hidden="true" and focus must not
+    move into it. Assistive-tech users see the accordion immediately.
+
+COPY NOTE
+---------
+The copy above is the canonical boot copy. Do not write jokes into it,
+do not write marketing, and do not write "welcome." The purpose of the
+sequence is not greeting; it is ambiance. One allowed variant: on
+returning visitors (sessionStorage shown=true), NO boot runs, but the
+status bar briefly flashes "session resumed" for 800ms.
+
+THE ACCORDION LANDING (AFTER BOOT)
+----------------------------------
+Mount the Accordion built in Prompt 02. On fresh load without a URL
+hash, expand panel 01 (ABT) by default AFTER the boot sequence finishes.
+With a hash (/#03), respect the hash and skip the default.
+
+Each panel, when expanded, renders an ABBREVIATED workspace appropriate
+to its section. The abbreviated workspace is not the full page — it is
+a teaser that invites the visitor to "open full" (which navigates to
+the full route, e.g., /hivemind). The teaser contents:
+
+  01 · ABT — About
+    Top: 4-line bio in monospace.
+    Middle: three pull-quotes from the About page, one per line,
+      truncated to 88 characters with an ellipsis, each clickable.
+    Bottom: a line "→ /about · full dossier" that navigates.
+
+  02 · HVM — Hivemind
+    Top: the one-line elevator pitch ("Strategic analytical software.").
+    Middle: a 3-column data pane (Founded · Stage · Status), each value
+      monospace, right-aligned.
+    Bottom: if a video/GIF is provided, a muted autoplay looping preview
+      at 16:9, max-height 220px. Else a placeholder panel that reads
+      "[ demo pending ]".
+    Link: "→ /hivemind · full brief".
+
+  03 · PRP — Purposeless Efficiency
+    Top: book title in the SERIF face — the only serif on the site
+      outside the full project page. Author below in monospace.
+    Middle: a single pull-quote, max 220 characters, set in serif
+      italic, flanked by monospace quotation marks.
+    Bottom: progress bar labeled "MS WORDS: ████████░ 92%" (the numbers
+      come from a data file; see 08_project_purposeless_efficiency.txt).
+    Link: "→ /purposeless-efficiency · manuscript".
+
+  04 · THS — Theseus
+    Top: one-line thesis ("A knowledge system for monitoring
+      ideological contradiction.").
+    Middle: a mini-graph visualization — 12 nodes, a handful of edges,
+      two of those edges styled in var(--danger) to imply detected
+      contradictions. SVG, not canvas. If this is too expensive for the
+      teaser, substitute a tiny stacked-bar showing principles/questions/
+      contradictions counts.
+    Bottom: a link "thesescodex.com ↗" that opens externally.
+    Link: "→ /theseus · dossier".
+
+  05 · CV — Resume
+    Top: "Michael Quintin — CV" + last-updated ISO date.
+    Middle: three most recent experience bullets in monospace.
+    Bottom: two buttons side by side — "Open on page" (→ /resume) and
+      "Download PDF" (→ /resume.pdf).
+
+PANEL SPINES (collapsed state)
+------------------------------
+When a panel is collapsed, its spine shows:
+  - Top: panel number, e.g., "02"
+  - Middle: the three-letter code rotated 90° counter-clockwise, fine
+    tracking (letter-spacing ~0.15em), var(--fg-mute), var(--t-sm).
+  - Bottom: a vertically-stacked full title, one character per line,
+    monospace, var(--fg-dim).
+  - Hover: background lifts to var(--bg-2), code shifts to var(--fg).
+  - Focus: 2px accent outline inset by 2px (matching the global focus
+    ring from Prompt 01).
+
+NEUTRAL STATE
+-------------
+If the user presses Escape, the accordion enters "neutral" — all five
+panels at equal 20% width. In neutral, each panel shows only its code
++ title (no teaser content). This is the visual rest state. A single
+keyboard arrow moves focus into a panel; Enter expands.
+
+FILES TO PRODUCE
+----------------
+  src/app/page.tsx                                the landing route
+  src/components/boot/BootSequence.tsx            the overlay
+  src/components/panels/AboutTeaser.tsx           teaser for ABT
+  src/components/panels/HivemindTeaser.tsx        teaser for HVM
+  src/components/panels/PurposelessTeaser.tsx     teaser for PRP
+  src/components/panels/TheseusTeaser.tsx         teaser for THS
+  src/components/panels/ResumeTeaser.tsx          teaser for CV
+  src/content/panels.ts                           static data (bios,
+                                                   pitches, pull-quotes,
+                                                   progress numbers) —
+                                                   single source of truth,
+                                                   NO hardcoding in
+                                                   components
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Boot sequence runs once per session, under 2s, fully skippable,
+    honors reduced-motion, does not block screen readers.
+  - Accordion renders five panels with the teaser contents above.
+  - All "→ /…" links route correctly (targets may be stubs — later
+    prompts build those pages).
+  - Panel 03's book title is the only serif text on the landing.
+  - Panel 04's mini-graph is an SVG (not canvas) and has a role="img"
+    with a text alternative that lists the node and edge counts.
+  - No layout shift on boot dismissal. The accordion is laid out
+    beneath the overlay from the start; only the overlay opacity
+    changes.
+
+DO NOT
+------
+  - Do not show a "Welcome" headline. The boot IS the greeting.
+  - Do not show social icons or a "Hire me" CTA. Both are implied by
+    the content's quality and are vulgar here.
+  - Do not auto-rotate which panel is expanded. The user chooses.
+  - Do not use a full-screen modal for the book pull-quote. It is
+    inline.
+
+STRETCH
+-------
+  - Sync the accordion expansion state across browser tabs using
+    BroadcastChannel, so that opening two tabs and changing a panel
+    updates the other. This is not useful but is in keeping with the
+    workstation metaphor (multiple monitors, shared session).
+  - On very large displays (>=1680px), display a sixth panel labeled
+    "06 · LOG · Changelog" that opens /changelog — a running plaintext
+    log of site changes (git commits, filtered to the ones that matter).
+================================================================================

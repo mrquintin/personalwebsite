@@ -1,0 +1,181 @@
+================================================================================
+PROMPT 07 — PROJECT: HIVEMIND (CUSTOM DOSSIER PAGE)
+================================================================================
+
+TASK
+----
+Build /hivemind: a bespoke dossier for Hivemind, Michael's company.
+Hivemind is "strategic analytical software." The page reuses the
+scaffold components from Prompt 06 (Header, MetadataPane,
+ArtifactsBlock) but the body slot is a custom, multi-pane composition
+that behaves like a live intelligence brief.
+
+SOURCE MATERIAL
+---------------
+From the transcript: "Hivemind is basically strategic analytical
+software. [...] I can give some videos maybe if you need them. [...] I
+have to give you links and stuff like that to the actual software
+itself." So:
+  - Short description: strategic analytical software.
+  - Artifacts: videos (to be supplied by Michael), links to the live
+    software (to be supplied). Build with placeholders.
+  - Status: active, founder-stage. Classification: UNCLASSIFIED.
+
+Michael has not described the software's surface in detail. Write the
+page so the structure is correct and the content is swappable without
+touching the layout. Provide thoughtful placeholder copy that reflects
+the category (strategic analytical software) without inventing false
+specifics. Mark every placeholder with a comment "// TODO(michael):
+supply real copy" so Michael can grep them later.
+
+PAGE COMPOSITION
+----------------
+The page is structured like a one-page intelligence brief:
+
+  1. DOSSIER HEADER (scaffold Header, classification UNCLASSIFIED)
+  2. TWO-COLUMN OVERVIEW STRIP (new to this page):
+       Left column: METADATA PANE (from scaffold).
+       Right column: THESIS BLOCK — three lines stacked:
+         - Thesis (one sentence, what Hivemind is, in plain English).
+         - Mechanism (one sentence, how it works — e.g.,
+           "structured decomposition of strategy problems into
+           evaluable hypotheses with probabilistic aggregation").
+         - Moat (one sentence, why it is defensible).
+       Each line labeled in --fg-mute: "THESIS", "MECHANISM", "MOAT".
+  3. DEMO RECEIVER (custom; replaces media slot):
+       A 16:9 panel that accepts either:
+         (a) A looping muted demo video (MP4/WebM), or
+         (b) An interactive iframe of the live software, or
+         (c) A placeholder card displaying "[ demo pending ]" in
+             monospace + a "request demo" button that opens a mailto:.
+       The component should accept a discriminated union as a prop and
+       render the correct surface. Default to placeholder.
+  4. CAPABILITY GRID:
+       A 3×2 monospace grid of capability cards, each card:
+         - A capability code (mono, --fg-mute), e.g., "CAP-01".
+         - A capability name (mono, --fg), e.g., "Hypothesis decomposition".
+         - A one-line description (sans, --fg-dim).
+         - A status tag: "shipping" / "alpha" / "planned".
+       Include six plausible capabilities suitable for strategic
+       analytical software. Example candidates (use as starting points,
+       edit with Michael's real list later — mark them TODO):
+         CAP-01  Hypothesis decomposition
+         CAP-02  Evidence ledger (sourced, weighted)
+         CAP-03  Scenario tree + branch probability
+         CAP-04  Counterfactual simulation
+         CAP-05  Adversarial review (red team prompt)
+         CAP-06  Briefing render (memo export)
+  5. WORKFLOW STRIP:
+       A horizontal scrollable row of numbered steps showing how a
+       strategist moves through Hivemind from problem intake to
+       briefing export. Five to seven steps. Each step:
+         - Step number (mono, --accent-dim).
+         - Short label (mono, --fg).
+         - Two-line blurb (--fg-dim).
+         - A small inline glyph for inputs/outputs on each end
+           (ASCII ">" / "<" arrows, not SVG).
+  6. EVIDENCE MINI-PANE (optional):
+       A monospace quote block showing a short customer quote OR a
+       public citation. If none available, omit.
+  7. PRESS & ARTIFACTS (uses the ArtifactsBlock from scaffold):
+       Include slots for:
+         website         hivemind.ai
+         product login   app.hivemind.ai
+         demo            (video URL)
+         github          (if public)
+         press           (article URL)
+         contact         michael@hivemind.ai  (or the correct email)
+  8. CALL-TO-INQUIRY (footer of page):
+       A single line in monospace — not a button, not a splash:
+         "Interested operators, investors, and design partners:
+          michael@hivemind.ai — subject: HIVEMIND / {YOUR CONTEXT}"
+       Rendered at --t-base, in --fg-dim, with the email in --fg-hi.
+
+VISUAL STYLE
+------------
+Everything monospace by default. The only sans-serif text on this page
+is the capability description lines and, optionally, the one evidence
+quote. Serif is forbidden on this page.
+
+Accent (--accent) is used:
+  - On the classification banner's right-edge ruler.
+  - On CAP-xx codes in the capability grid.
+  - On the single "shipping" status tag (no more than needed).
+  - On the workflow step numbers.
+Nowhere else.
+
+The demo receiver, when in "placeholder pending" state, should
+DELIBERATELY render as an empty monospace frame that reads:
+
+    ┌───────────────────────────────────────────────────────┐
+    │                                                       │
+    │                 [ demo pending upload ]               │
+    │                                                       │
+    │    (this surface will mount a live iframe or          │
+    │     looping walkthrough when available)               │
+    │                                                       │
+    └───────────────────────────────────────────────────────┘
+
+This is an honest signal to the visitor that the site is actively in
+progress and that the missing content is not a designer's oversight —
+it is awaited material.
+
+DATA CONTRACT
+-------------
+Hivemind's content lives at src/content/projects/hivemind.ts as the
+metadata module (already created in Prompt 05), plus:
+  src/content/projects/hivemind/thesis.ts        — {thesis, mechanism, moat}
+  src/content/projects/hivemind/capabilities.ts  — CAP-01..CAP-N array
+  src/content/projects/hivemind/workflow.ts      — ordered step array
+  src/content/projects/hivemind/demo.ts          — {kind, src} — video,
+                                                    iframe, or
+                                                    placeholder
+  src/content/projects/hivemind/press.ts         — array of artifacts
+
+Each file is a TypeScript module with a default export. Do not embed
+strings in the page component.
+
+FILES TO PRODUCE
+----------------
+  src/app/hivemind/page.tsx
+  src/components/projects/hivemind/ThesisBlock.tsx
+  src/components/projects/hivemind/DemoReceiver.tsx
+  src/components/projects/hivemind/CapabilityGrid.tsx
+  src/components/projects/hivemind/WorkflowStrip.tsx
+  src/content/projects/hivemind/*   (as above)
+
+ACCEPTANCE CRITERIA
+-------------------
+  - /hivemind renders end-to-end against placeholder data.
+  - The demo receiver renders the placeholder state and, if a src is
+    provided, swaps cleanly to video or iframe.
+  - Capability grid is navigable by keyboard (tab through cards; each
+    card is focusable, not just the whole grid).
+  - Workflow strip scrolls horizontally on narrow viewports with
+    snap-stop per step.
+  - The classification banner, metadata pane, and artifacts block come
+    from the shared scaffold.
+  - Every placeholder is annotated with TODO(michael) in code.
+
+DO NOT
+------
+  - Do not write marketing copy. No "revolutionary", "game-changing",
+    "cutting-edge." Declarative sentences only.
+  - Do not invent a list of named customers, pricing, or numbers. If
+    not provided, leave slots empty or placeholder.
+  - Do not use an image carousel. Media is static or looping video.
+  - Do not import icon libraries for the capability grid. Capability
+    cards are text-only.
+
+STRETCH
+-------
+  - A "Run a scenario" widget: a tiny in-browser demo that accepts a
+    two-sentence strategy problem and outputs a plausible-looking
+    decomposition (static, hand-authored — no real LLM call). Marked
+    clearly as "illustrative." This is a risk — it must be obvious that
+    the widget is a mockup — but done well it is the single most
+    compelling element on the page because it shows rather than tells.
+  - A "briefing render" export that lets a visitor print the page as
+    a dossier PDF. Piggyback on the @media print stylesheet from
+    Prompt 06.
+================================================================================

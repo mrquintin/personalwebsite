@@ -1,0 +1,158 @@
+================================================================================
+PROMPT 10 — /about — THE ABOUT PAGE
+================================================================================
+
+TASK
+----
+Build /about: a bespoke page about Michael Quintin. This is the site's
+biographical surface. It reuses the shell and scaffold, but its body is
+custom. The accordion's panel 01 (ABT) teases it; this is the full page.
+
+PHILOSOPHY
+----------
+Resist the portfolio About-page instinct. Do not open with "Hi, I'm
+Michael." Do not list hobbies. Do not use "passionate about." An About
+page on this site is a small curated dossier on a person — not a
+social profile. Aim for the register of an archivist's bio card, or a
+late-Updike author note, or the "principal investigator" block on a
+research lab's homepage.
+
+PAGE COMPOSITION
+----------------
+  1. HEADER (scaffold, UNCLASSIFIED):
+       DOSSIER :: ABT · MICHAEL QUINTIN
+       Subtitle: a single declarative sentence summarizing him
+                 professionally. TODO(michael) — placeholder:
+                 "Operator, writer, and founder of Hivemind."
+       Breadcrumb: ~/about/README
+
+  2. IDENTITY BLOCK (monospace key/value, full width):
+       NAME          Michael Quintin
+       ROLE(S)       Founder of Hivemind · Author · Researcher
+       BASED         (city) (TODO — provide if public; otherwise
+                     "North America")
+       CHANNELS      email · LinkedIn · GitHub · X (as applicable)
+       PGP (opt.)    fingerprint (if Michael publishes a key)
+
+  3. BIOGRAPHY (sans-serif long-form):
+       3–5 paragraphs, --t-md, 72ch measure, Inter. Third-person voice
+       is acceptable and arguably better for this aesthetic; first-
+       person is also fine if Michael prefers. Topics to cover — but
+       DO NOT INVENT specifics:
+         - What Michael works on and why.
+         - The throughline between Hivemind (strategic analytical
+           software), Purposeless Efficiency (book on corporatism,
+           gamification, incumbency, complacency, economic
+           revolution), and Theseus (ideological contradiction
+           monitoring). There is a throughline — the operator
+           trying to think clearly in a world optimized against
+           clear thinking — and naming it well is the job of this
+           section.
+         - Intellectual genealogy: who he has read, what fields he
+           draws from. (Placeholder; mark TODO.)
+         - Current preoccupations.
+       Do NOT include cute facts ("I love coffee / hiking / my dog").
+       Do NOT include a "fun fact."
+
+  4. BELIEFS / WORKING STYLE (sidebar or inline list):
+       A tight monospace list — 5 to 9 items — articulating how
+       Michael works or what he believes about work. This is the
+       piece that makes an About page memorable. Each item is one
+       sentence, declarative, with a numeric prefix:
+         01 · Accuracy over warmth. Rigor over pace.
+         02 · Density over decoration.
+         03 · Build the interface first; let the content earn its way in.
+         04 · First principles before citations.
+         05 · ...
+         (TODO(michael) — Michael should author these. Provide plausible
+          placeholders and mark them for review.)
+
+  5. WORK LEDGER (compact, reuses projects loader):
+       A short, auto-populated list of active and recent projects,
+       drawing from src/content/projects/. Three columns per row:
+         code · title · one-line status
+       Links to the project page. Excludes "archived" unless a query
+       string says ?show=all.
+
+  6. WRITING (optional, inline block):
+       If/when a /writing or /blog section exists, pull the last 3
+       entries here. For now, leave a stub:
+         "writing ........................ coming soon"
+       Rendered in monospace, --fg-dim. No images.
+
+  7. CONTACT STRIP (footer of page):
+       One line, monospace:
+         "Direct: michael@{domain} · LinkedIn: /in/michaelquintin ·
+          GitHub: /mrquintin"
+       The email is the primary channel. This is not a form. Forms
+       for contacting a person you want to respect are impersonal.
+       (If Michael wants a form, defer to Prompt 15 where form
+       backends are discussed.)
+
+  8. COLOPHON (small, bottom):
+       A quiet block listing the site's construction:
+         "Built with Next.js, TypeScript, and restraint. Typography:
+          JetBrains Mono, Inter, Source Serif 4. Designed around
+          a deliberate absence of decoration."
+       Rendered in --t-xs, --fg-mute. Replace "JetBrains Mono" if
+       a different mono was shipped.
+
+VISUAL NOTES
+------------
+  - Primary body face: sans-serif (Inter). Chrome and list items
+    stay monospace.
+  - Do not include a photograph unless Michael provides one. If he
+    does, render it at 160×160, 1px border, monospace caption below
+    ("MQ · 2026"). No rounded corners.
+  - Decorative typographic ligatures (fi, fl, ff) should be enabled;
+    this is the one page where the extra craft shows up.
+
+DATA CONTRACT
+-------------
+  src/content/about/
+    ├─ identity.ts          { name, roles[], based, channels[] }
+    ├─ biography.mdx
+    ├─ beliefs.ts           [{ n, text }]
+    └─ colophon.ts          { tech[], type[], tagline }
+
+FILES TO PRODUCE
+----------------
+  src/app/about/page.tsx
+  src/components/about/IdentityBlock.tsx
+  src/components/about/BeliefsList.tsx
+  src/components/about/WorkLedger.tsx     // re-uses projects loader
+  src/components/about/Colophon.tsx
+
+ACCEPTANCE CRITERIA
+-------------------
+  - The page renders end-to-end with placeholder content clearly
+    marked TODO(michael).
+  - No photograph is hardcoded; the component gracefully renders
+    without one.
+  - The beliefs list is typographically tight; each item fits on one
+    line at desktop width without wrapping.
+  - The work ledger auto-updates when a new project is added under
+    src/content/projects/.
+  - The contact strip exposes a valid mailto: link and the correct
+    LinkedIn / GitHub handles.
+
+DO NOT
+------
+  - Do not include a "download my CV" button here. CV access is the
+    job of /resume (Prompt 11) and the command palette.
+  - Do not include testimonial quotes.
+  - Do not list skills as a tag cloud. Skills are demonstrated by the
+    work ledger; tags are a cope.
+  - Do not include a timeline of life events. Biographies on this
+    site are thematic, not chronological.
+
+STRETCH
+-------
+  - Reading preferences: a small section listing 5–10 books that
+    have shaped Michael's thinking. Format: one line each, monospace,
+    author and title, no cover images, no Amazon affiliate links.
+  - A "now" block (after the derekSivers /now convention): one short
+    paragraph updated monthly describing Michael's current focus.
+    Stored in src/content/about/now.mdx; a git hook could surface its
+    last-modified date as a "now — 2026-04-12" stamp.
+================================================================================

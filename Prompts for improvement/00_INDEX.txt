@@ -1,0 +1,103 @@
+================================================================================
+PROMPTS FOR IMPROVEMENT — INDEX
+Michael Quintin's personal website rebuild
+================================================================================
+
+PURPOSE
+-------
+This folder contains a sequenced set of prompts. Each .txt file is a standalone
+brief you can paste into an agent (Claude Code, Cursor, etc.) to execute one
+discrete chunk of work on the personal website at:
+
+    /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website
+
+Prompts are ordered by dependency. Run them in order unless noted otherwise.
+Each prompt is self-contained: it restates the global vision, the aesthetic
+constraints, and the acceptance criteria. You should not need to read prior
+prompts to execute a later one, though it helps for continuity.
+
+THE GLOBAL VISION (read this once, then forget)
+-----------------------------------------------
+The site is "The Operator's Portfolio." Not a designer's portfolio. A
+workstation. The user (Michael) is a thinker — companies, books, knowledge
+systems — and the site should signal that immediately by feeling like a
+research terminal rather than a marketing page.
+
+Three reference aesthetics, blended:
+  - Bloomberg Terminal: dense panes, function-key references, status bars,
+    amber/cyan-on-black, ticker rhythms, no decoration.
+  - Palantir Gotham/Foundry: classified-document gravity, low-chroma greys
+    with one sharp accent, monospace + Inter mix, line-art icons.
+  - Unix terminal: prompt, blinking cursor, ASCII headers, file-tree nav,
+    keyboard-first ergonomics.
+
+Three non-negotiable principles:
+  1. KEYBOARD-FIRST. The site must be fully usable from the keyboard. A
+     command palette (Cmd+K) is the canonical navigation. Mouse is a
+     fallback, not a primary.
+  2. DENSITY OVER WHITESPACE. Show information. Trust the visitor to read.
+     The site is for readers, not skimmers. (But typography must remain
+     legible — density does not mean cramped.)
+  3. PER-PROJECT BESPOKE. There are very few projects (3 confirmed:
+     Hivemind, Purposeless Efficiency, Theseus). Each gets its own custom
+     dossier page. The system supports a generic project template, but the
+     three featured projects override it heavily.
+
+The "weird/never-seen" navigation gimmick: the landing page is a horizontal
+accordion of vertical panels — one per top-level destination (About,
+Hivemind, Purposeless Efficiency, Theseus, Resume). Hover/click expands a
+panel into a full workspace; the others compress to monospace spines that
+remain visible as a status rail. Cmd+K bypasses the accordion entirely.
+
+EXECUTION ORDER
+---------------
+00_INDEX.txt                          (this file)
+
+Phase 1 — Foundation (run first)
+  01_design_philosophy_and_tokens.txt   Aesthetic system, color, type, grid, motion language.
+  02_navigation_paradigm.txt            Accordion + command palette + status rail. Site map.
+  14_tech_stack_consolidation.txt       Resolve the Next.js vs. legacy /public conflict before building.
+
+Phase 2 — Surfaces (run after foundation)
+  03_landing_boot_sequence.txt          Home as a boot sequence + accordion.
+  04_command_palette.txt                Cmd+K, fuzzy search, scriptable commands.
+  05_projects_index.txt                 Bloomberg-style projects index.
+  06_project_detail_framework.txt       Generic per-project dossier scaffold.
+
+Phase 3 — Projects (run in any order; each is independent)
+  07_project_hivemind.txt               Custom dossier for Hivemind (strategic analytical software).
+  08_project_purposeless_efficiency.txt Custom dossier for the book.
+  09_project_theseus.txt                Custom dossier for Theseus + Noosphere.
+
+Phase 4 — Supporting pages
+  10_about_page.txt                     "Who I am" — biography, beliefs, working style.
+  11_resume_integration.txt             Resume PDF access + on-page rendering.
+
+Phase 5 — Polish
+  12_motion_easter_eggs.txt             Microinteractions, hidden delights, the cursor, the loader.
+  13_voice_and_copy.txt                 Microcopy, headers, status messages, button labels.
+  15_a11y_perf_seo_iteration.txt        Accessibility, performance, SEO, and an iteration/critique loop.
+
+NOTES FOR THE EXECUTING AGENT
+-----------------------------
+  - The current site is a Next.js 15 + React 19 + TypeScript app. The
+    canonical entry is src/app/page.tsx. There is also a legacy static
+    public/index.html that is NOT routed at /. Phase 1 includes a prompt
+    that resolves which path to keep.
+  - Featured projects (only these 3 for now): Hivemind, Purposeless
+    Efficiency, Theseus. Do NOT auto-pull from GitHub yet. Build the
+    interface to support future projects.
+  - Resume PDF: the user will provide. Build the integration even if the
+    PDF is not yet present — fall back to a placeholder.
+  - The user values rigor over warmth in copy. No startup-marketing fluff.
+    Sparse, precise, declarative.
+  - Theseus is live at thesescodex.com — link to it; do not duplicate.
+
+FUTURE ADDITIONS (not in this set)
+----------------------------------
+  - GitHub auto-pull (defer; user has too few repos to bother)
+  - Blog/writing engine (the legacy template hints at this; defer until
+    there is content to host)
+  - Contact form backend (current legacy template has a no-op form; defer
+    until a destination is chosen — Resend, Formspree, mailto:)
+================================================================================

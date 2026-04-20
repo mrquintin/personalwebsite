@@ -1,0 +1,180 @@
+================================================================================
+PROMPT 12 — MOTION, MICROINTERACTIONS, AND EASTER EGGS
+================================================================================
+
+TASK
+----
+Layer motion and interactive delights across the site. This prompt runs
+AFTER all content pages are built. It is polish, not structure. But it
+is high-leverage polish: the difference between a clever site and a
+site people send each other.
+
+DISCIPLINE
+----------
+All motion must be (1) functional, (2) interruptible, (3) respectful
+of prefers-reduced-motion. If you cannot articulate why a motion
+exists, cut it.
+
+MOTION LAYER 1 — STATE TRANSITIONS
+----------------------------------
+  - Accordion panel expand/collapse: --d-norm with --ease, flex-basis
+    driven. Internal content fades and translates up 8px after 120ms.
+  - Page navigation between "/" (accordion) and "/:panel" (full page):
+    use framer-motion layoutId to morph the expanded panel's header,
+    breadcrumb, and classification banner from their accordion
+    position to their full-page position. No fade; shared-element
+    motion.
+  - Project detail routes: the media slot fades in on mount, the
+    rest is instantaneous.
+  - Command palette open: scale from 0.98 to 1.0 over --d-fast with
+    background opacity 0 → 0.6. Close: reverse, --d-fast.
+
+MOTION LAYER 2 — THE CURSOR
+---------------------------
+A single blinking cursor character (▌ or █) renders at the current
+logical "prompt" location. Logic:
+  - On the boot sequence, it blinks at the ~$ line.
+  - On any page with a primary input (the command palette, a filter
+    input on /projects), the cursor moves INSIDE the input on focus.
+  - As ambient decoration, the cursor appears at the end of the page
+    title in the status bar, blinking, reminding the visitor the
+    terminal is live. ~1s on, ~0.6s off. prefers-reduced-motion
+    disables the blink (cursor stays solid-on).
+
+MOTION LAYER 3 — THE TICKER
+---------------------------
+A small optional ticker behavior in the status bar, alternating through
+a short list of status messages every 8 seconds:
+
+    STATUS: idle · awaiting input
+    STATUS: 3 projects loaded · 0 anomalies
+    STATUS: theseus noosphere · last scan 14:02Z
+    STATUS: ⌘K to query
+    STATUS: ~/resume.pdf · last updated 2026-04-12
+
+Rendered with a flash-on-change effect (120ms accent glow on the new
+text). This replaces one of the status bar segments — the "⌘K palette"
+hint is static; this is in a different segment.
+
+MOTION LAYER 4 — FLASH-ON-CHANGE
+--------------------------------
+Any numeric value that updates live (the UTC clock, the build version
+if hot-reloaded, word-count on the book page) should briefly flash
+the new value in --accent for 120ms and then return to --fg. This is
+lifted directly from Bloomberg and is the single most "operator" detail
+on the site. Use it sparingly.
+
+MICROINTERACTIONS
+-----------------
+  - Selection (::selection): a chunky --accent background, --bg-0
+    text. Drags across prose feel satisfying.
+  - Caret color: --accent on every input.
+  - Focus rings: 2px solid --accent with a 2px offset, never removed
+    on :focus-visible (removed only on :focus when :focus-visible is
+    false, per the standard pattern).
+  - Hover-underline on links: 1px solid --fg, appears under the text
+    only on hover. Do not show underlines by default on links that
+    are in nav or in the palette.
+  - Checkbox (if any): redraw as ascii "[ ]" / "[x]" in monospace.
+  - Progress bars: always Unicode box-drawing characters, not div
+    widths. See Purposeless Efficiency's progress line.
+
+EASTER EGGS (hidden delights)
+-----------------------------
+Easter eggs should reward curiosity without rewarding poking. All of
+the following are optional; pick any three to implement.
+
+  (A) KONAMI CODE
+    On ↑↑↓↓←→←→BA, the palette opens with the history filter pre-
+    populated and a new command appears: "? about this easter egg"
+    which opens a toast reading:
+      "You have good taste. Welcome."
+
+  (B) TYPE "clear" AT HOME
+    On the landing page, pressing / then typing "clear" and Enter
+    resets the accordion to neutral state and briefly flashes the
+    status bar with: "screen cleared."
+
+  (C) HOLD ⌘+SHIFT+T
+    Temporarily reveals the full ASCII page outline overlay — every
+    section heading indexed with its file path. Releasing restores
+    normal view. An operator's x-ray.
+
+  (D) PRINT THE BOOK PAGE
+    If someone triggers Cmd+P on /purposeless-efficiency, the print
+    stylesheet renders a facsimile of a book page — title at top,
+    folio ("I · Purposeless Efficiency · Michael Quintin · p. N") at
+    the bottom. The most rewarded easter egg: the few people who
+    actually try to print the book page get a miniature book page.
+
+  (E) `sudo`
+    In the command palette, if a user types "sudo" followed by any
+    command, the palette responds with a Sudoesque: "> password: "
+    input, accepts anything, and then responds
+    "operator.michael.quintin ALL=(ALL) ALL — permission granted"
+    before executing the real command. Purely theatrical.
+
+  (F) 404 PAGE
+    Build a real 404. It reads:
+      "404 · file not found
+
+       $ ls -la ~/michael/
+       drwxr-xr-x  operator michael    ./about
+       drwxr-xr-x  operator michael    ./hivemind
+       drwxr-xr-x  operator michael    ./purposeless-efficiency
+       drwxr-xr-x  operator michael    ./theseus
+       drwxr-xr-x  operator michael    ./resume
+
+       the file you requested does not exist on this terminal.
+       ⌘K to open the command palette. ⎋ to return home."
+
+    Monospace, full-bleed, no decoration.
+
+  (G) TIME-BASED SUBTLE SHIFTS
+    If the system time is between midnight and 6am local, the status
+    bar segment "STATUS: idle" replaces with "STATUS: late — respect
+    your sleep." Only shows once per session.
+
+DELETION DELIGHT
+----------------
+  - When a "copy" button fires, the button briefly swaps text to
+    "✓ copied" in --ok for 900ms, then reverts. The swap is
+    instantaneous; no fade. This is the one permitted text swap on
+    the site.
+
+DO NOT
+------
+  - Do not add a custom mouse cursor (an SVG/PNG cursor follower).
+    These are universally disliked by keyboard users and many mouse
+    users, and they are a classic indicator of a "designery"
+    portfolio this site is deliberately not.
+  - Do not add scroll-jacking on any page.
+  - Do not add "reveal on scroll" fades as default behavior. Elements
+    render when they render.
+  - Do not add persistent audio — no ambient hum, no typing sound.
+    A terminal aesthetic site with sound would be insufferable.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - prefers-reduced-motion disables every motion above except the
+    minimum required for state changes (accordion transitions become
+    instantaneous; the cursor becomes solid-on; flash-on-change is
+    silenced; ticker is paused on one message).
+  - All easter eggs ship-or-omit as a group; partial shipping is OK.
+    Document which are present in docs/easter-eggs.md so future
+    maintenance knows what to preserve.
+  - Focus rings are visible on every focusable element and not
+    overridden by any hover state.
+  - The print stylesheet on /purposeless-efficiency produces the
+    facsimile book page. Verified by printing to a PDF locally.
+
+STRETCH
+-------
+  - A configurable "intensity" setting in localStorage: "minimal",
+    "default", "operator." operator adds a live ticker of ISO time
+    to the bottom-right of every page, adds a small load-indicator
+    spark-line in the status bar, and increases numeric flash-on-
+    change saturation. minimal removes the ticker and the cursor
+    blink. The palette exposes a command "set intensity to ..." for
+    adjustment.
+================================================================================

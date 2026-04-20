@@ -1,0 +1,204 @@
+================================================================================
+PROMPT 04 — COMMAND PALETTE (Cmd+K)
+================================================================================
+
+TASK
+----
+Implement the command palette that opens on Cmd+K / Ctrl+K, mounted by
+the Shell in Prompt 02. The palette is the canonical keyboard-first
+navigation and action surface. When this prompt is done, a confident
+keyboard user should never touch the mouse on this site.
+
+PHILOSOPHY
+----------
+Inspired by Raycast, Linear, Warp, and the VS Code palette — but denser,
+sparser chrome, no icons-for-icons-sake, ISO timestamps where possible,
+monospace throughout.
+
+The palette is not a search. It is a command bus. It merges three kinds
+of items under one fuzzy-match interface:
+
+  1. NAVIGATION — jump to any page, panel, or deep section.
+  2. ACTIONS — side effects that change state (toggle theme, copy email,
+     download resume, print page, open a specific external link).
+  3. QUERIES — read-only retrievals (show keyboard shortcuts, show
+     changelog, show word count for Purposeless Efficiency).
+
+The palette must be fast. First paint < 50ms after open. It is not a
+Search Console; it does not hit the network unless an explicit action
+requires it (e.g., "download resume" fetches /resume.pdf).
+
+VISUAL SPEC
+-----------
+Overlay: a centered modal, max-width 640px, top offset 14vh, rounded
+1px (yes, 1px — not 8px), 1px solid var(--rule), background var(--bg-1),
+drop shadow none (a 1px accent-colored top border instead — homage to
+Bloomberg's function key line).
+
+Structure, top to bottom:
+  - 32px input row: var(--font-mono), placeholder "Type a command or
+    search — ESC to close". A blinking var(--accent) cursor at the
+    caret. On left, a small chevron ">" in var(--accent). On right, a
+    kbd badge "ESC" on var(--bg-2).
+  - 1px divider, var(--rule).
+  - Results list: up to 10 visible, scrollable. Each row is 36px tall,
+    structure:
+        [ category glyph ] [ title ] .............. [ context or kbd ]
+     where:
+        - category glyph = single ASCII char: "›" for nav, "⚑" for
+          action, "?" for query. Monospace, 14px, var(--accent-dim).
+        - title = var(--fg), var(--font-mono), var(--t-sm).
+        - context = var(--fg-mute), right-aligned, var(--t-xs). For nav
+          rows, this is the full path (e.g., "/projects/hivemind"); for
+          actions, it is the keyboard shortcut (e.g., "⌘⇧D"); for
+          queries, it is a metadata string (e.g., "updated 2026-04-19").
+     Selected row: background var(--bg-3), left edge var(--accent) 2px.
+  - 1px divider, var(--rule).
+  - Footer row: 24px tall, var(--t-xxs), left-to-right:
+        "↑↓ navigate   ↵ run   ⌘↵ run in new tab   / filter   ?  help"
+
+BEHAVIOR
+--------
+  - Open: Cmd+K or Ctrl+K. Re-open toggles.
+  - Close: Escape, click outside, or successful command execution.
+  - Fuzzy match: implement Smith-Waterman-lite or use fzf-for-js /
+    fuse.js at lowest threshold. Prefer matches where the query
+    characters appear at word boundaries. Highlight matched characters
+    in the result title with color var(--accent).
+  - Scope filter: typing "/" at the start enters a filter mode. Examples:
+        /nav   → only navigation items
+        /act   → only actions
+        /qry   → only queries
+        /prj   → shortcut for /nav scoped to /projects/*
+        />hvm  → jump directly to panel/project matching code hvm
+  - History: the last 5 executed commands appear at the top when the
+    palette opens with an empty input.
+  - Async items: if an action is asynchronous (downloading the resume),
+    show an inline spinner in the result row, disable other rows, and
+    close on completion.
+  - Aria: role="combobox", aria-expanded, aria-activedescendant. The
+    input has aria-controls pointing at the results listbox. Each
+    result has role="option".
+
+THE COMMAND REGISTRY
+--------------------
+Register commands in src/lib/commands/registry.ts. Each command:
+
+  type Command = {
+    id: string;                   // "nav.hivemind", "action.copy-email"
+    kind: "nav" | "action" | "query";
+    title: string;                // "Go to Hivemind"
+    subtitle?: string;
+    keywords?: string[];          // fuzzy match aliases
+    shortcut?: string[];          // ["meta","k"] etc. — optional
+    section: "Navigate" | "Projects" | "Actions" | "External" | "Info";
+    run(ctx: RunContext): void | Promise<void>;
+  }
+
+Seed with at minimum:
+
+  Navigate:
+    - Home / accordion (nav) — /
+    - About (nav) — /about
+    - Hivemind (nav) — /hivemind
+    - Purposeless Efficiency (nav) — /purposeless-efficiency
+    - Theseus (nav) — /theseus
+    - Resume (nav) — /resume
+    - Projects index (nav) — /projects
+    - Changelog (nav) — /changelog  (if implemented)
+
+  Projects deep-links (nav):
+    - Hivemind / Overview
+    - Hivemind / Demo
+    - Hivemind / Stack
+    - Hivemind / Press & contact
+    - Purposeless Efficiency / Synopsis
+    - Purposeless Efficiency / Sample chapter
+    - Purposeless Efficiency / Manifesto (five-book arc)
+    - Theseus / Principles
+    - Theseus / Noosphere
+    - Theseus / Contradictions feed
+    - Theseus / External (thesescodex.com)
+
+  Actions:
+    - Copy email address
+    - Copy BibTeX citation for the book (if available)
+    - Download resume PDF
+    - Toggle theme (dark is default — this command reveals the light
+      mode if someone really insists)
+    - Print current page (calls window.print(); use the @media print
+      stylesheet)
+    - Open GitHub profile (external)
+    - Open LinkedIn (external)
+
+  Queries:
+    - Keyboard shortcuts cheat sheet (opens the F1 modal)
+    - Current time in UTC (echoes time into a toast)
+    - Build version (echoes package.json version into a toast)
+    - Color contrast report (dev-only; runs axe-core in the background
+      on the current page and logs violations to the console. Only
+      register this command in development builds.)
+
+Each command owns its own run() function. Commands must be pure except
+for their explicit side effect. Do NOT let a command mutate palette
+state directly; use a store (zustand or a custom React context).
+
+DATA PROVIDERS
+--------------
+The registry imports from data providers, not hardcoded lists. For
+example, the projects deep-links come from a generator that reads
+src/content/projects/*.ts. This way, adding a new project automatically
+adds its deep-links to the palette.
+
+The registry should include a helper registerProject(project) so that
+each project file contributes its own entries without touching the
+palette code.
+
+FILES TO PRODUCE
+----------------
+  src/components/palette/Palette.tsx
+  src/components/palette/ResultRow.tsx
+  src/components/palette/useFuzzy.ts
+  src/lib/commands/registry.ts
+  src/lib/commands/types.ts
+  src/lib/commands/providers/nav.ts
+  src/lib/commands/providers/actions.ts
+  src/lib/commands/providers/queries.ts
+  src/lib/commands/providers/projects.ts
+  src/lib/hotkeys/useHotkey.ts
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Cmd+K opens from anywhere on the site.
+  - Typing "hiv" matches "Go to Hivemind" before anything else.
+  - Arrow keys move selection; Enter executes.
+  - At least one async action (download resume) is implemented and
+    shows an inline spinner.
+  - History persists across palette opens within a page load.
+  - The footer hint row is visible and accurate.
+  - Keyboard-only use reaches every command. Screen readers announce
+    result counts and selected row via aria-live on the listbox header.
+  - The palette opens in <50ms on a desktop-class machine after the
+    first open (subsequent opens must be instantaneous — lazy-load
+    heavy providers, but keep the palette component warm).
+
+DO NOT
+------
+  - Do not add a graphical "search" icon. The ">" glyph is sufficient.
+  - Do not use autocomplete dropdowns inside the palette. Results are
+    the dropdown.
+  - Do not reload the page on navigation commands — use Next.js router.
+  - Do not show the palette on the boot sequence; it is suppressed
+    until the overlay dismisses.
+
+STRETCH
+-------
+  - Implement command chaining: typing "; " between commands queues
+    them. For example, `> copy email ; open linkedin`. Not useful but
+    aesthetic.
+  - "Recent pages" provider that reads sessionStorage and lists the
+    last 3 pages visited within this session.
+  - A "typeahead preview" that renders the matched page's title panel
+    in a small right-hand sidebar within the palette, so a keyboard
+    user can glance before hitting Enter.
+================================================================================

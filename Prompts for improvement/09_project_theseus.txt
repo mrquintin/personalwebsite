@@ -1,0 +1,200 @@
+================================================================================
+PROMPT 09 — PROJECT: THESEUS (+ NOOSPHERE)
+================================================================================
+
+TASK
+----
+Build /theseus: a bespoke dossier for Theseus, Michael's knowledge
+system for monitoring ideological contradiction. This is the most
+visually adventurous project page on the site, because the subject
+matter — a principle graph with detected contradictions — maps
+directly onto an interactive visualization. Theseus is live at
+thesescodex.com; this page is a curated window onto it, not a
+duplicate.
+
+SOURCE MATERIAL
+---------------
+From the transcript:
+  - "Theseus is this knowledge base. It's a way of monitoring
+    ideological contradiction, prediction, a way of really systematizing
+    philosophical debate and first principles analysis."
+  - "We've hooked up, we've extracted a series of principles from a
+    series of discussions, uploaded work, all kinds of things that we've
+    built into the platform."
+  - "From those first principles, we are... using an LLM augmented on
+    that material."
+  - "I also built a model called Noosphere, which is a, it detects
+    contradictions. It asks open questions about the principle list, to
+    make it easier to kind of streamline the conversation and refine
+    the principles."
+  - URL: thesescodex.com.
+
+There is also an existing /ontology page in the current codebase
+(public/pages/ontology.html + public/js/ontology-data.js). That work
+should be inspected and, where appropriate, absorbed into this page as
+the principle-graph visualization. Do not delete it without reading it.
+
+PHILOSOPHY
+----------
+Theseus is the most abstract project, and therefore must be the most
+viscerally demonstrated. A visitor who reads the synopsis will nod
+politely. A visitor who SEES the principle graph with live-detected
+contradictions will remember the project. Design accordingly.
+
+PAGE COMPOSITION
+----------------
+  1. HEADER (scaffold, UNCLASSIFIED):
+       DOSSIER :: THS · THESEUS
+       Subtitle: "A knowledge system for ideological contradiction."
+       Breadcrumb: ~/projects/theseus/README
+
+  2. THESIS CARD (full-width strip, top):
+       Three lines, each labeled in --fg-mute:
+         CLAIM      Philosophical debate can be systematized.
+         METHOD     Extract first principles, represent as a graph, and
+                    automatically surface contradictions between them.
+         ROLE       A Kimyst/Codex for the operator-philosopher.
+       Rewrite CLAIM/METHOD/ROLE in Michael's voice later; mark TODO.
+
+  3. PRINCIPLE GRAPH (the set-piece):
+       A full-bleed, interactive SVG or WebGL graph, 16:9, dominant
+       feature of the page. Default view:
+         - ~40–120 nodes (principles).
+         - Edges of two kinds:
+             (a) supports/entails — rendered in --fg-dim.
+             (b) contradicts/tension — rendered in --danger.
+         - Nodes sized by centrality (the more principles it supports,
+           the larger). Labels in monospace, small, visible on hover
+           and on zoom-in.
+       Interactions:
+         - Drag to pan. Scroll to zoom. Click a node to pin it and
+           show its adjacent principles + contradictions in a right-
+           hand drawer.
+         - Double-click a contradiction edge to expand an inline panel
+           summarizing "why these two principles tense."
+         - Keyboard: "t" toggles tensions-only view (only contradicting
+           edges visible, all other edges faded to --fg-mute at 0.2
+           opacity).
+       Performance: if node count exceeds 300, switch to Canvas/WebGL
+       via a library (e.g., d3-force + canvas rendering, OR Sigma.js).
+       Under 300, SVG is fine and simpler.
+
+  4. NOOSPHERE CONSOLE (a stylized live-reader):
+       A 3-pane console immediately below the graph, monospace
+       throughout, framed as if it were a terminal output:
+
+         ┌ NOOSPHERE · CONTRADICTION FEED ────────────────────┐
+         │ 2026-04-18 T 12:04:02Z  · DETECTED                  │
+         │   > Principle P-014 ("autonomy is prior to welfare")│
+         │   >   tension with                                   │
+         │   > Principle P-071 ("collective survival overrides │
+         │        individual consent in extremis")             │
+         │                                                      │
+         │ 2026-04-18 T 10:33:11Z  · OPEN QUESTION             │
+         │   ? Under what conditions does P-014 yield to       │
+         │     P-071, and does that yield imply a new          │
+         │     meta-principle?                                  │
+         │                                                      │
+         │ 2026-04-17 T 22:17:44Z  · REFINED                   │
+         │   * P-022 rewritten: "preferences over outcomes...  │
+         │                                                      │
+         │ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ ⎯ │
+         │   viewing 3 of 127 events · open thesescodex.com    │
+         └─────────────────────────────────────────────────────┘
+
+       Entries are timestamped in ISO-8601. Three event types:
+         DETECTED       — a new contradiction surfaced
+         OPEN QUESTION  — Noosphere has asked a question
+         REFINED        — a principle was edited in response
+
+       Data source: src/content/projects/theseus/noosphere-feed.ts, a
+       hand-curated array of events (NOT live-fetched from thesescodex.com
+       in this prompt — keep the dependency local). Later, this can be
+       wired to a real API.
+
+  5. FIRST PRINCIPLES PANE (read-only list):
+       A scrollable monospace list of 20–40 principles, each row:
+         P-014   autonomy is prior to welfare
+         P-071   collective survival overrides individual consent in
+                 extremis
+         P-022   preferences over outcomes are revealed through choice
+                 under constraint
+         ...
+       Hovering a row dims the graph to only the selected node and its
+       adjacencies. Clicking opens a drawer showing the principle's
+       text, its supports, and its contradictions.
+
+  6. METHODOLOGY BLOCK (sans-serif prose):
+       Three short paragraphs, --t-md, explaining how principles are
+       extracted, how Noosphere operates, and why this matters. Keep
+       under 240 words.
+
+  7. ARTIFACTS:
+       Use the scaffold ArtifactsBlock. Include:
+         live app           thesescodex.com                 ↗
+         paper / writeup    (PDF URL — pending)             ↗
+         source             github.com/… (if public)         ↗
+         contact            michael@… or the correct email   ✉
+
+DATA CONTRACT
+-------------
+  src/content/projects/theseus.ts                  metadata (Prompt 05)
+  src/content/projects/theseus/
+    ├─ thesis.ts                { claim, method, role }
+    ├─ principles.ts            [{ id, text, supports[], tensions[] }]
+    ├─ noosphere-feed.ts        [{ tISO, kind, body }]
+    └─ methodology.mdx
+
+FILES TO PRODUCE
+----------------
+  src/app/theseus/page.tsx
+  src/components/projects/theseus/ThesisCard.tsx
+  src/components/projects/theseus/PrincipleGraph.tsx
+  src/components/projects/theseus/NoosphereConsole.tsx
+  src/components/projects/theseus/PrinciplesList.tsx
+  src/components/projects/theseus/PrincipleDrawer.tsx
+
+EXISTING WORK TO ABSORB
+-----------------------
+Before writing new graph code, read:
+  public/pages/ontology.html
+  public/js/ontology-data.js
+If those contain a usable principle dataset or a working layout, port
+them. Specifically, the ontology-data.js module is likely to contain
+node/edge data in a format near-compatible with this page's graph
+component. Convert to TypeScript; preserve semantics.
+
+ACCEPTANCE CRITERIA
+-------------------
+  - The principle graph renders with at least 20 seed nodes and runs
+    smoothly (60fps steady-state) at that scale.
+  - Contradiction edges are visually distinct in --danger.
+  - Hover/click/keyboard interactions on nodes work as specified.
+  - Noosphere console renders entries from the feed data and formats
+    timestamps as ISO-8601 UTC.
+  - Methodology block is under 240 words and uses sans-serif.
+  - thesescodex.com is linked at least twice (once in artifacts, once
+    in the console footer) with rel="noopener" and clear external-
+    link glyph.
+
+DO NOT
+------
+  - Do not fabricate a node count. If there are 27 real principles,
+    display 27 — not "2,148+ principles" or similar marketing inflation.
+  - Do not add a "demo here" CTA that duplicates thesescodex.com.
+  - Do not animate the graph to continuously re-layout while idle.
+    Force-layout settles, then stops.
+  - Do not color nodes by arbitrary hashes for decoration. Color is
+    semantic here: default, contradicted, currently-focused.
+
+STRETCH
+-------
+  - An "ask Noosphere" text input beneath the console. A visitor types
+    a question; the page renders a plausibly-styled response in the
+    console as if Noosphere had answered. First ship: hard-coded Q&A
+    pairs. Later ship: wired to an API. Be explicit in copy that the
+    first-ship is illustrative.
+  - Export: a "copy principles as markdown" button that dumps the
+    current principle list as a markdown-formatted definition list.
+    Useful for writers and researchers browsing the page.
+================================================================================

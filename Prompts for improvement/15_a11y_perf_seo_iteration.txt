@@ -1,0 +1,221 @@
+================================================================================
+PROMPT 15 — ACCESSIBILITY, PERFORMANCE, SEO, AND ITERATION LOOP
+================================================================================
+
+TASK
+----
+Make the site accessible, fast, and discoverable, then institute a
+critique loop that keeps it that way. Split into four concerns; each is
+a small implementation list.
+
+CONCERN A — ACCESSIBILITY
+--------------------------
+A terminal-style site is EASY to make accessible if you are disciplined
+and HARD to make accessible if you cheat. The discipline:
+
+  1. SEMANTIC HTML.
+     - <nav>, <main>, <aside>, <header>, <footer> applied once each
+       per page per role. The Shell provides <main> as the wrapper
+       for page content; pages do not re-declare it.
+     - Accordion spines: role="button" + aria-expanded +
+       aria-controls. The expanded panel has role="region" +
+       aria-labelledby pointing at its spine's title.
+     - Status bar: role="status" + aria-live="polite". The segment
+       that flashes messages announces them to screen readers,
+       throttled (no more than one announcement per ~3 seconds).
+     - Palette: role="dialog" aria-modal="true", trap focus while
+       open, return focus to the previously focused element on
+       close. Use Radix Dialog or cmdk which handle this correctly.
+     - Principle graph (Theseus): role="img" with a text alternative
+       that summarizes node count, edge count, and contradiction
+       count. Individual nodes are not exposed to screen readers
+       because the graph is decorative-informational; a parallel
+       <ul> list of principles (already present in Prompt 09) is the
+       accessible equivalent.
+
+  2. KEYBOARD TRAPS.
+     - The palette is the only element that traps focus. Everything
+       else must allow tab to pass through. No focus traps in the
+       accordion.
+     - Skip link: first tab stop on every page is "Skip to content"
+       that jumps past the top rail / spines into <main>.
+
+  3. CONTRAST.
+     - Body text on bg: --fg (oklch 0.92) on --bg-1 (oklch 0.17) is
+       comfortably >13:1. Safe.
+     - --fg-mute (0.55) on --bg-1 (0.17) is ~4.5:1 — borderline.
+       Restrict --fg-mute to text with size >= 14px and never to
+       interactive elements' primary text. Reserve --fg-mute for
+       labels and metadata the visitor can scan past.
+     - --accent (oklch 0.78 0.17 65 amber) on --bg-0 is ~9:1 — safe.
+       On --bg-3, around 6:1 — safe.
+
+  4. MOTION.
+     - prefers-reduced-motion handled per Prompt 12.
+     - Blinking cursor: becomes solid. Boot sequence: skipped.
+     - Flash-on-change: replaced with a brief outline change only.
+
+  5. SCREEN-READER-ONLY CONTENT.
+     - Where ASCII/Unicode ornament conveys meaning ("──"), hide
+       decorative characters from screen readers with
+       aria-hidden="true".
+     - Where ornament IS the meaning (the header banner with
+       classification), provide an accessible text equivalent via
+       visually-hidden text before the glyph row.
+
+  6. MANUAL SMOKE TEST.
+     - Navigate the entire site with keyboard only.
+     - Navigate the entire site with VoiceOver on macOS and JAWS or
+       NVDA on Windows. Fix what breaks.
+     - Run axe-core against every route and resolve every finding
+       or record a deliberate exception in docs/a11y-exceptions.md.
+
+CONCERN B — PERFORMANCE
+------------------------
+Targets:
+  - LCP < 1.8s on a simulated 4G connection on a mid-tier Android.
+  - CLS < 0.01. The site's design (fixed accordion, fixed status bar)
+    makes CLS avoidance easy; honor it.
+  - Total blocking time < 150ms.
+  - JS bundle for "/" under 120KB gzipped (not including framer-
+    motion, which is allowed to take another 40KB).
+
+Implementation:
+  - Split code per route. Palette and its providers are lazy-loaded
+    (dynamic import with React.lazy / next/dynamic) and pre-warmed
+    on first idle via requestIdleCallback.
+  - The principle graph (Theseus) is lazy-loaded with a skeleton
+    placeholder of the correct aspect ratio. Do not let it hold up
+    the first paint.
+  - Images: use next/image; all project hero media is properly sized
+    and lazy-loaded below the fold.
+  - Fonts: preload Inter and JetBrains Mono (or chosen mono) as woff2;
+    font-display: swap. Source Serif 4 is loaded ONLY on
+    /purposeless-efficiency (dynamic <link rel="stylesheet"> or a
+    route-scoped font import).
+  - No third-party tag-managers. No analytics heavier than
+    @vercel/analytics (which is small and edge-delivered). Even that
+    is optional; ship without by default.
+  - Service worker: NO. A SW on a small personal site is a maintenance
+    cost without benefit; skip.
+
+CONCERN C — SEO + META
+----------------------
+The target audience is humans who receive a link in DM or email, not
+search engine visitors. But the basics still apply.
+
+  - <title> per route, canonical format:
+      "{PANEL CODE} · {TITLE} — Michael Quintin"
+      e.g., "HVM · Hivemind — Michael Quintin"
+  - <meta name="description"> per route. Short (150ch max),
+    declarative, in the voice from Prompt 13.
+  - Open Graph and Twitter card images: a single shared design. NOT
+    a screenshot of the page. A monospace composition:
+      bg: --bg-0
+      lines: "michael quintin" / "{panel code} · {title}" / "{url}"
+      accent bar at the bottom in --accent
+    Generate OG images at build time via @vercel/og or next/og. One
+    OG image per route, sized 1200×630.
+  - Sitemap: next-sitemap generates sitemap.xml automatically at
+    build. All public routes included; /styleguide and /test excluded.
+  - robots.txt: permit all public routes; disallow /api if any; do
+    not block OpenAI, Anthropic, or Google crawlers (operator
+    philosophy: the site wants to be read by anything, including
+    bots that might learn from it).
+  - JSON-LD: one Person schema on /about and one WebSite schema on
+    /. That is sufficient.
+
+CONCERN D — THE ITERATION LOOP
+-------------------------------
+After the site ships at a first acceptable state, put in place the
+discipline that keeps it improving.
+
+  1. A CHANGELOG, EARNESTLY KEPT.
+     docs/CHANGELOG.md lists notable changes, date-stamped ISO,
+     grouped under Added / Changed / Removed. Update per merge to
+     main. Surface as a route: /changelog. Reveal on the landing
+     accordion as the stretch "06 · LOG" panel (Prompt 03).
+
+  2. WEEKLY CRITIQUE PASS.
+     Every Sunday evening, spend 20 minutes critiquing the site:
+       - Open the site fresh as a visitor (new tab, cleared
+         sessionStorage).
+       - Write one paragraph answering: "What is embarrassing this
+         week?" Save it into docs/critique-log.md with the date.
+       - Pick one thing and fix it.
+     This beats larger, rarer "redesign" efforts.
+
+  3. THE FIVE-MINUTE VISITOR TEST.
+     Ask a friend — ideally a non-technical reader who cares about
+     writing, philosophy, or strategy — to spend five minutes on the
+     site and say where their attention drifted. Record their notes
+     in docs/visitor-log.md. Do not argue with their notes.
+
+  4. LIGHTHOUSE CI.
+     Add a GitHub Action that runs Lighthouse on / and /hivemind per
+     deploy and flags regressions below threshold (Perf >= 90,
+     a11y >= 95, best practices >= 95, SEO >= 95).
+
+  5. COPY LINT IN CI.
+     The script from Prompt 13 fails the build on forbidden-words.
+     Extend it to warn (not fail) on long sentences (>28 words) and
+     adverb overuse (>1 per 100 words). Warnings don't block merges,
+     but they surface in the PR comment.
+
+  6. DESIGN-SYSTEM HYGIENE.
+     Every new component uses tokens from Prompt 01. If a hardcoded
+     color or spacing value appears, fix it before merge. Add a
+     stylelint rule that disallows hex colors in any file outside
+     tokens.css.
+
+FILES TO PRODUCE
+----------------
+  docs/a11y-exceptions.md         — running log of accepted exceptions
+  docs/CHANGELOG.md               — seed with the initial release
+  docs/critique-log.md            — empty template
+  docs/visitor-log.md             — empty template
+  src/app/robots.txt              — handled by Next.js (built-in)
+  src/app/sitemap.ts              — via next-sitemap
+  src/app/opengraph-image.tsx     — per-route via next/og
+  .github/workflows/lighthouse.yml
+  .github/workflows/ci.yml        — extend with copy lint, tsc, and
+                                    playwright smoke (from Prompt 14)
+  .stylelintrc.json               — hex color rule + extends
+  scripts/check-tokens.ts         — lint for hardcoded colors/spacing
+                                    outside the token file
+
+ACCEPTANCE CRITERIA
+-------------------
+  - axe-core passes zero-violations on every public route or every
+    exception is logged with a sound reason in docs/a11y-exceptions.md.
+  - Lighthouse Perf/A11y/BP/SEO all >= 90 on / and /hivemind.
+  - The site renders sanely with JavaScript disabled on every page
+    except /theseus (the principle graph degrades to its parallel
+    list; test this explicitly).
+  - Screen-reader walkthrough is documented in
+    docs/a11y-walkthrough.md with concrete scripts.
+  - OG images render for every route and look the same (same
+    composition, different text).
+  - Copy-lint CI fails on a test PR that introduces "revolutionary"
+    into a .tsx file.
+
+DO NOT
+------
+  - Do not add a cookie banner. The site sets no cookies. It uses
+    sessionStorage only for the boot-sequence memory. There is
+    nothing to consent to.
+  - Do not add a GDPR-style "we respect your privacy" disclosure
+    modal. See above.
+  - Do not add heavy analytics. @vercel/analytics is the maximum; it
+    is zero-config and privacy-respecting. Anything more invasive is
+    unnecessary for a personal site.
+
+STRETCH
+-------
+  - A public `/status` route that shows a tiny Lighthouse history
+    chart (last 14 deploys). Self-mocking, operator-consistent, and
+    honest about the state of the system.
+  - A "time to first meaningful interaction" custom metric exposed
+    in the status bar in dev builds: measures from page request to
+    the moment the command palette is mountable.
+================================================================================

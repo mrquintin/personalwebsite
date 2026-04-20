@@ -1,0 +1,8 @@
+// TODO(michael): rewrite in your voice (third or first person, your call)
+const biography = [
+  "Michael Quintin works on systems that help operators think clearly in a world optimized against clear thinking. His current projects share a single throughline: the production of structure where the dominant institutions produce noise.",
+  "Hivemind is a strategic analytical software company. It exists because the standard tools for strategy work — slide decks, chat threads, and ad-hoc memos — are illegible to anyone who did not author them, and barely legible to the author a month later. Hivemind makes the work durable.",
+  "Purposeless Efficiency, the first volume of a five-book series, is the corresponding written argument: that efficiency severed from purpose has become the dominant production logic of the late industrial era, and that this severance has consequences that any honest political economy must now treat as central.",
+  "Theseus is the smallest of the three projects and the most personal. It is a knowledge system for monitoring ideological contradiction — a slow, structured collaborator for the operator-philosopher who wants to know, at any given moment, where their stated commitments contradict themselves.",
+];
+export default biography;

@@ -1,0 +1,197 @@
+================================================================================
+PROMPT 06 — PROJECT DETAIL FRAMEWORK (GENERIC SCAFFOLD + SLOT SYSTEM)
+================================================================================
+
+TASK
+----
+Build the generic per-project detail page: the scaffold that every
+custom project page extends. The three featured projects (Hivemind,
+Purposeless Efficiency, Theseus) each override most of this scaffold
+with bespoke content (Prompts 07/08/09), but the scaffold remains the
+fallback for any project that does not provide a custom layout.
+
+WHY
+---
+The brief: "each project, each listing of each project is going to have
+to be custom." But "custom" is not synonymous with "different." A
+successful per-project page surfaces the same few categories of
+information, just with project-specific content inside each. The
+scaffold captures that invariant; the custom layouts decide how each
+slot is rendered.
+
+THINK OF IT AS A DOSSIER
+------------------------
+Every project page is structured as a classified dossier:
+
+    ─── DOSSIER :: {CODE} · {TITLE} ─────────────────── CLASSIFICATION
+    ┌──────────────────┐  ┌────────────────────────────────────────┐
+    │  METADATA PANE   │  │  SYNOPSIS                              │
+    │  (right column   │  │                                        │
+    │  on desktop,     │  │  ...                                   │
+    │  collapsible)    │  │                                        │
+    └──────────────────┘  └────────────────────────────────────────┘
+    ┌─────────────────────────────────────────────────────────────┐
+    │  MEDIA                                                       │
+    │  (hero, demo video, gallery, depending on project)           │
+    └─────────────────────────────────────────────────────────────┘
+    ┌─────────────────────────────────────────────────────────────┐
+    │  BODY SLOT (completely custom per project)                    │
+    └─────────────────────────────────────────────────────────────┘
+    ┌─────────────────────────────────────────────────────────────┐
+    │  ARTIFACTS · LINKS · CONTACT                                  │
+    └─────────────────────────────────────────────────────────────┘
+
+The custom projects REPLACE the body slot entirely and may override the
+header, media, and metadata panes. But this scaffold is the default.
+
+ROUTE SPEC
+----------
+  /projects/[slug]
+    - Looks up the project by slug from the loader in Prompt 05.
+    - If the project defines a customPage route (e.g., /hivemind), the
+      slug route 301s to the custom route. Otherwise it renders the
+      generic scaffold.
+  /hivemind, /purposeless-efficiency, /theseus
+    - Custom routes built in later prompts. They reuse the shared
+      scaffold components (Metadata pane, Artifacts block, etc.) but
+      compose them differently.
+
+THE HEADER
+----------
+A full-width strip at the top of the page, below the top rail. Three
+lines:
+
+  Line 1 (classified banner):
+    ─── DOSSIER :: {CODE} · {TITLE} ─────────────────────── {CLASSIFICATION}
+    - Rendered with ASCII box-drawing (─) extended across the row.
+    - CLASSIFICATION mirrors project.classification:
+        public      → "UNCLASSIFIED"
+        restricted  → "CONTROLLED UNCLASSIFIED"
+        private     → "CONFIDENTIAL · DO NOT REDISTRIBUTE"
+      No project should use "CONFIDENTIAL" unless the content truly
+      warrants it; most are "UNCLASSIFIED". This is aesthetic, not
+      actual access control.
+
+  Line 2 (breadcrumb):
+    ~/projects/{slug}/README
+    - Matches the status bar's file-path format. Monospace.
+    - Clickable segments navigate upward.
+
+  Line 3 (subtitle):
+    - project.tagline, rendered in --fg-dim, max 88 characters.
+
+THE METADATA PANE
+-----------------
+A side column on desktop (>=1024px), full-width above the synopsis on
+mobile. Rendered as a monospace key/value table:
+
+    KIND        company
+    STATUS      active
+    STAGE       seed
+    STARTED     2024-06-01
+    UPDATED     2026-04-12   (8d ago)
+    AUTHORS     Michael Quintin
+    LINKS       hivemind.ai
+                github.com/mq/hivemind
+                demo (video)
+    CITATION    Quintin, M. (2026). Hivemind: Strategic analytical
+                software. Retrieved 2026-04-19 from hivemind.ai
+
+Left column (keys) in --fg-mute, uppercase, right-aligned, 96px wide.
+Right column (values) in --fg. Link values underlined on hover only.
+
+If the project provides a citation field, include it verbatim (copy-
+button inline). If not, auto-generate a basic citation from the title
+and updatedISO.
+
+THE SYNOPSIS
+------------
+Below or beside the metadata, the synopsis is a 2–4 paragraph plaintext
+description. Uses --font-sans (Inter), --t-md, line-length 72ch. The
+synopsis is the only long-form prose in the scaffold; everything else
+is structural. Honor the voice standard from Prompt 13 when writing it.
+
+THE MEDIA SLOT
+--------------
+A single full-bleed media area below the header row. Content is
+project-specific:
+  - Video (muted, looping, autoplay with a "tap to unmute" hint).
+  - Image gallery (<=4 images, arranged in a strict grid, no carousels
+    — carousels are hostile to readers).
+  - Interactive demo iframe (Hivemind).
+  - For projects without media, DO NOT show this slot. An empty media
+    slot is not a placeholder; it is simply absent.
+
+THE BODY SLOT
+-------------
+Completely custom per project. This is where the bespoke magic lives.
+For the generic scaffold, the body slot contains:
+  - A rich-text block sourced from a plain MDX file at
+    src/content/projects/{slug}.body.mdx (if present).
+  - If no MDX is present, the slot renders nothing.
+
+THE ARTIFACTS BLOCK
+-------------------
+A tight list at the bottom of the page:
+
+    ARTIFACTS
+    ──────────
+    * website       hivemind.ai                    ↗
+    * github        github.com/mq/hivemind         ↗
+    * demo          2-minute walkthrough           ▶
+    * press         TechCrunch coverage (2025-Q4)  ↗
+    * contact       michael@hivemind.ai            ✉
+
+Each row: kind (mono, --fg-mute) + label (mono, --fg) + glyph (↗ for
+external, ▶ for video/demo, ✉ for email). No icons. Click to follow;
+external links open in a new tab with rel="noopener".
+
+FILES TO PRODUCE
+----------------
+  src/app/projects/[slug]/page.tsx           // generic scaffold route
+  src/components/dossier/Header.tsx
+  src/components/dossier/MetadataPane.tsx
+  src/components/dossier/Synopsis.tsx
+  src/components/dossier/MediaSlot.tsx
+  src/components/dossier/ArtifactsBlock.tsx
+  src/components/dossier/ClassificationBanner.tsx
+  src/lib/dossier/types.ts
+  src/lib/dossier/citation.ts                // build default citation
+                                              // from project metadata
+  src/content/projects/README.md             // explains the contract
+                                              // between a project file
+                                              // and the scaffold
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Any project with only metadata renders a clean generic dossier page.
+  - Adding an MDX body file at src/content/projects/{slug}.body.mdx
+    populates the body slot automatically.
+  - The custom route /hivemind (built in Prompt 07) reuses Header,
+    MetadataPane, and ArtifactsBlock without modification.
+  - Tab order reads header → metadata → synopsis → media → body →
+    artifacts. Landmarks are roled.
+  - Print stylesheet exists: @media print produces a clean dossier
+    printout with a 1pt monospace body, black on white, classifications
+    intact. This is not frivolous — this is the point of a dossier.
+
+DO NOT
+------
+  - Do not render a "similar projects" recommendation block. This is
+    not an e-commerce site.
+  - Do not include social share buttons. A reader who wants to share
+    can copy the URL from the status bar.
+  - Do not animate the header in. The classified banner should already
+    be there when the page paints.
+  - Do not auto-play audio. Video may auto-play, but muted.
+
+STRETCH
+-------
+  - A "reader mode" toggle that strips the dossier chrome and renders
+    the synopsis + body as a full-width long-form read, 640px, serif
+    (Source Serif 4). Reserved for projects where the reader is
+    expected to spend >5 minutes — e.g., Purposeless Efficiency.
+  - A "changelog" segment below artifacts that lists updates to the
+    project with ISO dates. Small, monospace, collapsible, defaulting
+    to collapsed.
+================================================================================

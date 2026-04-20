@@ -1,0 +1,193 @@
+================================================================================
+PROMPT 11 — /resume — RESUME ACCESS + ON-PAGE RENDERING
+================================================================================
+
+TASK
+----
+Build /resume: the resume page. Support both PDF access and a native
+HTML/Next rendering of the resume. The brief explicitly asks for "a
+page or an option or some kind of access point for my resume so that
+people can see my resume, a PDF of my resume." We deliver both:
+a. An on-page resume that reads as a typographic object.
+b. A "download PDF" action that fetches /resume.pdf.
+
+PHILOSOPHY
+----------
+The on-page resume is the primary surface; the PDF is the archival
+copy. Most recruiters and operators who click through a thinker's
+personal site will prefer to read inline. But serious reviewers want
+a PDF for their ATS or their printer. Offer both as equals.
+
+PAGE COMPOSITION
+----------------
+  1. HEADER (scaffold, UNCLASSIFIED):
+       DOSSIER :: CV · MICHAEL QUINTIN
+       Subtitle: "Curriculum vitae · last updated {ISO date}"
+       Breadcrumb: ~/resume/CV.pdf
+       Top-right inline action row (small monospace):
+         "[ ⌘P print ]  [ ⬇ download pdf ]  [ copy to clipboard ]"
+       Each is a real, working affordance.
+
+  2. IDENTITY HEADER (monospace grid):
+       NAME       Michael Quintin
+       ROLE       Founder · Writer · Researcher
+       EMAIL      michael@{domain}
+       LOCATION   (optional)
+       LINKS      hivemind.ai · thesescodex.com · github.com/mrquintin · linkedin.com/in/michaelquintin
+
+  3. SUMMARY (2–3 sentences, sans-serif, --t-md):
+       A short, declarative summary. 350 characters or less. Voice:
+       the same austere register as the About page. TODO(michael).
+
+  4. EXPERIENCE (structured list):
+       For each role:
+
+         ├── {role title} · {organization}                      {start}–{end}
+         │   {one-line scope statement}
+         │   · bullet 1 (accomplishment, specific, quantified when possible)
+         │   · bullet 2
+         │   · bullet 3
+
+       Render with a left 1px gutter rule and tick marks, so the list
+       visually feels like a versioned changelog. Dates in ISO (YYYY-MM
+       at minimum). "Present" renders as --accent for the current role.
+
+  5. PROJECTS (cross-reference):
+       A compact block pulling from the projects loader, identical to
+       the About page's "work ledger." This avoids duplication and
+       keeps the resume and the site in sync.
+
+  6. EDUCATION:
+       Same structure as Experience, shorter.
+
+  7. WRITING / SPEAKING (if any):
+       A list with dates and venues. If none, omit.
+
+  8. SKILLS:
+       NOT a tag cloud. NOT visual skill bars. A compact tabular
+       list grouped by domain:
+
+         DOMAIN             INSTRUMENTS
+         strategy           hypothesis decomposition · scenario
+                            analysis · OKR design · red-team review
+         software           TypeScript · Next.js · Python · React ·
+                            SQL · Rust (reading)
+         infrastructure     Postgres · Redis · ...
+         methods            Bayesian reasoning · first-principles
+                            modeling · structured argumentation
+
+       TODO(michael) — Michael fills in what is actually true.
+
+  9. REFERENCES:
+       A single line: "Available on request." Do not inline emails or
+       names. References are not public data.
+
+ 10. ARTIFACTS / DOWNLOADS:
+       At the bottom, reuse the ArtifactsBlock with one row:
+         resume    /resume.pdf                    ⬇
+
+PDF INTEGRATION
+---------------
+Two supported modes, selected by what files exist in /public:
+
+  MODE A — A pre-made PDF is shipped.
+    public/resume.pdf is served directly. The /resume route links to
+    it. "Download PDF" is a plain <a href="/resume.pdf" download>.
+    If the PDF lacks a last-modified date, use the filesystem mtime
+    exposed at build time via a script in scripts/stamp-resume.ts
+    that reads public/resume.pdf and writes its mtime into
+    src/generated/resume-meta.json. The UI reads this.
+
+  MODE B — No PDF is shipped yet.
+    The "Download PDF" action is visibly present but annotated
+    "[ pdf pending — print for now ]". It becomes a print shortcut
+    via window.print(). A @media print stylesheet (see below) makes
+    the printed page look like a respectable resume: black on white,
+    serif-optional (or just monospace-clean), 11pt body, tight
+    leading, no page chrome.
+
+  Which mode is active is determined at build time. If the file
+  public/resume.pdf exists, MODE A. Otherwise MODE B. Do NOT require
+  Michael to flip a flag; the presence or absence of the file is the
+  flag.
+
+PRINT STYLESHEET
+----------------
+Add to globals.css a @media print block that:
+  - Hides status bar, top rail, command palette mount.
+  - Hides every action affordance (buttons, "download" links in
+    artifacts).
+  - Uses black on white. Monospace remains monospace, sans remains
+    sans.
+  - Page margins: 0.75in.
+  - Page title in the @page margin footer:
+      @page { size: Letter; margin: 0.75in;
+              @bottom-right { content: "Michael Quintin — CV ·
+              " counter(page); } }
+  - Collapses the two-column layout to single-column.
+  - Aims for a 1-to-2 page printed resume regardless of on-screen
+    density.
+
+DATA CONTRACT
+-------------
+  src/content/resume/
+    ├─ identity.ts       { name, role, email, location?, links[] }
+    ├─ summary.mdx
+    ├─ experience.ts     array of role entries
+    ├─ education.ts
+    ├─ writing.ts
+    └─ skills.ts         grouped by domain
+
+  src/generated/
+    └─ resume-meta.json  { pdfPresent: bool, pdfMtimeISO?: string }
+
+  public/resume.pdf      (optional — upload when ready)
+
+FILES TO PRODUCE
+----------------
+  src/app/resume/page.tsx
+  src/components/resume/ExperienceList.tsx
+  src/components/resume/SkillsTable.tsx
+  src/components/resume/IdentityHeader.tsx
+  src/components/resume/DownloadActions.tsx
+  scripts/stamp-resume.ts
+  additions to globals.css for @media print
+
+ACCEPTANCE CRITERIA
+-------------------
+  - /resume renders a full readable CV from structured content.
+  - If public/resume.pdf exists, the Download button fetches it; the
+    last-updated timestamp in the header matches the PDF's mtime.
+  - If the PDF does not exist, the action falls back to print without
+    breaking the user's expectation.
+  - Print preview in Chrome and Safari produces a clean 1–2 page PDF.
+  - All resume rows are plain HTML (no canvas/SVG hacks) and are
+    copy-paste-able into a text editor with reasonable formatting.
+  - The palette command "Download resume PDF" works and shows a spinner
+    while the fetch is in flight.
+
+DO NOT
+------
+  - Do not render the resume as an embedded iframe of a PDF by default.
+    Iframes of PDFs are bad for screen readers and a11y, and on mobile
+    they look lumpy.
+  - Do not use an infographic "skills bar" or radar chart. These
+    quantify what cannot be quantified.
+  - Do not add headshot photos to the on-page resume. Photos belong
+    on About if anywhere. ATS parsers and reviewers often prefer
+    photo-less resumes; keep the PDF photo-less by default.
+  - Do not add a "Download Word" link. A .docx alongside a .pdf
+    signals recruiter-bait rather than operator clarity.
+
+STRETCH
+-------
+  - JSON Resume format export at /resume.json, conforming to the
+    JSON Resume schema (jsonresume.org). Useful for anyone plugging
+    Michael's resume into their own systems.
+  - A "diff" toggle that highlights what has changed since the last
+    update. Drawn from a small git-driven script that extracts the
+    diff of src/content/resume/experience.ts between the last two
+    commits.
+  - An .ics download for each role — generates a calendar event
+    spanning the role's duration. Silly and memorable. Optional.
+================================================================================

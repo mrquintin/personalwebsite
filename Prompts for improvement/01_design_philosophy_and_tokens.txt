@@ -1,0 +1,182 @@
+================================================================================
+PROMPT 01 — DESIGN PHILOSOPHY AND TOKEN SYSTEM
+================================================================================
+
+TASK
+----
+Establish the visual system for Michael Quintin's personal website. Produce:
+(a) a written design philosophy doc at docs/design-philosophy.md, and
+(b) a machine-readable token system in src/styles/tokens.css (CSS custom
+    properties) plus a Tailwind-compatible shim if the stack ends up using
+    Tailwind. Do NOT build any pages in this prompt. Tokens and principles
+    only. Later prompts will consume them.
+
+CONTEXT
+-------
+This is not a designer portfolio. It is The Operator's Portfolio — a site
+that signals, on first paint, that its owner thinks for a living. The
+visitor should feel like they just opened a research terminal. The three
+reference aesthetics (blend, do not copy):
+
+  - BLOOMBERG TERMINAL: dense panes, function-key references ("F1 HELP"),
+    status bars, amber/cyan on near-black, ticker rhythms, no decoration,
+    no shadows, no gradients. Information is the ornament.
+  - PALANTIR GOTHAM/FOUNDRY: classified-document gravity. Low-chroma grey
+    base. One sharp accent (usually orange or cyan). Monospace for data,
+    Inter for prose, never decorative. Line-art iconography. Generous
+    rules and dividers. A sense that what you are reading matters.
+  - UNIX TERMINAL: monospace prompt, blinking cursor, ASCII dividers, file
+    paths as navigation, the sense that the page is a shell not a poster.
+
+The visitor archetype: a technical founder / research-minded reader / VC
+analyst / fellow operator. They read. They use keyboards. They recognize
+restraint as confidence.
+
+DESIGN PRINCIPLES (write these verbatim into the philosophy doc)
+----------------------------------------------------------------
+1. INFORMATION IS THE ORNAMENT. Decoration is forbidden. No gradients, no
+   shadows deeper than 1px hairlines, no rounded corners above 2px, no
+   glassmorphism, no stock illustrations, no emoji in chrome. Any visual
+   weight must come from data, typography, or rule lines.
+
+2. DENSITY WITH BREATH. The page is dense but never cramped. Use the
+   8/12/16/24/32/48/64/96 pixel spacing scale. Let lines of text be long
+   (70–95ch) because readers read.
+
+3. MONOSPACE IS THE DEFAULT FOR STRUCTURE. Metadata, labels, navigation,
+   numbers, code, and any UI chrome use a monospace typeface. Prose and
+   long-form reading use a humanist sans. Serif is used only inside the
+   book project (Purposeless Efficiency) — nowhere else. This tri-face
+   discipline is load-bearing.
+
+4. ONE ACCENT. Exactly one chromatic accent. Everything else is
+   greyscale. The accent is used sparingly: the cursor, the active
+   state, the current location indicator, a single numeric highlight.
+   Never for body text, never for decoration.
+
+5. TERMINAL RHYTHMS. Horizontal rules drawn with ASCII box-drawing
+   characters where it does not harm accessibility. Status lines at the
+   top and bottom of every view. File-path-style breadcrumbs
+   (e.g. ~/projects/hivemind/README). Timestamps in ISO-8601.
+
+6. KEYBOARD IS FIRST CLASS. Every interactive element must have a visible
+   keyboard shortcut hint and a focus ring. Focus rings are thick
+   (2px solid accent + 2px inner offset) and unapologetic.
+
+7. MOTION IS FUNCTIONAL, NEVER ORNAMENTAL. No parallax. No scroll-jacking.
+   No "reveal on scroll" fades for their own sake. Motion is reserved for
+   (a) state transitions, (b) the cursor blink, (c) the accordion
+   expansion, (d) the boot sequence, (e) value changes in a data pane
+   (flash-on-change like Bloomberg). Every animation respects
+   prefers-reduced-motion.
+
+TOKEN SYSTEM (deliver as tokens.css)
+------------------------------------
+Produce two palettes: DARK (default, canonical) and LIGHT (secondary, for
+users who explicitly toggle — but the site SHIPS IN DARK). Use OKLCH.
+
+DARK palette (Operator default):
+  --bg-0:        oklch(0.14 0 0)    /* near-black, the void */
+  --bg-1:        oklch(0.17 0 0)    /* primary surface */
+  --bg-2:        oklch(0.21 0 0)    /* raised panel */
+  --bg-3:        oklch(0.26 0 0)    /* hover / selected row */
+  --rule:        oklch(0.32 0 0)    /* hairline dividers */
+  --fg-mute:     oklch(0.55 0 0)    /* labels, metadata */
+  --fg-dim:      oklch(0.72 0 0)    /* secondary prose */
+  --fg:          oklch(0.92 0 0)    /* primary prose */
+  --fg-hi:       oklch(1.00 0 0)    /* emphasis, numbers */
+  --accent:      oklch(0.78 0.17 65)   /* amber — Bloomberg echo */
+  --accent-dim:  oklch(0.55 0.12 65)
+  --danger:      oklch(0.68 0.19 25)   /* used only for errors / contradictions */
+  --ok:          oklch(0.72 0.15 145)  /* used only for confirmed / committed states */
+
+LIGHT palette (Operator daylight):
+  Derive by inverting lightness, keeping chroma low, keeping the single
+  accent. Do NOT ship light mode until dark is complete. Dark is
+  canonical.
+
+TYPOGRAPHY
+  --font-mono:   "Berkeley Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace
+                 (If "Berkeley Mono" is unlicensed, use "JetBrains Mono" as the shipping choice.)
+  --font-sans:   "Inter", "Söhne", ui-sans-serif, system-ui, sans-serif
+  --font-serif:  "Source Serif 4", "Iowan Old Style", Georgia, serif
+                 (Serif is reserved for the book project only.)
+
+TYPE SCALE (monospace-tuned — choose tight line heights for mono, looser for sans)
+  --t-xxs:  11px / 16px  (metadata, function keys)
+  --t-xs:   12px / 18px  (labels, captions)
+  --t-sm:   13px / 20px  (navigation, UI text)
+  --t-base: 15px / 24px  (body)
+  --t-md:   17px / 28px  (long-form prose)
+  --t-lg:   22px / 30px  (subheads)
+  --t-xl:   30px / 36px  (section titles)
+  --t-2xl:  44px / 48px  (page titles)
+  --t-3xl:  64px / 64px  (hero — used sparingly)
+
+SPACING (8px base, with half-step available)
+  --s-0: 0 --s-1: 4px --s-2: 8px --s-3: 12px --s-4: 16px --s-5: 24px
+  --s-6: 32px --s-7: 48px --s-8: 64px --s-9: 96px --s-10: 128px
+
+BORDERS
+  --r-0: 0       /* default — everything is square */
+  --r-1: 2px     /* only for input fields and buttons */
+  --border-hair: 1px solid var(--rule)
+  --border-double: 3px double var(--rule)   /* used for section breaks */
+
+Z-INDEX SEMANTIC
+  --z-rail: 40    /* left accordion rail */
+  --z-statusbar: 50
+  --z-palette: 80 /* command palette overlay */
+  --z-toast: 90
+  --z-boot: 100   /* boot sequence overlay on first load */
+
+DURATIONS
+  --d-flash: 120ms   /* flash-on-change for numeric updates */
+  --d-fast: 160ms    /* hover, focus */
+  --d-norm: 240ms    /* accordion panel */
+  --d-slow: 420ms    /* boot sequence steps */
+  --ease: cubic-bezier(0.2, 0.0, 0.0, 1.0)
+
+ICONOGRAPHY
+  Use lucide-react or phosphor (thin). 1.25px stroke. Never filled. Never
+  rounded. Icons sit on a 16px or 20px grid. No 3D, no color.
+
+LAYOUT GRID
+  12-column at >= 1200px desktop. 8 column at 768–1199. 4 column under 768.
+  The accordion landing ignores the grid — it is a panel system of its own.
+  Gutters: 24px desktop, 16px tablet, 12px mobile.
+
+WRITTEN DELIVERABLES
+--------------------
+  docs/design-philosophy.md   — the 7 principles, the reference aesthetics,
+                                the typographic discipline, a worked
+                                example ("what a project detail header
+                                should look like, and why"), and a list
+                                of forbidden patterns (gradients, drop
+                                shadows, rounded corners > 2px, emoji in
+                                chrome, tagline-speak copy, stock art,
+                                parallax, scroll-jacking, auto-playing
+                                video, splash modals, cookie banners that
+                                block content).
+  src/styles/tokens.css       — all custom properties above.
+  src/styles/reset.css        — a minimal reset (box-sizing, margin: 0,
+                                font inheritance, ::selection styled with
+                                accent).
+
+ACCEPTANCE CRITERIA
+-------------------
+  - docs/design-philosophy.md reads like a manifesto. Under 800 words.
+  - tokens.css contains every variable above, grouped with comments.
+  - A simple test page at /styleguide renders every token once (but do not
+    yet link to it from navigation; it is a developer tool).
+  - No Tailwind config changes in this prompt. Tokens must be usable
+    standalone.
+  - Do not install any new fonts yet — just declare the stack and let
+    system fallbacks render. Font licensing will be handled later.
+
+STRETCH (optional, only if time permits)
+----------------------------------------
+  Produce a 2-panel "before/after" screenshot doc showing the current
+  src/app/page.tsx placeholder next to a mock of the intended aesthetic,
+  to align the rest of the team on direction.
+================================================================================
