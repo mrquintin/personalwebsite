@@ -76,6 +76,17 @@ appears in `src/` or `docs/`.
 Push to `main`. Vercel builds the Next.js app. See the legacy README
 notes preserved below for Vercel / CI / sync-script specifics.
 
+### If pushes succeed but the live site never changes
+
+GitHub is only half of deploys: **Vercel must build *this* repo**. Open the production URL,
+**View Page Source**, and check `<title>`: this codebase serves **“Michael Quintin”** with
+description **“Operator. Writer. Founder of Hivemind.”** (see `src/app/layout.tsx`). If you
+instead see a different title (e.g. “Writer & Creative Strategist”), Tailwind marketing
+classes, or `og:url` pointing at another domain, that hostname is attached to a **different
+Vercel project or repo**. Fix it in **Vercel → Project → Settings → Git**: connect
+**`mrquintin/personalwebsite`**, Production branch **`main`**, Root **`.`**, then **Redeploy**.
+Also confirm **Domains** on that same project if you use a custom domain.
+
 ### Sync script
 
 ```bash
