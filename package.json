@@ -18,7 +18,8 @@
     "stamp:resume": "tsx scripts/stamp-resume.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "sync": "./scripts/sync-to-github.sh"
+    "sync": "./scripts/sync-to-github.sh",
+    "verify:ci": "npm ci && npm run lint && npm run typecheck && npm run lint:copy && npm run lint:tokens && npm run build"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

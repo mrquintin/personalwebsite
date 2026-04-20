@@ -82,5 +82,8 @@ notes preserved below for Vercel / CI / sync-script specifics.
 npm run sync
 ```
 
-Runs `scripts/sync-to-github.sh`. Supports `SYNC_FORCE=1` and
-`SYNC_SKIP_WATCH=1` as before.
+Runs `scripts/sync-to-github.sh`. Supports `SYNC_FORCE=1`,
+`SYNC_SKIP_WATCH=1`, and `SYNC_SKIP_VERIFY=1` (skips the automatic
+`npm run verify:ci` when `package.json` / `package-lock.json` changed).
+
+Before pushing dependency changes, run **`npm run verify:ci`** locally (same steps as the `build` job in CI: clean install, lint, typecheck, copy/token lint, build). That catches Linux `npm ci` / lockfile drift before CI does.

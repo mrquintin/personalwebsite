@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # One-shot sync: commit (if needed), push to mrquintin/personalwebsite, optional CI watch + smoke checks.
+# Env: SYNC_FORCE, SYNC_SKIP_WATCH, SYNC_SKIP_VERIFY (skip npm verify:ci when deps files changed).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -147,6 +148,39 @@ check_deployments_for_sha() {
   echo "Latest GitHub deployment ${dep_id} has no failure/error status (or statuses not yet reported)."
 }
 
+outgoing_changed_files() {
+  # Files changed on HEAD compared to remote (what this push will ship).
+  if git rev-parse --verify "origin/${branch}" >/dev/null 2>&1; then
+    git diff --name-only "origin/${branch}"...HEAD
+    return 0
+  fi
+  local root
+  root="$(git rev-list --max-parents=0 HEAD 2>/dev/null | tail -1)"
+  if [[ -n "$root" ]]; then
+    git diff-tree --no-commit-id --name-only -r "${root}" HEAD
+  else
+    git diff-tree --no-commit-id --name-only -r HEAD
+  fi
+}
+
+verify_ci_if_deps_changed() {
+  if [[ "${SYNC_SKIP_VERIFY:-}" == "1" ]]; then
+    echo "Skipping pre-push verify (SYNC_SKIP_VERIFY=1)."
+    return 0
+  fi
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "warning: npm not found — skip verify:ci." >&2
+    return 0
+  fi
+  local changed
+  changed="$(outgoing_changed_files)"
+  if ! echo "$changed" | grep -qE '^package\.json$|^package-lock\.json$'; then
+    return 0
+  fi
+  echo "Dependency files changed in outgoing commits — running npm run verify:ci ..."
+  npm run verify:ci
+}
+
 watch_ci_workflow() {
   local branch="$1"
   local sha="$2"
@@ -222,6 +256,8 @@ main() {
     echo "No commits to push."
     exit 0
   fi
+
+  verify_ci_if_deps_changed
 
   echo "Pushing to origin ${branch} (${REPO_PUSH_URL})..."
   git push origin "${branch}"
