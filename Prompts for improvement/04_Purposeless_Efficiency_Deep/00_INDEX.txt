@@ -1,0 +1,349 @@
+PROMPT SET 04 — PURPOSELESS EFFICIENCY, DEEP EXPERIENCE
+=======================================================
+
+STATUS: supersedes 03_Interactive_Experiences/I03_purposeless_efficiency_galley.txt
+        (I03 may be retained for reference; the Galley reader-with-margin-
+        annotations metaphor is abandoned in favor of the argument-system
+        explorer described below. See "RELATIONSHIP TO I03" at the bottom
+        of this index for the reasoning.)
+
+AUTHORITATIVE SOURCE for this suite:
+  Reader's Guide to Purposeless Efficiency: The Philosophical Architecture
+  of Michael Quintin's First Volume (hereafter "the Guide"). All
+  experience content MUST be grounded in claims, definitions, examples,
+  and structure that appear in the Guide. Nothing may be fabricated as
+  though it were a direct book excerpt; paraphrase, summary, and
+  author-authored expansions are acceptable and should be labeled as
+  such in fixtures.
+
+
+----------------------------------------------------------------------
+WHY THIS SUITE EXISTS (the design thesis)
+----------------------------------------------------------------------
+
+The Purposeless Efficiency accordion panel must teach the user what
+the book is in three to ten minutes of voluntary interaction, with
+the following standing constraints:
+
+  (a) The book is unpublished at the time of build. It is illegitimate
+      to present the reader with large passages of manuscript prose as
+      if they were canonical excerpts. The experience must not
+      simulate reading the book.
+
+  (b) The book's value is its argument structure — the way ~85 claims
+      organize into a dependency graph rooted in the Coherence-Reality
+      Isomorphism. The Guide's own recommendation (Appendix A) is that
+      a serious reader locate their disagreement at the earliest claim
+      at which they part company. That diagnostic posture should be
+      the experience's posture.
+
+  (c) The user is likely a potential investor, collaborator, or serious
+      reader — not a casual browser. The failure mode is vaporware
+      summary ("a book about capitalism and coherence"), not
+      intellectual overload.
+
+  (d) This panel must be legible inside an accordion that can be as
+      narrow as 28% of a 1280px viewport (~358px) and as tall as the
+      user's browser chrome allows. See I01 for the four viewport
+      thresholds. Every mode must have a viable <640px host rendering.
+
+Given (a)-(d), the correct chassis is not a reader. It is an
+argument-system explorer: five modes, each illuminating one load-
+bearing structural feature of the book, switchable without page
+reload and narratively coherent as a sequence.
+
+The five modes (prompts P01-P05 below) have been chosen by reading
+Appendix A of the Guide and asking: "Which claims or procedures would,
+if unclear, make the rest of the book unintelligible?" The answer is
+these five, in this order:
+
+  MODE 1 — ARGUMENT ONTOLOGY. Makes the dependency structure of the
+  book visible. Lets a user locate the earliest claim they refuse.
+  (P01; also provides the chassis for all other modes.)
+
+  MODE 2 — PURPOSE-EFFICIENCY QUADRANT. Teaches the book's
+  diagnostic tool by letting the user apply it to real institutions
+  and compare against the book's placement. (P02.)
+
+  MODE 3 — DIAMOND METHOD PRACTICUM. Teaches the book's constructive
+  procedure — the 4-step move from contradiction to reconstruction —
+  by walking a user through authored cases. (P03.)
+
+  MODE 4 — OBJECTIONS DOJO. Teaches the book's self-defense by
+  running the seven canonical objections from Chapter 14 as a
+  dialectic, not a lecture. Respects the reader who rejects the
+  rationalist methodology; does not attempt to convert. (P04.)
+
+  MODE 5 — INTELLECTUAL ATLAS. Teaches the book's location in the
+  history of thought by mapping which thinkers it endorses,
+  productively engages with, rebukes, or defends — and what
+  specifically it takes from or contests in each. (P05.)
+
+  P06 — COPY, FIXTURE INTEGRITY, VERIFICATION. Fixture module
+  conventions, unpublished-work IP hygiene, acceptance tests,
+  a11y and performance budgets, and the verification protocol
+  that must pass before the experience can ship.
+
+
+----------------------------------------------------------------------
+INHERITED CONVENTIONS (from 03_Interactive_Experiences/I01)
+----------------------------------------------------------------------
+
+Every prompt in this suite assumes the following are already in place
+from I01_integration_and_accordion_wiring.txt. If any are not,
+return to I01 before proceeding:
+
+  ExperienceHost          — wrapper that mounts inside the PRP
+                            accordion body when expanded, lazy-loads
+                            the experience bundle (<=80KB gzip),
+                            provides the EXPERIENCE | DOSSIER toggle,
+                            and preserves Prompts 07-09 dossier work.
+
+  ExperienceScaffold      — layout primitive that exposes:
+                              - mode: "panel" | "route"
+                              - hostWidthPx: measured container width
+                              - reducedMotion: boolean
+                              - announce(msg): live-region writer
+                            All modes in this suite must consume these
+                            props; no mode may measure window.innerWidth
+                            directly.
+
+  Viewport thresholds     — <640 / 640-960 / 960-1280 / >=1280.
+                            "Narrow" in this suite = hostWidthPx<640.
+                            "Wide" = hostWidthPx>=960.
+
+  Keyboard convention     — Shift+Cmd+E opens FixturePicker in dev.
+                            Tab order must traverse mode tabs first,
+                            then mode body, then help/close.
+
+  Motion                  — Framer-motion transitions. All motion must
+                            respect reducedMotion and degrade to
+                            opacity-only cross-fades (<=120ms).
+
+  Typography              — PRP panel inherits the serif family from
+                            Prompt 08 typography work. This suite does
+                            NOT introduce new font stacks; it uses
+                            existing mono for claim-IDs and existing
+                            serif for argumentative prose.
+
+  Color tokens            — Use existing palette. The "coherence
+                            strength" and "objection weight" visual
+                            encodings reuse the Hivemind palette
+                            (--ok, --warn, --err) for consistency
+                            across projects; this is deliberate.
+
+
+----------------------------------------------------------------------
+SHARED STATE SHAPE (used across P01-P05)
+----------------------------------------------------------------------
+
+A single zustand store, src/stores/prpExperience.ts, owns the state
+for all five modes. The shape is:
+
+    type Mode = "ontology" | "quadrant" | "diamond" | "objections" | "atlas";
+
+    interface PrpExperienceState {
+      mode: Mode;
+      selectedClaimId: string | null;     // cross-mode anchor
+      dossierOpen: boolean;               // toggled by EXPERIENCE/DOSSIER
+      quadrant:   /* see P02 PART F for full shape */;
+      diamond:    /* see P03 PART F for full shape */;
+      objections: /* see P04 PART D for full shape */;
+      atlas:      /* see P05 PART E for full shape */;
+      setMode(m: Mode): void;
+      selectClaim(id: string | null): void;
+      // ... mode-specific actions, one set per mode
+    }
+
+The mode-specific slices are defined authoritatively in their own
+prompts (P02-P05). This index only asserts that a single zustand
+store exists and that the four mode slices are siblings under the
+same root. If an implementer finds any drift between slice shape
+here and the slice shape in the owning prompt, the owning prompt
+wins.
+
+ROUTING CONTRACT (used across modes). All cross-mode "open in X"
+buttons call a single root-level action on the store:
+
+    openInMode(target: Mode, refId: string): void;
+
+  where refId means whatever the target mode needs (a claim ID
+  for "ontology", a diamond case ID for "diamond", an objection
+  ID for "objections", a thinker ID for "atlas"). This is the
+  authoritative routing signature; any prompt that defines
+  per-target callbacks should be implemented as thin wrappers
+  over openInMode() so the store has a single entry point.
+
+Claim IDs are canonical strings (e.g., "CRI" for Coherence-Reality
+Isomorphism, "PE-FRAMEWORK", "DIAMOND", "PCT" for profit-coherence
+thesis, etc.) so that modes can cross-link without stringly-typed
+drift. The canonical ID list is defined in P01 and MUST NOT be
+redefined elsewhere.
+
+
+----------------------------------------------------------------------
+FILE MANIFEST (everything this suite will create)
+----------------------------------------------------------------------
+
+src/components/projects/purposeless-efficiency/Experience/
+    PrpExperience.tsx                    — top-level, mounts modes
+    ModeTabBar.tsx                       — top-strip mode switcher
+    OntologyExplorer/                    — P01
+        OntologyGraph.tsx
+        ClaimCard.tsx
+        DependencyTrail.tsx
+    QuadrantDiagnostic/                  — P02
+        QuadrantBoard.tsx
+        DiagnosticInterview.tsx
+        PlacementCompare.tsx
+    DiamondPracticum/                    — P03
+        DiamondStepper.tsx
+        CaseCard.tsx
+        ReconstructionReveal.tsx
+    ObjectionsDojo/                      — P04
+        ObjectionDeck.tsx
+        DialecticTurn.tsx
+        MethodologyAdmission.tsx
+    IntellectualAtlas/                   — P05
+        AtlasOrbit.tsx
+        ThinkerDrawer.tsx
+        GlossaryStrip.tsx
+
+src/lib/prp/
+    claims.ts                            — canonical 85-entry ontology
+    quadrantCases.ts                     — institutions + book's placement
+    diamondCases.ts                      — worked Diamond Method examples
+    objections.ts                        — 7 objections + responses
+    thinkers.ts                          — intellectual-context data
+    glossary.ts                          — ~40-term technical vocabulary
+    typeGuards.ts                        — runtime type integrity
+
+src/stores/prpExperience.ts              — zustand store (shape above)
+
+src/components/projects/purposeless-efficiency/Experience/
+    __tests__/                           — acceptance tests per P06
+
+Plus one modification:
+src/components/projects/purposeless-efficiency/Panel.tsx
+    - add ExperienceHost + EXPERIENCE/DOSSIER toggle per I01
+    - preserve all existing dossier content verbatim
+
+
+----------------------------------------------------------------------
+EXECUTION ORDER
+----------------------------------------------------------------------
+
+Strictly serial. Each prompt depends on the one before it. Do NOT
+parallelize within this suite.
+
+  1. P01 — chassis + Ontology Explorer (delivers something usable on its own).
+  2. P02 — Quadrant Diagnostic.
+  3. P03 — Diamond Method Practicum.
+  4. P04 — Objections Dojo.
+  5. P05 — Intellectual Atlas.
+  6. P06 — copy + fixture integrity + verification + ship-gate.
+
+A reader encountering P01 output without P02-P05 should still
+find the panel coherent: Ontology alone is the book's argumentative
+skeleton, and the skeleton alone is already more than most books
+offer.
+
+
+----------------------------------------------------------------------
+RELATIONSHIP TO I03 (THE GALLEY)
+----------------------------------------------------------------------
+
+The Galley was designed before the Reader's Guide was available.
+Given the Guide, two aspects of the Galley are now wrong:
+
+  (i) The Galley's central metaphor — reader + typed margin
+      annotations — presumes there are canonical excerpts to display.
+      The book is unpublished, so this either requires the author to
+      release passages (costly and premature) or to author excerpts
+      specifically for the website (inauthentic). Neither is ideal.
+
+  (ii) The Galley treated the book as a literary object with five
+       pillars. The Guide reveals the book is, at its spine, an
+       argumentative ontology of ~85 claims organized around seven
+       load-bearing claims. An argument system is a different kind
+       of object than a book, and it wants a different affordance.
+
+The new suite's Ontology Explorer (P01) replaces the Galley's
+"argument spine" glyph with a real, navigable dependency graph.
+The Quadrant Diagnostic (P02) replaces the Galley's "CLAIM /
+OBJECTION / CONNECTION" annotations with an authored diagnostic
+exercise. The Diamond Method Practicum (P03) introduces a mode
+the Galley did not have.
+
+One Galley element worth preserving: the serif body treatment for
+prose passages. Where this suite renders author-authored prose
+(e.g., inside ClaimCard expanded view, or the book's response in
+ObjectionsDojo), it should inherit the same typographic treatment
+the Galley specified. P01 and P04 restate this explicitly.
+
+If there is internal pressure to keep I03 live, the cleanest path
+is to retire it and let its best elements survive here. If that is
+not accepted, the second-cleanest path is to have I03 become a
+sixth sub-mode inside the chassis delivered by P01 — a "Read"
+mode alongside Ontology/Quadrant/Diamond/Objections/Atlas — whose
+content is the one or two author-released paragraphs that are
+shareable. That option is not developed further in this suite;
+if it is taken later it should be its own prompt (P07 or
+equivalent) and should not block the shipping of P01-P06.
+
+
+----------------------------------------------------------------------
+WHAT THIS SUITE IS NOT
+----------------------------------------------------------------------
+
+  - Not a book promotion. No "buy now", no email capture, no
+    cover art hero, no excerpt teaser. The word "buy" should not
+    appear in any string.
+
+  - Not a summary. The One-Page Summary in Appendix C of the Guide
+    exists; if the user wants the summary they can read the
+    dossier. The experience is for interaction, not consumption.
+
+  - Not a quiz game. The Diamond Method Practicum has user input,
+    but it is not graded against a right answer. The book's view
+    is presented as "the book's view," and the user is free to
+    dissent. This is not an accident; it is the Guide's own
+    recommendation (Chapter 15.3: "the invitation is to test").
+
+  - Not an LLM chatbot. All content is authored offline and lives
+    in fixtures. No runtime model calls. This is enforced in P06.
+
+  - Not a full bibliography. Citations, if any, live in the dossier
+    side of the panel. The experience keeps its surface clear of
+    reference-apparatus.
+
+
+----------------------------------------------------------------------
+ACCEPTANCE FOR THE FULL SUITE
+----------------------------------------------------------------------
+
+The PRP experience ships when all of the following are true:
+
+  [ ] All five modes mount inside the PRP accordion at host widths
+      >=360px without clipping or horizontal scroll.
+  [ ] EXPERIENCE <-> DOSSIER toggle from I01 preserves Prompts 07-09
+      dossier content unchanged.
+  [ ] Cross-mode state (selectedClaimId) persists across mode switches.
+  [ ] No runtime model/network calls from any experience module.
+  [ ] Bundle size budget: total PRP experience <=80KB gzip
+      (per I01 contract), excluding code already in the main bundle.
+  [ ] All authored prose passes the "author voice" lint specified in
+      P06 (no marketing hedges, no adjective inflation, no em-dash-
+      abuse chains beyond two consecutive).
+  [ ] Keyboard: all interactive elements reachable in a single Tab
+      traversal; ESC closes any open drawer back to the mode grid.
+  [ ] reducedMotion: no translations/scales, only opacity cross-fades.
+  [ ] a11y: aria-live announcements on mode change, step advance,
+      objection selection, and thinker focus.
+  [ ] An unpublished-work check: no fixture prose string longer than
+      200 characters claims to be a direct book excerpt. (P06.)
+
+
+----------------------------------------------------------------------
+END INDEX. Proceed to P01.
+----------------------------------------------------------------------

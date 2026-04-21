@@ -1,0 +1,491 @@
+P01 — CHASSIS + ARGUMENT ONTOLOGY EXPLORER
+===========================================
+
+Prerequisites: 00_INDEX of this suite; I01 (ExperienceHost,
+ExperienceScaffold, mode/hostWidthPx/reducedMotion/announce);
+Prompts 07-09 for the PRP dossier content (must remain reachable
+via the EXPERIENCE/DOSSIER toggle).
+
+This prompt does two things. First, it lays the chassis for the
+entire Purposeless Efficiency experience — the top-strip mode
+switcher, the shared state store, the viewport-responsive shell.
+Second, it delivers the Argument Ontology Explorer (Mode 1 of 5)
+as a complete, shippable-on-its-own feature.
+
+
+----------------------------------------------------------------------
+PART A — THE CHASSIS
+----------------------------------------------------------------------
+
+A0. GLOSSARY PORTAL OUTLET (chassis-level mount point).
+
+The Intellectual Atlas mode (P05) ships a GlossaryStrip that must
+be visible ACROSS ALL FIVE MODES, not only inside Atlas. The
+mounting pattern is:
+
+  - PrpExperience.tsx renders a chassis-owned element
+    <div id="prp-glossary-outlet" /> at the bottom of its return
+    tree, OUTSIDE the mode body container but INSIDE the
+    ExperienceScaffold frame.
+  - The GlossaryStrip component (owned by P05) uses
+    React.createPortal to render into that outlet from wherever
+    the mode body is currently mounted.
+  - The outlet's DOM position is "sticky, bottom:0" within the
+    scaffold so that it persists at the bottom of the panel at
+    all hostWidthPx regimes. reducedMotion has no effect on
+    stickiness.
+  - Only ONE instance of the strip exists; switching modes does
+    not remount it. This is enforced by mounting the strip at
+    the PrpExperience level via a React.useEffect that creates
+    the portal target once.
+
+If the Atlas mode is not yet built (during P01 build-state), the
+outlet div still exists and is empty. P05's implementation then
+fills it without further chassis change.
+
+A1. File: src/components/projects/purposeless-efficiency/Experience/
+         PrpExperience.tsx
+
+This is the root component the ExperienceHost mounts when the PRP
+accordion is expanded and the EXPERIENCE side of the toggle is
+active. It receives the standard ExperienceScaffold props from
+I01 and is responsible for:
+
+  - Reading hostWidthPx and selecting a layout regime.
+  - Rendering the ModeTabBar at the top.
+  - Rendering the active mode's component below.
+  - Registering keyboard shortcuts: arrow keys between tabs when
+    focus is on the tab bar; ESC to close any open drawer/modal
+    back to the grid view.
+  - Calling announce(...) on mode changes with a short description
+    of what the user is now looking at.
+
+Layout regimes (strictly derived from hostWidthPx):
+
+  NARROW   hostWidthPx < 640
+      Mode tabs collapse into a single-row horizontal scroller.
+      Each tab is icon + short label (e.g., "1. ONTOLOGY").
+      Mode body is a single vertical column; any "split view"
+      inside a mode collapses to a stack with a DETAIL overlay.
+
+  STANDARD 640 <= hostWidthPx < 960
+      Mode tabs are a full horizontal strip with numbered labels
+      ("1 · ARGUMENT ONTOLOGY", "2 · PE QUADRANT", etc.).
+      Mode body may use two regions; no three-region layouts.
+
+  WIDE     hostWidthPx >= 960
+      Full tabs with descriptions. Modes may use their richest
+      layouts.
+
+  There is no separate XWIDE regime inside the panel; the PRP panel
+  is host-bounded and a 1280+ host is just WIDE with more air.
+
+When mode="route" (full-page standalone), the chassis behaves as
+WIDE with a larger type scale and a persistent breadcrumb above
+the tab bar ("PRP / ARGUMENT ONTOLOGY").
+
+A2. File: src/components/projects/purposeless-efficiency/Experience/
+         ModeTabBar.tsx
+
+Five tabs, in canonical order:
+
+    1  ARGUMENT ONTOLOGY
+    2  PE QUADRANT
+    3  DIAMOND METHOD
+    4  OBJECTIONS
+    5  INTELLECTUAL ATLAS
+
+Render as <nav role="tablist">. Each tab is <button role="tab">
+with aria-selected, aria-controls, and a unique id. Arrow keys
+move focus between tabs; Enter or Space activates. No tab index
+should change based on mode — the DOM order is the canonical
+order above, always.
+
+Visually: mono font for the numeral, serif for the name (to match
+Prompt 08 typography). Active tab has a 1px underline in --accent;
+inactive tabs are --fg-dim. Hover adds a subtle box shadow;
+reducedMotion removes the shadow transition.
+
+At NARROW widths, the tab bar scrolls horizontally with
+scroll-snap-type: x mandatory, and each tab is a snap point.
+
+A3. File: src/stores/prpExperience.ts
+
+Single zustand store. The full shape is defined in the INDEX
+"SHARED STATE SHAPE" section. Two notes specific to P01:
+
+  - mode defaults to "ontology".
+  - selectedClaimId is null by default. When a user clicks a claim
+    in the Ontology Explorer, this becomes that claim's ID.
+    Subsequent modes (P02 Quadrant interview, P03 Diamond case
+    reveals, P04 objection responses, P05 Atlas thinker cards) use
+    selectedClaimId as a cross-reference point but never REQUIRE
+    a prior selection. Every mode must render usefully with
+    selectedClaimId=null.
+
+A4. File: src/components/projects/purposeless-efficiency/Panel.tsx
+         (MODIFICATION, not creation)
+
+Import ExperienceHost from I01 and mount:
+
+    <ExperienceHost
+        projectId="prp"
+        experience={<PrpExperience />}
+        dossier={<ExistingDossierContent />}
+        defaultSide="experience"
+    />
+
+Preserve every byte of existing dossier content. The
+EXPERIENCE/DOSSIER toggle from I01 switches which side is visible.
+The toggle's initial state (defaultSide) is "experience" for first
+paint. If a user flips to DOSSIER once, remember that preference
+in sessionStorage under key "prp.side" so a reload within the
+same tab respects it; do not use localStorage.
+
+
+----------------------------------------------------------------------
+PART B — THE ARGUMENT ONTOLOGY EXPLORER
+----------------------------------------------------------------------
+
+B1. What the user sees, in plain description.
+
+A canvas, inside the mode body, populated with labeled nodes
+connected by directed edges. Each node is a claim from the book's
+argumentative ontology (Appendix A of the Guide). Each edge is a
+"A depends on B" relation: if the arrow runs from B to A, it means
+"A's justification assumes B".
+
+The canvas opens in a curated "spine view" showing only the seven
+load-bearing claims identified in Appendix A:
+
+    CRI        Coherence-Reality Isomorphism
+    PCT        Profit-Coherence Thesis
+    PEF        Purpose-Efficiency Framework
+    PCD        Paradox / Contradiction Distinction
+    ACT        Argumentative Combat Thesis
+    MCS        Market Constraint vs. State Coercion (categorical)
+    DIAM       Diamond Method
+
+Arranged as: CRI anchored at top-center; PCD directly below (it is
+the epistemic grammar that CRI uses); PCT to the right of PCD (it
+applies CRI to economic activity); PEF below PCT (applies PCT to
+institutional diagnosis); ACT to the left of PCD (reframes human
+conflict under CRI); MCS below ACT (draws a political line using
+CRI and ACT); DIAM anchored at bottom-center (the constructive
+procedure all other claims cash out through).
+
+The edges are:
+    CRI -> PCD, CRI -> PCT, CRI -> ACT
+    PCD -> DIAM
+    PCT -> PEF, PCT -> DIAM
+    ACT -> MCS, ACT -> DIAM
+    MCS -> DIAM
+    PEF -> DIAM
+
+This is a DAG. The layout is hand-authored (coordinates in
+claims.ts), not force-directed — force-directed layouts look
+"scientific" but are illegible at small widths and jitter between
+renders. See PART C for the full coordinate spec.
+
+Clicking a node opens ClaimCard for that claim in a right-hand
+drawer (STANDARD/WIDE) or a bottom sheet (NARROW). See B3.
+
+Below the canvas, a toggle: "SPINE ONLY" | "ALL CLAIMS". The ALL
+CLAIMS view reveals the remaining ~78 claims from the ontology,
+attached as subtrees to their respective spine nodes. In v1 we
+ship with the 7 spine claims fully authored and roughly 25-30 of
+the 85 total claims populated; the rest are placeholders labeled
+"claim pending author review" with a dim stub node. This is not
+hidden from the user; a footer text reads: "{N} of 85 claims
+authored; full ontology pending future release." This is a matter
+of intellectual honesty — see P06.
+
+B2. File: OntologyGraph.tsx
+
+Renders the graph using SVG. Not canvas, not Pixi. SVG is
+accessible, zoomable, keyboard-navigable, and ships in the gzip
+budget without a rendering library. Use <foreignObject> only for
+node label overflow handling where needed.
+
+Component contract:
+
+    interface OntologyGraphProps {
+      claims: Claim[];            // loaded from claims.ts
+      edges: ClaimEdge[];
+      view: "spine" | "all";
+      selectedId: string | null;
+      onSelect(id: string | null): void;
+      hostWidthPx: number;
+      reducedMotion: boolean;
+    }
+
+Behavior:
+  - Nodes are rendered as <g role="button" tabIndex={0}>.
+  - Keyboard: Tab cycles through nodes in authored order (spine
+    first, then subtree nodes in DFS order). Enter/Space opens
+    ClaimCard. Arrow keys, when focus is on a node, move focus to
+    the nearest-by-angle neighbor in the authored layout (no
+    geometry math at runtime; each node has a
+    `neighbors: {n,s,e,w}` field in claims.ts).
+  - On hover/focus, the node's incoming and outgoing edges
+    highlight; other edges dim to 30% opacity. This lets a user
+    see "what does this claim depend on, and what depends on it"
+    without reading the drawer first.
+  - Zoom: none. Fit-to-container. At NARROW widths the canvas
+    renders a vertically stacked version of the spine (CRI at top,
+    DIAM at bottom, the five middle claims as a single column).
+    This is a separate authored layout in claims.ts
+    (`narrowCoords` vs. `wideCoords`), not a runtime
+    transformation.
+
+B3. File: ClaimCard.tsx
+
+Drawer/sheet that opens when a node is selected. Shape:
+
+    Header:
+        claim ID (mono, --fg-dim)
+        claim name (serif, display size)
+        claim kind badge (FOUNDATIONAL | APPLIED | METHODOLOGICAL)
+
+    Body, in this strict order:
+        STATEMENT              — 1-3 sentences, paraphrased, author's voice.
+        DEPENDS ON             — bullet list of claim IDs (each a link
+                                 that, clicked, moves selection to that
+                                 claim and updates selectedClaimId).
+        ENTAILS                — bullet list of downstream claim IDs.
+        OBJECTION CROSS-REFS   — IDs from the Objections Dojo fixture
+                                 (P04) that specifically target this
+                                 claim. For example, CRI is targeted by
+                                 Objection 14.1 ("no empirical
+                                 evidence"); PCT is targeted by 14.4
+                                 ("unfalsifiable"); MCS is targeted by
+                                 14.3 ("silent compulsion"); DIAM is
+                                 targeted by 14.5 ("rationalizes
+                                 anything").
+        WHERE DEVELOPED        — chapter references into the book
+                                 (e.g., "Ch.4, Ch.11") pulled from the
+                                 Guide's table of contents.
+
+    Footer:
+        "OPEN IN DIAMOND METHOD" button — only present if this
+        claim is a case in P03's diamondCases.ts. Clicking it
+        switches mode to "diamond" and preselects the case.
+        "SHOW IN ATLAS" button — only present if this claim has
+        an authored thinker endorsement/rebuke in P05.
+        Close button (ESC).
+
+Note: the DEPENDS ON / ENTAILS lists must be computed from the
+edges array in claims.ts, not typed by hand in the ClaimCard
+component. This keeps the ontology single-source-of-truth.
+
+B4. File: DependencyTrail.tsx
+
+A thin horizontal strip above ClaimCard's header showing the
+dependency chain from CRI down to the current claim. Example:
+    CRI > PCT > PEF > (current: FRAGMENTATION)
+
+Each token is clickable. If a claim has multiple paths from CRI
+(e.g., DIAM has four), show the shortest; below it, add a "2 more
+paths" affordance that, when clicked, expands a list of the other
+paths. This is purely educational — it makes concrete the Guide's
+claim that disagreement should be located at the earliest shared
+ancestor.
+
+
+----------------------------------------------------------------------
+PART C — THE CLAIMS DATA
+----------------------------------------------------------------------
+
+File: src/lib/prp/claims.ts
+
+Exports:
+
+    export interface Claim {
+      id: string;                              // "CRI", "PCT", etc.
+      name: string;                            // serif display name
+      kind: "foundational" | "applied" | "methodological";
+      statement: string;                       // 1-3 sentences, AUTHOR-APPROVED
+      wideCoords: { x: number; y: number };    // 0..100 viewBox
+      narrowCoords: { x: number; y: number };  // 0..100 vertical layout
+      neighbors: { n?: string; s?: string; e?: string; w?: string };
+      chapterRefs: number[];                   // [4, 11] -> "Ch.4, Ch.11"
+      objectionRefs: string[];                 // ["14.1"]
+      inSpine: boolean;                        // true for the 7
+      authorApproved: boolean;                 // false for stubs
+    }
+
+    export interface ClaimEdge { from: string; to: string; }
+
+    export const CLAIMS: Claim[];
+    export const EDGES: ClaimEdge[];
+
+Authored content for v1 (minimum that must ship):
+
+  Spine (all seven, authorApproved=true):
+      CRI, PCT, PEF, PCD, ACT, MCS, DIAM
+
+  Applied subtrees (aim for authorApproved=true on at least three
+  subtree entries per spine claim, stubs for the rest):
+      Under CRI:    FAITH-IN-REASON, COHERENCE-SUPERIORITY,
+                    VALUE-AS-PERSUASION
+      Under PCT:    FRAGMENTATION, INVENTION-VS-INNOVATION,
+                    ONE-PERSON-FIRM
+      Under PEF:    PURPOSELESS-EFFICIENCY,
+                    SPEED-OF-CONTRADICTION, MIMICRY
+      Under PCD:    PARADOX-PRODUCTIVE, DUAL-USE,
+                    ESOTERIC-EXOTERIC
+      Under ACT:    SEVERANCE-OF-DIALOGUE,
+                    ARGUMENT-AS-SUBLIMATED-VIOLENCE,
+                    ANOMIE
+      Under MCS:    GOLDEN-CHAIN, SILENT-COMPULSION (as a challenge
+                    absorbed), STATE-EPISTEMIC-INCOHERENCE
+      Under DIAM:   STEP-IDENTIFY, STEP-DISSOLVE-OR-DECLARE,
+                    STEP-RECONSTRUCT, STEP-TRACE-CONSEQUENCES
+
+Statements must be Michael's, not the Guide's paraphrase. The
+Guide's phrasing can be used as a starting draft but the
+authorApproved flag may not be set to true on a statement that
+Michael has not personally reviewed. Until review, the string
+should be the Guide paraphrase prefixed with:
+    "[GUIDE PARAPHRASE — PENDING AUTHOR REVIEW] "
+This prefix must not appear in any rendered string in v1; it must
+block render with a stub "claim pending author review" body.
+
+Layout coordinates are in a 100x100 viewBox. The spine coordinates:
+
+    CRI    wide {50, 10}    narrow {50,  5}
+    PCD    wide {50, 42}    narrow {50, 20}
+    PCT    wide {78, 34}    narrow {50, 35}
+    PEF    wide {78, 62}    narrow {50, 50}
+    ACT    wide {22, 34}    narrow {50, 65}
+    MCS    wide {22, 62}    narrow {50, 80}
+    DIAM   wide {50, 90}    narrow {50, 95}
+
+Subtree nodes get coordinates radiating from their parent, with a
+minimum distance of 14 units in the wide layout. Authored by hand
+in claims.ts; not computed.
+
+
+----------------------------------------------------------------------
+PART D — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+D1. Labels and microcopy
+
+The following strings MUST appear verbatim (to match the author's
+voice and the book's vocabulary):
+
+  - "SPINE ONLY" / "ALL CLAIMS" for the ontology scope toggle.
+  - "depends on" / "entails" for the ClaimCard dependency lists.
+    Not "requires" / "implies"; those are technical terms the
+    book uses in narrower senses and the switch would mislead.
+  - "foundational" / "applied" / "methodological" for claim kind.
+    Not "core" / "secondary".
+  - "where developed" for chapter references (NOT "references" or
+    "sources" — those words carry citation-apparatus connotations
+    the book explicitly declines).
+  - "This is the book's view." (verbatim, including the period) is
+    the opening line of the claim statement ONLY when the claim is
+    foundational and the statement contains a claim that is likely
+    to be rejected on first reading. See the specific flags in
+    claims.ts. Example: the CRI card's body should open with
+    "This is the book's view." followed by the actual statement,
+    to signal to a skeptical reader that the framework is being
+    described, not asserted at them.
+
+D2. What the mode must not say
+
+  - "Our thesis" (use "the book's view" or "the book claims").
+  - "Proven" / "scientifically established" / "empirically
+    validated" (none of the foundational claims are; the book is
+    explicit about this).
+  - "Paradigm" / "disruptive" / "game-changing" (marketing).
+  - "Of course" / "obviously" (the Guide explicitly flags the book's
+    intentional care with seeming-obviousness; we respect it).
+
+D3. The footer text
+
+At the bottom of the Ontology Explorer, outside the canvas, a
+single line in --fg-dim, 12px mono:
+
+    {authored}/85 CLAIMS AUTHORED · SPINE: COMPLETE · LAST REVIEW {yyyy-mm-dd}
+
+The date pulls from an `export const LAST_REVIEW` constant in
+claims.ts. This is updated by Michael, not automatically.
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P01
+----------------------------------------------------------------------
+
+P01 ships when:
+
+  [ ] Panel.tsx mounts ExperienceHost correctly; EXPERIENCE/DOSSIER
+      toggle preserves Prompts 07-09 dossier content verbatim on
+      the DOSSIER side.
+  [ ] The five-tab ModeTabBar renders, with only tab 1 active
+      (other tabs are disabled pending P02-P05 and display
+      "coming in next prompt" on hover — this is a build-state
+      affordance that MUST be removed by P06).
+  [ ] Ontology Explorer renders the spine at all four viewport
+      regimes without clipping.
+  [ ] Clicking a spine node opens ClaimCard with all five body
+      sections populated from claims.ts (not hard-coded).
+  [ ] DEPENDS ON / ENTAILS links are navigable; selecting a linked
+      claim updates selectedClaimId and closes the current drawer
+      before opening the next, so the DOM doesn't stack drawers.
+  [ ] Keyboard: Tab enters the tab bar; Enter selects a tab; Tab
+      again enters the canvas; Tab steps through nodes in authored
+      order; Arrow keys move by neighbors field; Enter opens
+      drawer; ESC closes drawer; focus returns to the origin node.
+  [ ] aria-live announce() fires on mode change and on claim
+      selection, with a short human sentence (e.g., "Now viewing
+      the Coherence-Reality Isomorphism, a foundational claim of
+      the book.").
+  [ ] reducedMotion=true: no node scale transitions; drawer opens
+      with opacity only; edge dimming on hover still works
+      (opacity is allowed).
+  [ ] No runtime network calls. Module-only claims.ts.
+  [ ] Gzip budget: PrpExperience + Ontology mode + claims.ts data
+      under 40KB gzipped (leaves 40KB for P02-P05 which must share
+      the remaining budget per I01's 80KB contract).
+  [ ] Prose lint (see P06 rules) passes on all statement strings.
+  [ ] The footer line reports {authored}/85 correctly from data.
+
+
+----------------------------------------------------------------------
+PART F — NOTES TO THE IMPLEMENTER
+----------------------------------------------------------------------
+
+F1. Do not force-layout the graph. We have been here before.
+
+F2. The drawer must not be a <Dialog> with a modal backdrop that
+    traps scroll; the accordion is already a scroll-trapping
+    context. Use a non-modal drawer/sheet that allows the rest of
+    the accordion body to remain scrollable on NARROW. Radix's
+    <Popover> in anchored-to-container mode is acceptable; so is a
+    hand-rolled <aside> with focus management.
+
+F3. Do not compute dependency paths at render time. Precompute the
+    CRI-to-every-claim shortest-path map once at module load and
+    memoize. Depth is ~4 so this is ~85 entries; trivial.
+
+F4. Do not introduce a graph-rendering dependency (react-flow,
+    dagre, cytoscape). They are each >30KB gzipped and exceed the
+    budget on their own. Hand-rolled SVG with authored coordinates
+    beats any of them on clarity for a 7-node spine.
+
+F5. If you find yourself wanting to animate the graph, stop. The
+    graph is a diagram, not a demo. The only motion permitted is
+    (a) edge dim on focus, (b) ClaimCard drawer slide-in/out, both
+    subject to reducedMotion. No "floating nodes", no
+    "constellation" effects; they degrade the diagnostic function.
+
+F6. If the user is on the route=route rendering (standalone page
+    for PRP experience), the mode switcher may also render as a
+    left sidebar; that is a visual choice, not a contract, and is
+    deferred to the implementer's taste within the chassis's
+    regime rules.
+
+
+End of P01.

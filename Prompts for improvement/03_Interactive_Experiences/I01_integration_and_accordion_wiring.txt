@@ -1,0 +1,308 @@
+================================================================================
+I01 — ACCORDION INTEGRATION & SHARED PRIMITIVES
+================================================================================
+
+PURPOSE
+-------
+Wire a single "experience slot" into each of the three project panels
+(Hivemind, Purposeless Efficiency, Theseus) on the landing accordion,
+and teach the corresponding /<slug> routes to mount the SAME experience
+component at full bleed. Establish the shared primitives — size
+adaptation, lazy-load contract, motion, a11y — that I02, I03, and I04
+will build against.
+
+This prompt does NOT build any of the three experiences. It builds the
+frame into which they will be slotted.
+
+PREREQUISITES
+-------------
+  - Prompt 02 (navigation paradigm) is in place: Accordion.tsx,
+    Panel.tsx, PanelSpine.tsx exist.
+  - Prompts 07–09 (Hivemind, PRP, Theseus dossier pages) have been
+    generated. Their page components are the current incumbents in
+    each /<slug> route; I01 will refactor them to route through the
+    experience host.
+  - R01–R04 revisions (see 02_Revisions_Round_1/) have been applied.
+    In particular: there is no bottom status bar; accordion labels
+    no longer morph on expansion; three-letter codes have been
+    removed. The accordion's expanded panel now has a clean body slot
+    with no legacy chrome.
+
+THE HOSTING MODEL
+-----------------
+A visitor can reach a project through two surfaces:
+
+  SURFACE A — Landing accordion at "/"
+              The visitor expands one of the five panels. The expanded
+              panel is roughly 60–75% of the viewport width, variable
+              by breakpoint, with the other four compressed to spines.
+              The body of the expanded panel IS the experience.
+
+  SURFACE B — Route "/hivemind", "/purposeless-efficiency", "/theseus"
+              The visitor has navigated (via palette, link, or URL)
+              directly to the project's route. The panel is displayed
+              full-bleed; the other four panels are hidden. The
+              experience fills the route.
+
+Both surfaces mount the same component. The difference between them is
+a prop (`mode: "panel" | "route"`) and a measured width (`hostWidthPx`)
+exposed by the host. Experiences that want to render differently at
+narrow vs wide widths branch on these values.
+
+THE EXPERIENCE HOST
+-------------------
+Introduce two components:
+
+  ExperienceHost        —  the outer container that every expanded
+                           project panel and every /<slug> route
+                           delegates to. Responsible for: measuring
+                           its own width, exposing a render-prop
+                           "context" to the child experience, mounting
+                           the experience lazily, handling the loading
+                           state and the error boundary.
+
+  ExperienceScaffold    —  a thin inner container that enforces the
+                           shared visual frame: a 1px hairline border
+                           at --rule, a top meta-strip (project codename
+                           · one-line synopsis · "mode: EXPERIENCE"),
+                           a body slot, and a bottom post-roll strip.
+                           Every experience uses this scaffold; the
+                           experience-specific surface lives in the
+                           body slot.
+
+The scaffold is what gives the three experiences visual family
+resemblance without forcing them to look the same. It is analogous to
+how Bloomberg function-keys share a frame while the content inside the
+frame is wildly different from key to key.
+
+PROPS EXPOSED BY THE HOST TO THE EXPERIENCE
+-------------------------------------------
+  mode            "panel" | "route"
+                  The experience should prefer a denser layout in
+                  "panel" and a more spacious layout in "route".
+
+  hostWidthPx     number
+                  Measured width of the host container in px. Updated
+                  on resize via ResizeObserver. Experiences should
+                  branch on thresholds, not compute in useLayoutEffect
+                  continuously.
+
+  reducedMotion   boolean
+                  Mirrors window.matchMedia("(prefers-reduced-motion:
+                  reduce)"). If true, the experience disables every
+                  non-essential animation and switches to instantaneous
+                  state transitions.
+
+  announce        (msg: string) => void
+                  A shared ARIA live-region announcer. The experience
+                  calls announce("score: 0.42, gate status: pass") and
+                  the host routes the message to a polite live region.
+                  Screen readers receive one clean stream of state
+                  announcements; the experience does not need to own
+                  its own live region.
+
+  prefersDense    boolean
+                  True when the user has opted into "dense mode" in the
+                  command palette. Experiences may honor this to render
+                  more rows per screen, smaller typography, or tighter
+                  grids. Optional.
+
+RENDER BRANCHING THRESHOLDS
+---------------------------
+Experiences MAY branch on hostWidthPx at the following canonical
+thresholds. Do not introduce custom thresholds without a reason.
+
+  < 640 px      Narrow. Single-column layout. Drop the spine glyph.
+                Panel-mode experiences are typically here on mobile.
+  640 – 960 px  Compact. Two-column layouts permitted but frugal.
+                Typical expanded-panel width on a laptop.
+  960 – 1280 px Standard. Full interactive layout.
+  ≥ 1280 px    Wide. Reserved for route-mode on large displays. Add
+                secondary panes (e.g., a principle index sidebar).
+
+LAZY-LOAD CONTRACT
+------------------
+Each experience is shipped as a dynamic import, gated on the host's
+mount. Reasoning: on the landing accordion, four of five panels are
+collapsed to spines and their experiences should not occupy network,
+main-thread, or memory budget until expanded.
+
+  - Host uses Next.js dynamic() with ssr: false for the experience
+    bundle. Render a small monospace placeholder ("initialising ·
+    coherence-receiver" / "initialising · galley" / "initialising ·
+    reflection-lab") during the ~<200ms bundle load. Do not show
+    spinners; show a cursor-blink.
+
+  - The experience fixture modules (src/content/projects/.../fixtures/*)
+    are imported WITHIN the experience bundle, not at the panel level.
+    This keeps the cold-load of the landing accordion small.
+
+  - Total experience bundle (component + fixtures + one-off CSS
+    module) target: ≤ 80 KB gzip per experience. If a fixture set
+    exceeds this, split it and load additional tranches on demand.
+
+MOTION GUARDRAILS (shared)
+--------------------------
+  - State transitions inside an experience: ≤ 200ms.
+  - Entry animation of the experience itself: none. The scaffold
+    performs a single 120ms opacity fade-up at mount; nothing inside
+    the scaffold animates further without a user input.
+  - No idle-state motion anywhere — no pulsing nodes, no loading-
+    shimmers, no scrolling tickers.
+  - prefers-reduced-motion: every transition is set to 0ms. The
+    experience behaves identically, minus the tweens.
+
+A11Y GUARDRAILS (shared)
+------------------------
+  - Root of each experience is a <section aria-label="…"> with the
+    label "Hivemind — Coherence Receiver" / "Purposeless Efficiency —
+    Galley" / "Theseus — Reflection Lab".
+  - Every interactive control has a visible focus ring using
+    --accent at outline-offset 2px.
+  - Tab order runs top-down, left-right. No tabindex > 0.
+  - The ExperienceScaffold's top meta-strip is the first focusable
+    element of the experience, exposing a "skip to interactive"
+    button. Screen-reader users who don't care about the meta can
+    skip straight to the active controls.
+  - Every state change the experience considers meaningful (a layer
+    completes, a gate fires, a proposition is reflected, a pillar is
+    expanded) is announced via the shared announce() function.
+  - Charts and graphs render an accessible text equivalent inside a
+    <details> element immediately adjacent. The text equivalent is
+    generated from the same data the chart uses — single source of
+    truth. Visual users never see the <details>; screen-reader users
+    always do.
+
+THE PROJECT-PANEL INTEGRATION
+-----------------------------
+Modify each of the three project panels on the landing accordion:
+
+  src/components/shell/panels/PanelHivemind.tsx
+  src/components/shell/panels/PanelPurposelessEfficiency.tsx
+  src/components/shell/panels/PanelTheseus.tsx
+
+Each of these panel components was, after Prompts 07–09, a short
+wrapper that renders a dossier layout in collapsed mode and the full
+/<slug> page in expanded mode. Refactor:
+
+  - Collapsed state: unchanged. The spine shows the project title
+    (vertical, monospace, no three-letter code).
+
+  - Expanded state: render <ExperienceHost> with the appropriate
+    experience component and a one-line synopsis passed as prop. The
+    dossier chrome (metadata pane, artifacts block, synopsis
+    paragraphs) that Prompts 07–09 produced is NOT discarded — it
+    becomes the content of a secondary "DOSSIER" tab within the
+    experience's scaffold, selectable through a two-state toggle at
+    the top right of the scaffold: "EXPERIENCE | DOSSIER". Default
+    selection: EXPERIENCE.
+
+  - Route state (/hivemind etc.): the page component imports the same
+    ExperienceHost, passes mode="route", and renders full-bleed. The
+    dossier/experience toggle remains.
+
+The EXPERIENCE/DOSSIER toggle is the one concession to visitors who
+just want the facts. Everyone else gets dropped straight into the
+interactive view.
+
+THE DOSSIER BEHIND THE EXPERIENCE
+---------------------------------
+The DOSSIER view of each panel is the page authored in Prompts 07–09.
+Wire the existing components (ThesisBlock, CapabilityGrid, NoosphereConsole,
+Pillars, etc.) into a second render path inside the scaffold body slot.
+Toggle switches the body; the scaffold's top meta-strip remains.
+
+This means no existing work from Prompts 07–09 is discarded. The
+dossier is preserved and still reachable from a single click.
+
+THE DEV-TIME AUTHORING TOOL
+---------------------------
+The fixture-driven nature of these experiences means Michael will iterate
+heavily on their DATA (pitches, excerpts, principles) rather than their
+structure. Ship a tiny authoring affordance:
+
+  - A keyboard shortcut (Shift+Cmd+E or Shift+Ctrl+E) toggles a
+    "fixture picker" overlay on top of any experience. The picker
+    lists every available fixture in the experience's fixture module,
+    lets Michael jump to a specific index, and exposes a "dump
+    current state as JSON" button for reproduction.
+
+  - The picker is gated behind process.env.NODE_ENV === "development".
+    It does not ship to production.
+
+FILES TO PRODUCE
+----------------
+  src/components/panels/ExperienceHost.tsx
+  src/components/panels/ExperienceScaffold.tsx
+  src/components/panels/ExperienceDossierToggle.tsx
+  src/components/panels/FixturePicker.tsx            (dev-only)
+  src/lib/experience-config.ts                        (thresholds, IDs)
+  src/styles/experience.css                           (scaffold rules,
+                                                      live-region
+                                                      visually-hidden
+                                                      class, focus
+                                                      ring tokens)
+
+  Modified:
+  src/components/shell/panels/PanelHivemind.tsx
+  src/components/shell/panels/PanelPurposelessEfficiency.tsx
+  src/components/shell/panels/PanelTheseus.tsx
+  src/app/hivemind/page.tsx
+  src/app/purposeless-efficiency/page.tsx
+  src/app/theseus/page.tsx
+
+ACCEPTANCE CRITERIA
+-------------------
+  - Expanding a project panel on "/" mounts the ExperienceHost inside
+    the panel body and passes mode="panel" with a measured width.
+  - Navigating to /<slug> mounts the same host with mode="route".
+  - The EXPERIENCE ⇄ DOSSIER toggle works on both surfaces, preserves
+    selection per session (sessionStorage), and defaults to EXPERIENCE.
+  - The experience bundle does NOT load for panels that have never
+    been expanded. Verify in the Network tab on a cold landing.
+  - A test that measures the mount-to-interactive time of an expanded
+    panel on a mid-range laptop shows ≤ 250ms median (cold bundle)
+    and ≤ 30ms (warm).
+  - The shared live region is a single visually-hidden <div
+    role="status" aria-live="polite"> at the scaffold root and is the
+    only live region inside any experience.
+  - The fixture picker is bound to Shift+Cmd+E in dev, invisible in
+    production.
+  - prefers-reduced-motion disables the scaffold's entry fade and all
+    intra-experience transitions; the experience still works.
+
+DO NOT
+------
+  - Do not add route transitions between "/" and "/<slug>" that
+    animate the experience itself. The experience is identical on
+    both surfaces; crossfading it would imply they are different.
+    Change only the surrounding chrome.
+  - Do not add a "fullscreen" button inside the scaffold. If a visitor
+    wants full-bleed, they can navigate to /<slug> or use the palette.
+    Fullscreen toggling is an antipattern here because it creates two
+    layouts that must be maintained and tested.
+  - Do not tie the experience's fixtures to routing state (query
+    params, hash). Fixtures are chosen by in-experience controls.
+  - Do not persist experience state to localStorage. Each visit is a
+    fresh instrument. If a visitor wants to share a specific state,
+    the experience can expose a "copy permalink" affordance that
+    encodes state into the URL — but that is the experience's
+    business, not the host's.
+
+STRETCH
+-------
+  - A small "inspect" badge in the scaffold's top-right, visible only
+    in development, that opens a side drawer with: the current
+    fixture ID, the current hostWidthPx, the current mode, a button
+    to force reducedMotion on/off, and a counter of announce() calls
+    this session. This is a power-user aid for Michael only.
+
+  - A shared "experience footer" line, rendered by the scaffold
+    immediately above the post-roll, of the form:
+
+        experience :: <name> · surface :: <mode> · viewport :: <thr>
+
+    Monospace, --fg-mute, --t-xxs. A readable signature of the current
+    render, which is useful in screenshots and during iteration.
+
+================================================================================

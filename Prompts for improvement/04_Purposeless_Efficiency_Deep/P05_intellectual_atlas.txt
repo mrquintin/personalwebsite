@@ -1,0 +1,446 @@
+P05 — INTELLECTUAL ATLAS (MODE 5 of 5)
+=======================================
+
+Prerequisites: P01 (chassis + Ontology), P02, P03, P04.
+
+GOAL OF THIS MODE
+
+The book is written into and against a large body of Western
+thought. A reader who encounters the book without knowing which
+thinkers it endorses, productively engages, rebukes, or
+defends will read many individual arguments as floating. The
+Guide's intellectual-context chapter gives the shape; this mode
+makes it navigable.
+
+The atlas is not a bibliography, not a syllabus, and not a
+"recommended reading" list. It is a map of which thinkers the
+book takes a stance on AND WHY. Each thinker card must answer
+three questions in one place: (1) which specific claim(s) of
+theirs the book engages; (2) what stance the book takes
+(endorsed / productively engaged / rebuked / defended); (3)
+which of the book's own claims rests on or responds to the
+thinker's claim.
+
+A secondary function of this mode: the glossary. The book has
+~40 technical terms whose definitions are load-bearing (the
+Guide appends a full index). A user who reads about, say,
+"severance of dialogue" in a ClaimCard or a reveal text, needs
+a one-click definition. The glossary strip in this mode is that
+reference, shared across all modes via portal.
+
+
+----------------------------------------------------------------------
+PART A — THE FOUR STANCES
+----------------------------------------------------------------------
+
+Every thinker in the atlas is tagged with exactly one stance:
+
+    ENDORSED
+        The book agrees with the thinker on a load-bearing
+        claim and builds on it. Examples from the Guide: Hayek,
+        Rand, Adam Smith, Burke, Strauss, Hoppe, Thiel.
+
+    ENGAGED (or "productively engaged")
+        The book takes the thinker's claim seriously, often
+        accepting a diagnosis while rejecting a prescription.
+        Example from the Guide: Marx (silent compulsion
+        accepted as diagnostic; prescription rejected),
+        Durkheim (anomie accepted; remedy rejected), Rousseau,
+        Hegel, Keynes.
+
+    REBUKED
+        The book argues specifically against the thinker's
+        position. Example from the Guide: Fukuyama (end of
+        history).
+
+    DEFENDED
+        The book defends the thinker against misreadings.
+        Example from the Guide: Nietzsche (read as post-
+        foundational rather than nihilistic).
+
+There is no "neutral" category. A thinker who does not take one
+of these four stances is not in the atlas. This is not an
+encyclopedia; it is a stance map.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER DOES
+----------------------------------------------------------------------
+
+B1. Entry.
+
+Mode opens on the AtlasOrbit: a radial layout with the book's
+title at the center and four concentric arcs, one per stance.
+Each arc holds thinker chips, arranged by rough alphabetical or
+authored order. Arc colors reuse existing tokens:
+
+    ENDORSED    outer arc       --ok tint
+    ENGAGED     upper-right arc --warn tint
+    REBUKED     lower-left arc  --err tint
+    DEFENDED    inner arc       --accent tint
+
+The orbit is NOT force-directed. Positions are authored
+coordinates in thinkers.ts. This is the same pattern as the
+ontology graph and for the same reason: a readable diagram
+beats a procedurally generated one.
+
+NARROW layout degrades the orbit to a list grouped by stance,
+not a smaller orbit. A tiny orbit is illegible.
+
+Header microcopy:
+
+    "Thinkers the book takes a stance on. Click any name."
+
+B2. The thinker drawer.
+
+Clicking a thinker opens ThinkerDrawer. Contents (in strict
+order):
+
+    Header:
+        Thinker name (serif, display).
+        Stance badge (ENDORSED / ENGAGED / REBUKED / DEFENDED).
+        Dates and one-line positioning ("Scottish moral
+        philosopher, political economist, 1723-1790").
+
+    Body:
+        THE BOOK ENGAGES
+            A 2-4 sentence authored statement of exactly which
+            claim(s) of the thinker's the book engages.
+            Specific. No "his philosophy generally".
+
+        THE BOOK'S STANCE
+            A 2-4 sentence authored statement of WHY the book
+            takes the stance it does. For ENDORSED and REBUKED,
+            this is the load-bearing disagreement or agreement.
+            For ENGAGED, this is the acceptance-with-revision
+            move. For DEFENDED, this is the misreading the book
+            rejects.
+
+        CONNECTED CLAIMS
+            A bullet list of IDs from P01 (e.g., "CRI",
+            "MCS") that cite this thinker, each a link that
+            opens the claim in Ontology.
+
+        COUNTER-RECOMMENDATION (OPTIONAL)
+            A sentence of the form "A reader who rejects the
+            book's stance here should look at [ALTERNATIVE
+            THINKER]'s [WORK], which [WHAT IT ARGUES]."
+            This is authored per thinker where it applies;
+            omitted where it does not.
+
+    Footer:
+        CLOSE button (ESC).
+        A small "WHERE ENCOUNTERED" strip showing all chapters
+        in which the thinker appears, per the Guide. Example
+        for Marx: "Ch.10, Ch.13, Ch.14.3".
+
+B3. The glossary strip.
+
+A persistent bottom strip, collapsed to 28px height by default,
+showing a single line:
+
+    "GLOSSARY | anomie | argumentative combat | base-horizon
+     | coherence-reality isomorphism | ... (+36)"
+
+Each term is a clickable chip. Clicking opens a small definition
+popover anchored to the chip: name, 1-2 sentence authored
+definition, optional claim refs into Ontology.
+
+The strip's "+36" affordance opens the full glossary view (a
+two-column list on STANDARD/WIDE, single column on NARROW) with
+a search-within-glossary input.
+
+This glossary strip is AVAILABLE IN ALL MODES, not only the
+Atlas. It is instantiated once in the PrpExperience chassis
+(P01) and rendered by portal across modes. It is documented
+here because the Atlas mode is where its primary curation lives
+and where the design review should verify it.
+
+
+----------------------------------------------------------------------
+PART C — FILES, COMPONENT CONTRACTS, DATA
+----------------------------------------------------------------------
+
+C1. src/components/projects/purposeless-efficiency/Experience/
+    IntellectualAtlas/
+
+    AtlasOrbit.tsx
+        Props:
+            thinkers: Thinker[];
+            onOpen(id): void;
+            focusId: string | null;
+            hostWidthPx: number;
+            reducedMotion: boolean;
+
+    ThinkerDrawer.tsx
+        Props:
+            thinker: Thinker;
+            openInOntology(claimId): void;
+            onClose(): void;
+
+    GlossaryStrip.tsx
+        Props:
+            terms: GlossaryTerm[];
+            onOpenFull(): void;
+            openInOntology(claimId): void;
+        Rendered in the PrpExperience root via React.Portal so
+        that the SAME instance persists across mode switches.
+
+    GlossaryFullView.tsx
+        Props:
+            terms: GlossaryTerm[];
+            initialSearch?: string;
+            onClose(): void;
+        Two-column list with search. ESC closes.
+
+C2. src/lib/prp/thinkers.ts
+
+    export type Stance = "ENDORSED" | "ENGAGED" | "REBUKED" | "DEFENDED";
+
+    export interface Thinker {
+      id: string;                              // "hayek", "marx"
+      name: string;
+      lifespan: string;                        // "1899-1992" or "b. 1947"
+      positioning: string;                     // one-line domain/country
+      stance: Stance;
+      engagement: string;                      // "THE BOOK ENGAGES" text
+      stanceText: string;                      // "THE BOOK'S STANCE" text
+      connectedClaimIds: string[];
+      counterRecommendation?: string;
+      whereEncountered: string[];              // ["Ch.10", "Ch.13"]
+      orbitCoords: { x: number; y: number };
+      narrowIndex: number;                     // for NARROW list order
+      authorApproved: boolean;
+    }
+
+    export const THINKERS: Thinker[];
+
+C3. src/lib/prp/glossary.ts
+
+    export interface GlossaryTerm {
+      term: string;                            // "anomie"
+      definition: string;                      // 1-2 sentence authored
+      connectedClaimIds: string[];
+      sourcedFromGuideIndex: boolean;
+    }
+
+    export const GLOSSARY: GlossaryTerm[];
+
+    // v1 ships with at least 30 terms; target 40 to mirror Guide.
+
+C4. v1 thinker list (minimum).
+
+    ENDORSED:
+        Hayek      — spontaneous order; knowledge problem;
+                     signal-detection function of prices.
+        Rand       — moral defense of the entrepreneur; the
+                     creative-act reading of production.
+        Adam Smith — division of labor; the market as
+                     coordinator; the moral-sentiments reading
+                     alongside Wealth of Nations.
+        Burke      — the wisdom in inherited institutions; the
+                     conservative caution against rationalist
+                     reconstruction WITHOUT coherence.
+        Strauss    — esoteric/exoteric distinction;
+                     Straussian moment; the dangers of the
+                     purely exoteric reading.
+        Hoppe      — argumentation ethics; anarcho-capitalism
+                     as the logical extension of argument-is-
+                     the-only-legitimate-conflict.
+        Thiel      — the entrepreneurial monopolist as
+                     coherence-discoverer; the "secret" as
+                     a pre-coherence insight.
+
+    ENGAGED:
+        Marx       — silent compulsion as diagnostic; means of
+                     production as a discoverable constraint;
+                     prescriptions rejected on MCS grounds.
+        Durkheim   — anomie as a real phenomenon; collective
+                     consciousness as a mislabeling of
+                     something the book relabels.
+        Rousseau   — general will critique; the book accepts
+                     the problem and rejects the solution.
+        Hegel      — dialectic as a formal pattern; the book
+                     appropriates the pattern without the
+                     historicist metaphysics.
+        Keynes     — aggregate demand as a real short-run
+                     phenomenon; the book engages without
+                     endorsing the policy conclusions.
+
+    REBUKED:
+        Fukuyama   — end-of-history thesis rebuked on grounds
+                     that coherence-testing has no termination
+                     condition; civilization's argument is
+                     not settled.
+
+    DEFENDED:
+        Nietzsche  — defended against the nihilist reading; the
+                     book reads him as post-foundational, a
+                     recognizer of the base, and a proponent of
+                     faith-in-reason despite it.
+
+All 14 thinkers above must ship with authorApproved=true in v1.
+Additional thinkers (e.g., Mill, Ortega, Menger, Mises, Bastiat,
+Rothbard, Hazlitt, Popper, Oakeshott, Gramsci, Habermas, Sorel)
+may be added over time; the orbit must scale to ~30 without
+becoming illegible at hostWidthPx >= 960.
+
+C5. v1 glossary (minimum ~30; must include, with authored
+definitions):
+
+    anomie, argumentative combat, base-horizon effect,
+    coherence-reality isomorphism, coherence superiority,
+    Diamond Method, dual-use principle, esoteric/exoteric gap,
+    faith-in-reason paradox, fragmentation, gamification,
+    golden chain, incremental entrepreneurship, inverse bubble,
+    invention vs. innovation, mimicry, one-person firm,
+    paradox vs. contradiction, profit-coherence thesis,
+    Purpose-Efficiency Framework, purposeless efficiency,
+    ratcheting standard, rational irrationality, Reputocracy,
+    selfish altruism, severance of dialogue, silent
+    compulsion, speed-of-contradiction heuristic, Straussian
+    moment, syntax-is-semantics, third things, value as
+    persuasion.
+
+Definitions come from the Guide's index/glossary in Part IV;
+they may be edited by Michael and must be marked authorApproved.
+
+
+----------------------------------------------------------------------
+PART D — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+D1. Stance badges (verbatim, uppercase mono).
+
+    ENDORSED
+    PRODUCTIVELY ENGAGED
+    REBUKED
+    DEFENDED
+
+Rendered with existing color tokens. The full phrase
+"PRODUCTIVELY ENGAGED" (not "ENGAGED" alone) is used in the
+drawer header to avoid ambiguity; the chip label in the orbit
+uses "ENGAGED" for brevity. This is a deliberate inconsistency;
+keep it.
+
+D2. Body section headers (verbatim, small serif, uppercase):
+
+    THE BOOK ENGAGES
+    THE BOOK'S STANCE
+    CONNECTED CLAIMS
+    COUNTER-RECOMMENDATION       (only when populated)
+    WHERE ENCOUNTERED
+
+D3. What the mode must not say.
+
+  - "Influences" (too vague; use "engages" or "endorses").
+  - "Critiques" (too polite for the rebukes; use "rebukes").
+  - "Misunderstood" by itself (the book says the thinker is
+    MISREAD BY OTHERS, not that the thinker is inherently
+    hard to understand).
+  - "[Thinker] said that..." (use "[Thinker] argues/argued/
+    claims/claimed" — precision about verbal status matters
+    here).
+  - Any ranking language ("the greatest", "the most important").
+
+D4. Proper nouns and naming.
+
+Use the thinker's commonly cited surname for orbit chips (HAYEK,
+RAND, SMITH). Full name in drawer header. For Nietzsche, use
+"Nietzsche" (not "F. Nietzsche"). For Adam Smith specifically,
+use "ADAM SMITH" on the chip (not "SMITH") to avoid confusion.
+
+
+----------------------------------------------------------------------
+PART E — STATE STORE ADDITIONS
+----------------------------------------------------------------------
+
+    interface PrpExperienceState {
+      // ...
+      atlas: {
+        focusThinkerId: string | null;
+        glossaryOpen: boolean;                // bottom strip state
+        glossaryFullOpen: boolean;            // overlay state
+        glossarySearch: string;
+      };
+      openThinker(id: string): void;
+      closeThinker(): void;
+      toggleGlossary(): void;
+      openFullGlossary(search?: string): void;
+      closeFullGlossary(): void;
+    }
+
+
+----------------------------------------------------------------------
+PART F — ACCEPTANCE FOR P05
+----------------------------------------------------------------------
+
+  [ ] Orbit renders all v1 thinkers in the correct stance arc,
+      at authored coordinates, at STANDARD/WIDE widths.
+  [ ] NARROW degrades to a list grouped by stance with
+      authored order.
+  [ ] Thinker drawer opens with all sections populated from
+      thinkers.ts (no hard-coded prose in the component).
+  [ ] Stance badge colors match the palette; ENGAGED uses
+      "PRODUCTIVELY ENGAGED" in the drawer header.
+  [ ] CONNECTED CLAIMS links route to P01 Ontology with the
+      correct claim preselected.
+  [ ] COUNTER-RECOMMENDATION renders only when non-null.
+  [ ] WHERE ENCOUNTERED renders authored chapter refs.
+  [ ] Glossary strip is visible across all five modes (mounted
+      via portal at chassis level); clicking a term opens the
+      popover; opening the full glossary does not unmount the
+      mode being viewed.
+  [ ] Full glossary view supports search with substring match;
+      clearing search shows all terms.
+  [ ] aria-live announces thinker focus and glossary term
+      popovers.
+  [ ] NARROW: glossary strip may collapse further to a single
+      "GLOSSARY" chip that opens the full view directly.
+  [ ] reducedMotion: orbit chip hover/focus is opacity only; no
+      orbital motion.
+  [ ] No runtime network calls.
+  [ ] Bundle under 12KB gzip for AtlasOrbit +
+      ThinkerDrawer + GlossaryStrip + GlossaryFullView,
+      excluding thinkers.ts/glossary.ts data.
+
+
+----------------------------------------------------------------------
+PART G — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+G1. Do NOT animate the orbit. "Orbital motion" is a design
+    cliche that degrades readability, creates vestibular
+    accessibility problems, and suggests a scientific precision
+    the mode is not making. The orbit is a static diagram with
+    coordinates.
+
+G2. The orbit is visually rich; resist filling it with dozens
+    of thinkers. Under 20 in v1 is preferable to 30+; legibility
+    is the value.
+
+G3. The COUNTER-RECOMMENDATION field is important and easy to
+    skip. Its purpose is intellectual honesty: for every stance
+    the book takes, a critic's canonical alternative should be
+    named, if one exists. For the REBUKED of Fukuyama, for
+    instance: "A reader who rejects the book's rebuke of
+    Fukuyama should look at Fukuyama's own rejoinder essays,
+    which — " etc. Author this per thinker; not all fourteen
+    require it, but at least five should.
+
+G4. The glossary and the ontology are different objects.
+    Glossary terms define vocabulary; ontology claims are
+    propositions. Do not merge them. A reader who wants the
+    definition of "anomie" is not asking for a claim; a reader
+    who wants "the book's view on anomie" needs the
+    ontology path from the glossary via claim ref.
+
+G5. If a thinker is tagged with more than one stance in draft
+    (e.g., Marx is arguably REBUKED on prescription and
+    ENGAGED on diagnosis), force a choice. Single-stance is
+    the rule; the drawer body makes the nuance visible without
+    multi-tagging. This is not oversimplification; it is the
+    mode's diagnostic discipline.
+
+
+End of P05.

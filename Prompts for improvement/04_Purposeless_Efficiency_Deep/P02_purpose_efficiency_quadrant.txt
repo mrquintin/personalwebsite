@@ -1,0 +1,495 @@
+P02 — PURPOSE-EFFICIENCY QUADRANT DIAGNOSTIC (MODE 2 of 5)
+===========================================================
+
+Prerequisites: P01 (chassis + Ontology Explorer delivered).
+
+GOAL OF THIS MODE
+
+Teach the user the book's diagnostic lens — the Purpose-Efficiency
+Framework — by having them use it on institutions they already
+have intuitions about, then showing where the book places those
+institutions and why. The Framework is not a mood board of
+quadrant names; it is an analytical procedure with specific
+questions, specific evidence classes, and specific failure modes.
+This mode makes the procedure legible by letting the user walk it.
+
+
+----------------------------------------------------------------------
+PART A — WHAT THE FRAMEWORK IS, FOR THE IMPLEMENTER
+----------------------------------------------------------------------
+
+The Purpose-Efficiency Framework (PEF) is a 2x2 matrix with:
+
+    X-axis  EFFICIENCY       LOW  <-----------------> HIGH
+                             (form, speed, polish of execution)
+
+    Y-axis  PURPOSE           LOW  <-----------------> HIGH
+                             (coherence of the justifying argument
+                              for the institution's existence)
+
+Four quadrants:
+
+    Q1  LOW purpose, LOW  efficiency     STRUGGLING / NASCENT
+        Honest failure. The institution neither executes well nor
+        has a clear reason to exist, but it is not dangerous — its
+        weakness is visible.
+
+    Q2  HIGH purpose, LOW  efficiency    DOGGEDLY SOUND
+        A coherent purpose poorly executed. The book's verdict: the
+        institution is salvageable and worth engaging with; if
+        executed, it will move toward Q4.
+
+    Q3  LOW purpose, HIGH efficiency     PURPOSELESS EFFICIENCY
+        The book's named diseased condition. High operational
+        sophistication in service of a purpose that has been
+        forgotten, drifted, or was never coherent. The book's
+        central diagnostic target.
+
+    Q4  HIGH purpose, HIGH efficiency    COHERENT OPERATION
+        The aim of the constructive project — including the book's
+        reading of certain high-functioning firms as operating near
+        this corner.
+
+The book's political claim sits on top of this: state-sheltered
+institutions drift toward Q3 because they are not subject to the
+competitive test that corrects purpose-drift in voluntary markets.
+Private firms can also drift toward Q3 — this is the Sears case —
+when regulatory or reputational moats shield them from real
+competition.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER DOES
+----------------------------------------------------------------------
+
+B1. Entry.
+
+The mode opens on a QuadrantBoard with the four quadrants drawn,
+labeled, and tinted. No institutions are placed yet. A
+one-sentence explainer in the header reads:
+
+    "Drop an institution into the Purpose-Efficiency Framework.
+     You decide first; the book replies."
+
+Below the board, a row of chips labeled with institutions the book
+discusses (see PART D for the authored list). The user drags a
+chip onto the board (or, on touch/NARROW, taps a chip and then
+taps a quadrant; or, via keyboard, Tab to the chip, Enter to pick
+it up, Arrow keys to move the highlight across quadrants, Enter to
+drop).
+
+Before the user drops, they are offered an OPTIONAL
+DiagnosticInterview — a three-question short quiz tailored to the
+chip they picked up — that helps them decide where to place it.
+The interview is OFF by default to respect users who want to place
+from intuition; there is a toggle "interview mode: on/off" in the
+top-right of the board.
+
+B2. The interview, when on.
+
+For each institution chip, the fixture carries three questions,
+each with 3-4 multiple-choice answers. Each answer is tagged with
+a (purpose-delta, efficiency-delta) pair in {-2, -1, 0, +1, +2}.
+The user's answers sum into a pair of scores, which determines the
+QUADRANT SUGGESTED by the interview; the user may still place
+anywhere.
+
+Example (for: OpenAI-vs-Anthropic, an example the Guide explicitly
+discusses in Ch.7):
+
+    Q1. "What is OpenAI's stated reason for existing?"
+        a. To build AGI safely for the benefit of humanity.            (+0, +0)
+        b. To ship consumer AI products at scale.                      (-1, +0)
+        c. To maximize shareholder/capital return.                     (-1, +0)
+        d. The stated reason has shifted materially since founding.    (-2, +0)
+
+    Q2. "How well does its current operation track whatever
+         justifying argument a skeptical reader would accept?"
+        a. Tightly.                                                    (+1, +0)
+        b. Loosely; some activities are on-thesis, some aren't.        (+0, +0)
+        c. Poorly; large parts of the operation don't fit.             (-1, +0)
+
+    Q3. "How refined is the execution — shipping cadence,
+         product polish, organizational capacity?"
+        a. Cutting-edge.                                               (+0, +2)
+        b. Competitive but not leading.                                (+0, +1)
+        c. Mid-tier.                                                   (+0, +0)
+
+The interview is not a quiz with right answers. The fixture's own
+answer indicates the book's reading (see PART D), which is revealed
+after the user places. The interview is there to slow the user
+down and force specific observations rather than letting them drop
+from gut feel.
+
+B3. The reveal.
+
+After the user drops a chip onto a quadrant, a PlacementCompare
+panel opens with:
+
+    - A small quadrant thumbnail showing the user's placement
+      (outlined) alongside the book's placement (filled).
+    - Agreement indicator:
+          SAME QUADRANT     "You and the book agree."
+          ADJACENT          "You placed one quadrant over."
+          OPPOSITE          "Substantial disagreement. See below."
+    - The book's reasoning: 2-3 paragraphs (serif), authored,
+      drawn from fixtures. See PART D.
+    - Optional: a "trajectory" indicator. Some institutions are
+      discussed by the book as MOVING between quadrants over time
+      (Sears was Q4 in 1970 and Q3 by 2000; the iPhone was Q4 in
+      2008 and the book assesses Apple as drifting since).
+      Render this as an authored arrow on the thumbnail when
+      present in the fixture.
+    - "OPEN IN ONTOLOGY" button: if the book's reasoning cites
+      specific claims (e.g., FRAGMENTATION, SPEED-OF-CONTRADICTION),
+      a button per cited claim routes back to P01 Ontology with
+      that claim preselected.
+
+
+----------------------------------------------------------------------
+PART C — FILES AND COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+C1. src/components/projects/purposeless-efficiency/Experience/
+    QuadrantDiagnostic/
+
+    QuadrantBoard.tsx
+        Props:
+            cases:           QuadrantCase[];
+            placements:      Record<string, Placement>;
+            onPlace(id, q):  void;
+            bookView(id):    Placement | null;
+            revealed:        Set<string>;
+            hostWidthPx:     number;
+            reducedMotion:   boolean;
+        Behavior:
+            - Renders 2x2 grid with labeled axes.
+            - Draggable chips below the grid.
+            - Drop zones are each quadrant (and, optionally, four
+              edge-bands that let the user place "between" two
+              quadrants — record as fractional placement). Edge-band
+              placement is a NARROW-only affordance; at STANDARD/WIDE
+              the user places centrally in a quadrant.
+            - After reveal, placed chips are rendered at their
+              placed coordinates plus the book's placement as a
+              ghosted marker.
+
+    DiagnosticInterview.tsx
+        Props:
+            activeCase:   QuadrantCase;
+            onComplete(tally): void;
+            onCancel():   void;
+        Behavior:
+            - Modeless panel that slides in over the chips row when
+              the user picks up a chip with interview mode on.
+            - Three questions, one at a time. Back/Next controls.
+            - On complete, emits a { purpose: number, efficiency: number }
+              tally and closes.
+            - Tally is surfaced in the placement UI as a suggestion
+              ("Your answers point to Q3") but does NOT auto-place.
+
+    PlacementCompare.tsx
+        Props:
+            placedCase:   QuadrantCase;
+            userPlacement: Placement;
+            bookPlacement: Placement;
+            reasoning:    ReasoningParagraph[];
+            claimRefs:    string[];
+        Behavior:
+            - Modal drawer, anchored to the right on STANDARD/WIDE,
+              bottom sheet on NARROW.
+            - Closes on ESC or an explicit close button.
+            - "Open in Ontology" buttons per claim ref.
+
+C2. src/lib/prp/quadrantCases.ts
+
+Exports:
+
+    export type Quadrant = "Q1" | "Q2" | "Q3" | "Q4";
+    export interface Placement {
+      quadrant: Quadrant;
+      subPosition?: { x: -1 | 0 | 1; y: -1 | 0 | 1 }; // fine-grained
+      asOfYear?: number;                              // for trajectories
+    }
+    export interface ReasoningParagraph {
+      kind: "diagnosis" | "counter-objection" | "trajectory";
+      body: string;          // serif prose, author-approved
+    }
+    export interface InterviewQuestion {
+      prompt: string;
+      options: Array<{
+        label: string;
+        delta: { purpose: number; efficiency: number };
+      }>;
+    }
+    export interface QuadrantCase {
+      id: string;
+      label: string;          // display name on chip
+      kind: "firm" | "state-agency" | "category";
+      bookPlacement: Placement;
+      trajectory?: Placement[]; // ordered, each with asOfYear
+      reasoning: ReasoningParagraph[];
+      claimRefs: string[];
+      interview: InterviewQuestion[];
+      authorApproved: boolean;
+    }
+
+    export const QUADRANT_CASES: QuadrantCase[];
+
+
+----------------------------------------------------------------------
+PART D — THE AUTHORED CASE LIST (v1)
+----------------------------------------------------------------------
+
+Minimum authored content for shipping this mode:
+
+  1. SEARS
+     Placement (1970): Q4.
+     Placement (2000-present): Q3.
+     Trajectory rendered.
+     Kind: firm.
+     Claim refs: FRAGMENTATION, MIMICRY, SPEED-OF-CONTRADICTION.
+     Reasoning must address: the shift from coherent premise (a
+     general store scaled to a national network by catalog mail)
+     to purposeless efficiency once the logistical premise was
+     displaced by a more coherent one (mail-order collapsed into
+     e-commerce; Sears continued operating the form without the
+     premise).
+
+  2. APPLE / iPHONE
+     Placement at launch (2007-2012): Q4.
+     Placement current (asOfYear: current year): dim-drift toward
+     lower purpose score. Authored with care; avoid polemic. The
+     book's reading is DRIFT, not collapse.
+     Kind: firm.
+     Claim refs: INVENTION-VS-INNOVATION, FRAGMENTATION,
+     RATCHETING-STANDARD.
+
+  3. DE BEERS
+     Placement: Q3 on book's reading.
+     Kind: firm.
+     Claim refs: MIMICRY, PURPOSELESS-EFFICIENCY.
+     Reasoning: example of a firm whose ability to sustain price
+     is not traceable to coherence of the argument for diamonds-
+     as-value.
+
+  4. PALANTIR
+     Placement: book's reading is near Q4 but not fully authored.
+     Kind: firm.
+     Claim refs: COHERENCE-SUPERIORITY, ONE-PERSON-FIRM (loosely),
+     STATE-EPISTEMIC-INCOHERENCE (as the customer's incoherence,
+     which is a different issue).
+     Reasoning must be HEDGED: the book uses Palantir as an
+     illustration of high-coherence-for-high-incoherence-customer;
+     do not render as endorsement.
+
+  5. OPENAI (SEPARATE FROM Anthropic)
+     Placement: ambiguous, Q2/Q3 boundary.
+     Kind: firm.
+     Claim refs: SEVERANCE-OF-DIALOGUE,
+     INVENTION-VS-INNOVATION.
+     Reasoning: the stated purpose has visibly drifted; the
+     operation is highly efficient; this is diagnostic of
+     PURPOSELESS-EFFICIENCY in early form.
+
+  6. ANTHROPIC (SEPARATE FROM OpenAI)
+     Placement: Q2 leaning Q4.
+     Kind: firm.
+     Claim refs: COHERENCE-SUPERIORITY, FAITH-IN-REASON.
+     Reasoning: the stated purpose and the operation are more
+     coherent with each other than the OpenAI case; execution is
+     still maturing. This is the book's reading per Ch.9.
+     (NB: we are building this website on Anthropic-stack tooling;
+     author-reviewed phrasing must not read as flattery. The
+     reasoning paragraph should begin with a disclaimer: "Noting
+     that the author has commercial ties in AI tooling, the book's
+     reading here is still —" and then state the reading plainly.)
+
+  7. A GENERIC STATE AGENCY (labeled "a state-chartered monopoly,
+     e.g., a DMV or a national postal service")
+     Placement: Q3 on the book's reading, by construction.
+     Kind: state-agency.
+     Claim refs: STATE-EPISTEMIC-INCOHERENCE, MCS.
+     Reasoning must note the book's categorical commitment here:
+     the state agency is NOT in Q3 because its employees are lazy
+     or stupid; it is in Q3 because the coercive monopoly
+     structure disincentivizes the voluntary testing through
+     which purpose is maintained. This is the book's claim, and
+     the reasoning paragraph should be explicit that a reader
+     rejecting MCS will reject this placement.
+
+  8. A UNIVERSITY (labeled "a regulated, accredited university")
+     Placement: Q3 on the book's reading.
+     Kind: firm (but state-chartered; note the hybrid).
+     Claim refs: PURPOSELESS-EFFICIENCY, MIMICRY,
+     RATCHETING-STANDARD.
+
+  9. AN OUTCOME-BASED TRAINING INSTITUTION (labeled "an
+     unaccredited bootcamp whose graduates are hired based on
+     demonstrated skill")
+     Placement: Q2-to-Q4 depending on execution.
+     Kind: firm.
+     Claim refs: COHERENCE-SUPERIORITY,
+     VALUE-AS-PERSUASION.
+     Included for contrast with #8; the contrast is the
+     pedagogical point.
+
+Each of 1-9 must ship with authorApproved=true. Additional cases
+may be added over time (build essays 41-55 offer more material);
+the chip row should scroll horizontally if more than ~9 cases are
+added, but v1 must ship with exactly these nine to keep the
+comparison set tight.
+
+
+----------------------------------------------------------------------
+PART E — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+E1. Axis labels.
+
+The X-axis tick labels are "LOW" and "HIGH". The Y-axis tick
+labels are "LOW" and "HIGH". Axis names are "EFFICIENCY" and
+"PURPOSE" (serif, uppercase, 12px). Do not use "good" / "bad"
+labels; the book rejects the simplification (Q3 is a diseased
+condition, yes, but it is not morally the author's point to
+moralize institutions; the framework diagnoses).
+
+E2. Quadrant labels.
+
+    Q1: "STRUGGLING"
+    Q2: "DOGGEDLY SOUND"
+    Q3: "PURPOSELESS EFFICIENCY"  — rendered in --warn tint
+    Q4: "COHERENT OPERATION"
+
+E3. The reveal copy.
+
+When a user places a case and the book placement is revealed, the
+agreement indicator is exactly one of:
+
+    "You and the book agree."
+    "You placed one quadrant over."
+    "Substantial disagreement. See below."
+
+Nothing else. No "Great job!", no "Close!", no scores.
+
+E4. Trajectory.
+
+For cases with a trajectory, the reveal includes the sentence:
+
+    "The book reads this institution as moving between quadrants
+     over time. The arrow shows the book's account of its drift."
+
+This is verbatim. Replace nothing.
+
+E5. What the mode must not say.
+
+  - "Correct" / "incorrect" placement (no right answer).
+  - "Points" or any score.
+  - "Capitalism wins" or any equivalent. The framework is not a
+    vote on capitalism; see the book's own careful separation of
+    market constraint from state coercion.
+
+E6. Sensitive company names.
+
+For #5, #6 especially, the reasoning paragraph must cite specific
+observations rather than reading as corporate criticism.
+Well-formed sentence template:
+
+    "On the book's reading, [COMPANY] is placed at [Q]. The
+     reasoning turns on [SPECIFIC DIMENSION]: [ONE-SENTENCE
+     OBSERVATION]. This follows from [CLAIM REF], which is
+     discussed in [CHAPTER]."
+
+
+----------------------------------------------------------------------
+PART F — STATE STORE ADDITIONS
+----------------------------------------------------------------------
+
+Extend src/stores/prpExperience.ts (from P01):
+
+    interface PrpExperienceState {
+      // ... existing
+      quadrant: {
+        placements: Record<string, Placement>;      // user's drops
+        revealed: Set<string>;                       // ids with compare open
+        interviewMode: boolean;                      // UI preference
+        activeCaseId: string | null;                 // for interview
+      };
+      placeCase(id: string, p: Placement): void;
+      revealCase(id: string): void;
+      toggleInterview(): void;
+      startInterview(id: string): void;
+      cancelInterview(): void;
+      completeInterview(tally: { purpose: number; efficiency: number }): void;
+    }
+
+No persistence across sessions. Placements reset on mode exit; the
+state is ephemeral.
+
+
+----------------------------------------------------------------------
+PART G — ACCEPTANCE FOR P02
+----------------------------------------------------------------------
+
+  [ ] All nine v1 cases appear as chips and can be placed.
+  [ ] Drag-and-drop works via mouse and touch; keyboard
+      equivalent (pick up / arrow / drop) works and is announced
+      via the live region.
+  [ ] Interview mode toggles on/off; when on, picking up a chip
+      opens the interview; when off, no interview is shown.
+  [ ] Placement opens PlacementCompare with:
+        - user's placement shown
+        - book's placement shown
+        - agreement indicator correct
+        - reasoning paragraph(s) authored, not templated
+        - claim-ref buttons that return to P01 Ontology with the
+          correct claim preselected (cross-mode state works).
+  [ ] Trajectory rendering: Sears shows an arrow from Q4 (1970)
+      to Q3 (current). iPhone shows the drift arrow if its
+      trajectory is populated.
+  [ ] NARROW layout: the quadrant grid stacks as a 2x2 that
+      collapses to a 4-row list with thumb-reachable drop targets.
+      Chips scroll horizontally.
+  [ ] reducedMotion=true: chip drag still works; no slide-in on
+      PlacementCompare, fade instead.
+  [ ] aria-live announces: "Placed [case] in [quadrant]. The
+      book's placement is [quadrant]. [agreement]." This text is
+      the minimum; augment for screen-reader completeness.
+  [ ] Fixture validates: typeGuards.ts runs at module load and
+      throws if any case lacks authorApproved=true in v1 ship.
+  [ ] Prose lint per P06 passes on all reasoning paragraphs.
+  [ ] Total mode bundle under 12KB gzip (design for headroom:
+      ontology was 40KB, 80KB cap leaves 40KB for four more modes,
+      so each mode must fit under ~10-12KB gzip on average).
+
+
+----------------------------------------------------------------------
+PART H — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+H1. Do not use a drag library. react-dnd and dnd-kit both exceed
+    the budget (8-25KB gzip each). A hand-rolled pointer-event
+    handler is ~200 lines and is strictly adequate here; the
+    complexity is not in the drag mechanics but in the
+    interview/compare flow.
+
+H2. The interview is OPTIONAL. Resist the urge to make it mandatory
+    "for a better experience". The mode must support both use
+    patterns — gut drop and guided drop — without either being
+    privileged.
+
+H3. If a user places and then picks up the same chip again,
+    treat it as a REVISION: close any open PlacementCompare,
+    clear the revealed flag, and let them re-place. This is
+    faithful to the Guide's own recommendation that reading
+    should be iterative.
+
+H4. Do not gate modes 3-5 on prior placement here. P02 is
+    standalone-useful; P03/P04/P05 do not require any P02 state.
+
+H5. If the implementer is tempted to add a "share this
+    placement" affordance: no. This is an educational mode, not a
+    social one. The panel is not a product.
+
+
+End of P02.

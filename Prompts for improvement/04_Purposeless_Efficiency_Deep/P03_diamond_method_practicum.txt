@@ -1,0 +1,560 @@
+P03 — THE DIAMOND METHOD PRACTICUM (MODE 3 of 5)
+=================================================
+
+Prerequisites: P01 (chassis), P02 (optional, but state store must
+be in place).
+
+GOAL OF THIS MODE
+
+The Diamond Method is the book's constructive procedure for
+philosophical work. It is not a trick or a heuristic; it is a
+four-step discipline for turning an encountered paradox or
+contradiction into a reconstructed position whose consequences
+can be traced. The book is built using this method, and the
+Guide presents the method in Chapter 7. A reader who understands
+the method can see what the book is DOING, not only what it is
+CLAIMING.
+
+This mode teaches the method by walking the user through authored
+cases in which the method is applied. The cases are not toys;
+they are the cases the book itself treats — silent compulsion,
+insider trading, coherence-as-truth, et al. The user makes
+choices at each step, the book's treatment is revealed after the
+user commits, and the user can compare, dissent, or redo.
+
+
+----------------------------------------------------------------------
+PART A — THE METHOD, AS THE GUIDE STATES IT
+----------------------------------------------------------------------
+
+The Diamond Method has four steps. They must be rendered in this
+order, with these names:
+
+    STEP 1 — IDENTIFY THE CONTRADICTION
+        Locate, with specificity, an apparent contradiction: two
+        claims, both held by serious thinkers or implicit in the
+        structure of a position, that appear to negate each other.
+        The move is DIAGNOSTIC. Success at this step is naming the
+        contradiction precisely enough that it cannot be waved
+        away with adjectives.
+
+    STEP 2 — DISSOLVE OR DECLARE
+        Apply the paradox/contradiction distinction (see P01
+        claim PCD). Ask: is this a PARADOX (an apparent
+        contradiction that resolves under clarifying
+        distinctions), or is it a CONTRADICTION proper (a genuine
+        incoherence that must be acknowledged)? The step produces
+        one of two verdicts:
+            DISSOLVED — the apparent contradiction is an artifact
+                         of imprecise definitions. The step's
+                         deliverable is the sharpening definition.
+            DECLARED  — the contradiction is real. The step's
+                         deliverable is an explicit statement of
+                         which of the two positions must be
+                         revised and on what grounds.
+
+    STEP 3 — RECONSTRUCT
+        Build the position that results from Step 2. If
+        DISSOLVED, state the refined distinction as the new
+        position. If DECLARED, state the surviving position after
+        the revised side has been revised. Deliverable: a
+        one-sentence position that can be tested.
+
+    STEP 4 — TRACE CONSEQUENCES
+        Follow the reconstructed position through at least three
+        downstream claims. The point of the step is to distinguish
+        a reconstructed position that does real work from one that
+        survives only in the abstract. If the consequences are
+        trivial or absent, return to Step 1 (the identified
+        contradiction was not load-bearing).
+
+The Guide emphasizes that the method is iterative: a failure at
+Step 4 kicks the user back to Step 1 with what has been learned.
+This iterative property must be rendered in the mode.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER DOES
+----------------------------------------------------------------------
+
+B1. Entry.
+
+The mode opens with a CASE GRID: six case cards laid out in a 2x3
+(WIDE), 2x3 (STANDARD), or 1-column stack (NARROW). Each card
+shows:
+    - Case title (serif, display).
+    - The two claims in apparent tension (1 sentence each).
+    - A difficulty tag: BEGINNING / INTERMEDIATE / ADVANCED.
+    - A tag set showing which load-bearing claims this case
+      connects to (e.g., "CRI", "MCS").
+
+A header above the grid states:
+
+    "Six cases the book treats. Pick one and walk the method."
+
+No case is locked behind progression. The user may pick in any
+order. The six cases are specified in PART D.
+
+B2. The stepper.
+
+When a user picks a case, the CASE GRID animates out (or fades,
+on reducedMotion) and the DiamondStepper mounts. The stepper
+shows:
+
+    Top: a four-segment progress rail labeled 1 · 2 · 3 · 4.
+    Current step is highlighted; completed steps are filled;
+    upcoming steps are dim.
+
+    Middle: the step's content. For each step, two regions:
+        LEFT  — the case material at that step (e.g., Step 1
+                shows the two apparently contradictory claims;
+                Step 2 shows the user's PARADOX/CONTRADICTION
+                choice and asks for the justification).
+        RIGHT — the user input area. Inputs at each step:
+
+            STEP 1. Three-choice "what, precisely, is the
+                    contradiction?" The three options are
+                    authored; one is the book's framing, two are
+                    misstatements. The user picks; the choice is
+                    recorded but not yet right/wrong-judged.
+
+            STEP 2. Binary "DISSOLVE or DECLARE?" radio plus a
+                    short text input for the user's justification
+                    (recommended 1-3 sentences, enforced by soft
+                    cap at ~300 chars). The text input is
+                    recorded but never transmitted anywhere.
+
+            STEP 3. Single-sentence input for the user's
+                    reconstructed position (enforced soft cap
+                    200 chars). The user may choose from three
+                    authored templates OR type their own.
+
+            STEP 4. Three short slots for consequence claims
+                    (each soft-capped 200 chars). Each may be
+                    left blank; if all three are left blank the
+                    user cannot advance (the method's point
+                    requires at least one consequence).
+
+    Bottom: BACK / NEXT controls. BACK never loses prior input
+    (the user can iterate non-destructively).
+
+After Step 4 is submitted, the ReconstructionReveal panel opens
+and shows the book's treatment alongside the user's. See B3.
+
+B3. The reveal.
+
+ReconstructionReveal is laid out in two columns on STANDARD/WIDE,
+stacked on NARROW:
+
+    LEFT COLUMN — YOUR WALK
+        Step 1 choice, highlighted.
+        Step 2 choice + justification.
+        Step 3 reconstruction sentence.
+        Step 4 consequence bullets.
+
+    RIGHT COLUMN — THE BOOK'S WALK
+        The same four fields, authored from the Guide.
+
+Below the columns: a brief DIAGNOSTIC BLOCK:
+
+    - If the user's Step 1 matches the book's Step 1 framing:
+      "You named the contradiction the same way the book did."
+      else "The book framed the contradiction as: [phrase]. Your
+      framing: [phrase]. Differences of framing at this step
+      tend to propagate; consider walking again."
+
+    - If the user's Step 2 verdict is the same:
+      "You reached the same verdict (DISSOLVE / DECLARE)."
+      else "You chose [V]; the book chose [V']. This is the
+      step at which the book and you most visibly part
+      company."
+
+    - Step 3 and Step 4 are not adjudicated mechanically. The
+      reveal simply shows both.
+
+Below the diagnostic block:
+
+    ACCEPT  — user treats the book's walk as persuasive; case
+              is marked "accepted" in the store.
+    DISSENT — user marks the case as "dissented"; the store
+              records this. A dissent is not treated as
+              failure; it is a first-class outcome.
+    REDO    — user walks the case again; prior walk is
+              retained as a history entry viewable via a small
+              "previous walks" affordance.
+
+The store never reveals "correctness". The book has a view; the
+user has a view; both are shown.
+
+B4. Iteration.
+
+From ReconstructionReveal, the user may:
+    - RETURN to the case grid to pick another case.
+    - OPEN IN ONTOLOGY any cited claim ref.
+    - OPEN IN OBJECTIONS DOJO if the case is one the dojo also
+      treats (see P04).
+
+
+----------------------------------------------------------------------
+PART C — FILES AND COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+C1. src/components/projects/purposeless-efficiency/Experience/
+    DiamondPracticum/
+
+    CaseCard.tsx
+        Props:
+            case: DiamondCase;
+            onPick(id): void;
+            accepted: boolean;
+            dissented: boolean;
+            walkCount: number;        // history
+        Render:
+            Serif title; two mini claim statements; difficulty
+            tag; claim-ref chips; a subtle indicator in the
+            corner if the user has previously walked this case
+            (e.g., "walked 2x" in mono, --fg-dim).
+
+    DiamondStepper.tsx
+        Props:
+            case: DiamondCase;
+            walk: DiamondWalk;        // current walk state
+            onStep(step, input): void;
+            onSubmit(): void;
+            onBack(): void;
+            reducedMotion: boolean;
+        Behavior:
+            - Step 1 input: radio group with three authored
+              options, keyboard navigable.
+            - Step 2 input: radio pair + text area.
+            - Step 3 input: three authored template buttons plus
+              a textarea; picking a template prefills the textarea
+              (still editable).
+            - Step 4 input: three textareas stacked.
+            - Validation: cannot advance past Step 4 with all
+              three consequences blank.
+            - BACK: preserves current step's input in walk state;
+              moves to previous step; previous step's input is
+              still there.
+            - NEXT: advances; records input.
+
+    ReconstructionReveal.tsx
+        Props:
+            case: DiamondCase;
+            walk: DiamondWalk;
+            bookWalk: DiamondBookWalk;
+            onAccept(): void;
+            onDissent(): void;
+            onRedo(): void;
+            onOpenInMode(target: "ontology" | "objections", refId: string): void;
+
+C2. src/lib/prp/diamondCases.ts
+
+    export interface DiamondCase {
+      id: string;                              // e.g., "silent-compulsion"
+      title: string;
+      difficulty: "BEGINNING" | "INTERMEDIATE" | "ADVANCED";
+      tagClaimIds: string[];                   // cross-ref to P01
+      apparentClaimA: string;                  // 1 sentence
+      apparentClaimB: string;                  // 1 sentence
+      step1Options: Array<{ label: string; isBookFraming: boolean }>;
+      step3Templates: string[];                // 3 authored starters
+      objectionRef?: string;                   // e.g., "14.3"
+      bookWalk: {
+        step1: string;                          // authored framing
+        step2: { verdict: "DISSOLVE" | "DECLARE"; justification: string };
+        step3: string;                          // authored reconstruction
+        step4: string[];                        // 3-5 consequence sentences
+      };
+      authorApproved: boolean;
+    }
+
+    export const DIAMOND_CASES: DiamondCase[];
+
+
+----------------------------------------------------------------------
+PART D — THE SIX CASES (v1)
+----------------------------------------------------------------------
+
+All six must ship with authorApproved=true. All bookWalk fields
+must be authored by Michael; Guide paraphrase is acceptable as a
+draft but requires author review before shipping (see P06
+unpublished-work check).
+
+CASE 1 — SILENT COMPULSION vs. VOLUNTARY MARKET
+    Difficulty: INTERMEDIATE.
+    Tag claims: MCS, ACT.
+    Objection ref: 14.3.
+    Apparent tension:
+        A. Marx: market conditions compel the worker to sell
+           labor; this is coercion in substance.
+        B. The book: markets do not coerce; the state coerces.
+    Book walk (sketch; actual authoring by Michael):
+        Step 1: the contradiction is framed as "is market
+                pressure coercion?" specifically, with exit as
+                the hinge.
+        Step 2: DISSOLVE. The sharpening distinction is between
+                compulsion that permits exit (markets) and
+                compulsion that prohibits exit (state). The
+                distinction is categorical, not a matter of degree.
+        Step 3: market pressure is real; it is not coercion.
+        Step 4: consequences include (i) union activity is
+                legitimate but not a response to coercion; (ii)
+                state licensing regimes ARE coercive and should
+                be analyzed as such; (iii) the golden-chain
+                metaphor captures the phenomenology without
+                miscategorizing the structure.
+
+CASE 2 — INSIDER TRADING AS FRAUD OR AS PRICE-DISCOVERY
+    Difficulty: ADVANCED.
+    Tag claims: PCT, VALUE-AS-PERSUASION.
+    Objection ref: (none specific; Chapter 11 discussion).
+    Apparent tension:
+        A. Standard view: insider trading defrauds other
+           market participants by exploiting asymmetric
+           information.
+        B. The book: insider trading accelerates the
+           incorporation of private information into prices,
+           which is how the market performs its coherence-testing
+           function.
+    Book walk (sketch):
+        Step 1: the contradiction is about the function of price.
+                If price is a coherence detector, then privacy
+                of information impairs detection.
+        Step 2: DECLARE. Actual conflict with fairness intuitions;
+                the book sides with price-function over fairness
+                on epistemological grounds.
+        Step 3: insider trading is a speech-act that updates the
+                collective coherence assessment; it should not
+                be treated as categorical fraud.
+        Step 4: consequences including implications for regulation,
+                for market-microstructure design, and for the
+                treatment of whistleblowers.
+
+CASE 3 — FAITH IN REASON AT THE BASE
+    Difficulty: ADVANCED.
+    Tag claims: CRI, FAITH-IN-REASON, ACT.
+    Objection ref: 14.1.
+    Apparent tension:
+        A. The book's anthropology: humans are animalistic,
+           irrational, violence-prone.
+        B. The book's epistemology: faith in reason is the only
+           posture from which engagement with reality is
+           possible.
+    Book walk (sketch; DISSOLVE — this is the faith-in-reason
+    paradox and the Guide names it a paradox deliberately):
+        Step 1: not a contradiction at the level of fact; a
+                paradox at the level of stance.
+        Step 2: DISSOLVE. Distinction: anthropology describes;
+                epistemology prescribes. The Straussian moment
+                reveals the base; faith-in-reason is the
+                recommended posture despite it.
+        Step 3: reasoned engagement is recommended AS A POSTURE,
+                not as a description of human nature.
+        Step 4: consequences about institutional design,
+                argumentative combat, the limits of
+                persuasion.
+
+CASE 4 — COHERENCE AS TRUTH vs. EMPIRICAL SCIENCE
+    Difficulty: ADVANCED.
+    Tag claims: CRI, PCT.
+    Objection ref: 14.1, 14.4.
+    Apparent tension:
+        A. Scientific practice: truth is tested empirically.
+        B. The book: truth is coherence at the limit of inquiry.
+    Book walk (DECLARE; the book sides with coherence-at-limit
+    and re-inscribes empirical practice as a method for
+    detecting coherence, not as a foundation).
+        Author-reviewed walk required.
+
+CASE 5 — ANARCHY WITHOUT BENEVOLENCE
+    Difficulty: INTERMEDIATE.
+    Tag claims: MCS, ACT.
+    Objection ref: 14.2.
+    Apparent tension:
+        A. The argument for state abolition seems to require
+           that freed people behave decently.
+        B. The book elsewhere denies that people behave
+           decently.
+    Book walk: DISSOLVE. The state-abolition argument is
+    STRUCTURAL (institutions of voluntary coordination are more
+    coherent than coerced ones), not PSYCHOLOGICAL (people are
+    good).
+
+CASE 6 — INVENTION vs. INNOVATION IN A STAGNANT MARKET
+    Difficulty: BEGINNING.
+    Tag claims: PCT, PEF, INVENTION-VS-INNOVATION.
+    Apparent tension:
+        A. Inventions appear to be discontinuous, lightning-
+           strike events.
+        B. Innovation is incremental, driven by identifying
+           contradictions in current premises.
+    Book walk: DISSOLVE. The distinction is definitional;
+    inventions are rarer and of a different kind from
+    innovations; the book's entrepreneur is the INCREMENTAL
+    INNOVATOR. Deliverable: clean definitional sharpening;
+    consequences for how entrepreneurship is taught and
+    rewarded.
+
+Author is free to substitute or rename cases; the TYPES of cases
+matter more than the exact labels. What must not change:
+    - At least one DISSOLVE case and at least one DECLARE case.
+    - At least one case from each difficulty tier.
+    - At least three cases with objection refs into P04.
+    - At least two cases tied to MCS or ACT (so the political
+      argument is walked, not just the epistemological one).
+
+
+----------------------------------------------------------------------
+PART E — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+E1. Step names.
+
+Verbatim, uppercase serif, 14px:
+
+    STEP 1. IDENTIFY THE CONTRADICTION
+    STEP 2. DISSOLVE OR DECLARE
+    STEP 3. RECONSTRUCT
+    STEP 4. TRACE CONSEQUENCES
+
+E2. Verdict labels.
+
+    DISSOLVE — apparent contradiction dissolves under a
+               sharpening distinction.
+    DECLARE  — the contradiction is real; the book revises one
+               of the two positions.
+
+Tooltip text on the labels MUST be present for new users; the
+tooltip is exactly:
+
+    DISSOLVE: "An apparent contradiction that resolves when a
+               definition is sharpened. No position is abandoned;
+               a distinction is added."
+    DECLARE:  "A genuine contradiction that forces revision. One
+               of the two positions must be rejected, on stated
+               grounds."
+
+E3. Reveal copy.
+
+Verbatim:
+
+    "Your walk and the book's walk, side by side. The book's view
+     is one view."
+
+Below the columns, the diagnostic block templates (fill-ins in
+brackets):
+
+    "Step 1: [matches | differs]."
+    "Step 2 verdict: [same | different (you: V, book: V')]."
+    "Steps 3 and 4 are not adjudicated here."
+
+E4. What the mode must not say.
+
+  - "Correct" or "incorrect" at any step.
+  - "You got it right."
+  - "The book teaches us that..." (the book CLAIMS; it does not
+    teach).
+  - "Score" or any numerical competence rating.
+  - "Try again" (use "walk again" or "redo").
+
+
+----------------------------------------------------------------------
+PART F — STATE STORE ADDITIONS
+----------------------------------------------------------------------
+
+Extend prpExperience.ts:
+
+    interface DiamondWalk {
+      caseId: string;
+      step1Choice: number | null;           // index into options
+      step2Verdict: "DISSOLVE" | "DECLARE" | null;
+      step2Justification: string;
+      step3Reconstruction: string;
+      step4Consequences: [string, string, string];
+      accepted: boolean;
+      dissented: boolean;
+      completedAt: number | null;           // Date.now on submit
+    }
+
+    interface PrpExperienceState {
+      // ...
+      diamond: {
+        activeCaseId: string | null;
+        activeStep: 0 | 1 | 2 | 3 | 4;
+        currentWalk: DiamondWalk | null;
+        history: Record<string, DiamondWalk[]>;   // per case
+      };
+      pickCase(id: string): void;
+      setStepInput(step, input): void;
+      stepBack(): void;
+      stepNext(): void;
+      submitWalk(): void;
+      acceptWalk(): void;
+      dissentWalk(): void;
+      redoWalk(): void;
+    }
+
+History is retained for the session (in-memory), not persisted.
+If a user returns to a previously walked case, the case card shows
+"walked Nx" and the stepper offers "resume last walk" vs.
+"new walk".
+
+
+----------------------------------------------------------------------
+PART G — ACCEPTANCE FOR P03
+----------------------------------------------------------------------
+
+  [ ] Case grid renders all six v1 cases with correct
+      title/claims/difficulty/tags.
+  [ ] Picking a case mounts the stepper.
+  [ ] All four steps render and accept input.
+  [ ] BACK preserves input; NEXT advances.
+  [ ] Cannot submit with all three Step 4 consequences blank.
+  [ ] Submit mounts ReconstructionReveal with correct mapping of
+      user walk and book walk.
+  [ ] Diagnostic block correctly labels Step 1 match/differ and
+      Step 2 verdict match/differ based on data.
+  [ ] ACCEPT / DISSENT / REDO all work and update state.
+  [ ] Cross-mode buttons (open in ontology, open in objections)
+      correctly route and preselect.
+  [ ] Keyboard: stepper is fully navigable; step progression can
+      be completed without mouse.
+  [ ] NARROW: stepper regions stack; reveal columns stack.
+  [ ] reducedMotion: step transitions are opacity only.
+  [ ] aria-live announces step changes and reveal open.
+  [ ] No runtime network calls.
+  [ ] Bundle under 12KB gzip excluding shared claims.ts.
+
+
+----------------------------------------------------------------------
+PART H — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+H1. The stepper is NOT a form. Do not use a form library.
+    The validation rules are trivial and a small useReducer or
+    zustand slice is adequate.
+
+H2. Resist the urge to "grade" the walk. The book's posture is
+    that the reader's walk and the book's walk are both views;
+    the reader is equipped, by walking, to locate disagreement
+    precisely. Grading destroys this.
+
+H3. Do not render Step 1 options in a way that telegraphs which
+    is the book's framing. No check-marks, no green highlight
+    on the "right" answer. The user commits; the reveal shows.
+
+H4. If Case 2 (insider trading) proves controversial in user
+    testing, it may be optioned OUT of the v1 set and replaced
+    with a less flammable case; the book's commitment to that
+    reading is strong enough that dilution is preferable to
+    a dishonest softening of the book's actual claim. That
+    decision is Michael's.
+
+H5. History of walks exists in-session; a user exiting the
+    accordion and reopening in the same session should find
+    their history intact. ExperienceHost's unmount/remount must
+    not nuke the zustand store; see I01 for the mount contract.
+
+
+End of P03.

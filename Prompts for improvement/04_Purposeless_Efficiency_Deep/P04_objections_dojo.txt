@@ -1,0 +1,417 @@
+P04 — OBJECTIONS DOJO (MODE 4 of 5)
+====================================
+
+Prerequisites: P01, P02, P03.
+
+GOAL OF THIS MODE
+
+The Guide's Chapter 14 lists seven common objections to the book
+and states the book's response to each. This mode renders those
+objection/response pairs as a DIALECTIC — not a FAQ, not a quiz,
+not a defense monologue. The user selects an objection they find
+compelling; the book's response is presented; the user is asked
+what they would say in reply; and a final panel shows where the
+book's argument is willing to stop short of converting the reader.
+
+The central educational move is to demonstrate, in interaction,
+what a serious philosophical dialectic looks like: each side
+committed, each side responsive, neither side pretending to have
+dissolved the other's best objection through rhetoric. A user
+leaves the mode equipped with (a) a map of where the book is
+strong, (b) a map of where the book concedes it cannot persuade
+without a shared premise, and (c) a felt sense of the book's
+posture toward its critics.
+
+
+----------------------------------------------------------------------
+PART A — THE SEVEN CANONICAL OBJECTIONS
+----------------------------------------------------------------------
+
+From Guide Chapter 14, in canonical order:
+
+  14.1 "This Framework Has No Empirical Evidence."
+       Target: CRI, PCT. The objection: the book reasons
+       theoretically and does not submit its claims to empirical
+       test. Book's response (14.1): data stand inside arguments,
+       not outside them; empirical investigation is one method of
+       searching for coherence; a reader rejecting the
+       coherence-at-limit view will find the absence of citation
+       apparatus a feature, not a bug. The response REFRAMES; it
+       does not REFUTE.
+
+  14.2 "Your Argument for Anarchism Assumes Benevolent Human
+        Nature."
+       Target: MCS. The objection: state abolition seems to
+       require that freed people behave decently, while the book
+       elsewhere denies this. Book's response (14.2): the argument
+       is STRUCTURAL, not psychological. Voluntary coordination is
+       more coherent than coerced coordination; residual
+       irrationality persists and is better managed by market,
+       reputational, and argumentative mechanisms than by
+       coercion.
+
+  14.3 "Marx Was Right About Silent Compulsion, So Capitalism Is
+        Coercive."
+       Target: MCS. The objection: silent compulsion coerces in
+       substance even if not in form. Book's response (14.3):
+       accepts the first half; rejects the second. Silent
+       compulsion is real; it is categorically distinct from
+       state coercion because it does not prohibit exit. The
+       golden-chain / iron-chain distinction.
+
+  14.4 "Your Profit-Coherence Thesis Is Unfalsifiable."
+       Target: PCT. The objection: when a firm is profitable, the
+       book calls its premises coherent; when unprofitable,
+       incoherent; the thesis does no work. Book's response
+       (14.4): the thesis is falsifiable in principle by
+       demonstration of internal contradiction OR by an empirical
+       case where coherence-superior premises co-occur with less
+       profit (time lag and distortion aside). Acknowledges
+       absence of a coherence meter as an open problem, compares
+       to pre-metric Newtonian mass.
+
+  14.5 "This Framework Lets You Rationalize Anything."
+       Target: DIAM. The objection: the framework can generate
+       coherent-sounding accounts of any preferred conclusion.
+       Book's response (14.5): the risk is real and applies to
+       every philosophical system. Discipline — the Diamond
+       Method's iterative self-correction — is the mitigation.
+       Offers the book's own surprising conclusions (insider
+       trading reading, Marx-as-diagnostician, state abolition)
+       as evidence that the framework can be disciplined.
+
+  14.6 "Your Case Studies Are Cherry-Picked."
+       Target: PCT, PEF. The objection: the book's specific
+       examples (iPhone, OpenAI vs. Anthropic, Palantir, Sears,
+       De Beers) fit the thesis too well. Book's response (14.6):
+       examples are illustrations, never proofs. A critic must
+       refute the theoretical argument; producing
+       counter-examples is insufficient, because any counter-
+       example can be re-described and absorbed. Empirical readers
+       will find this unsatisfactory; the book is honest about
+       that.
+
+  14.7 "The Book Is Politically Extreme."
+       Target: the book as a whole. The objection: anarcho-
+       capitalism is a marginal position; the book advocates
+       extremism. Book's response (14.7): political marginality
+       is not an argument. If the arguments are unsound, locate
+       the unsoundness; if sound, their popularity is irrelevant.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER DOES
+----------------------------------------------------------------------
+
+B1. Entry.
+
+Mode opens on the ObjectionDeck: seven cards laid out as a 3-2-2
+arrangement (WIDE), 2-2-2-1 (STANDARD), or single-column
+(NARROW). Each card shows:
+    - Objection number and short title.
+    - The objection text (1-2 sentences, authored paraphrase).
+    - A "target" tag set (which claim(s) it targets), using the
+      canonical claim IDs from P01.
+    - An "urgency" rating (1-5). The urgency is NOT how correct
+      the objection is; it is the book's own assessment of how
+      often it is the first objection raised. 14.1 and 14.7 are
+      rated 5; 14.4 is rated 4; others lower.
+
+Header: "Seven objections the book expects. Which one is yours?"
+
+Below the deck, a small persistent strip called the
+MethodologyAdmission: a single line of copy, --fg-dim, mono:
+
+    "The book answers on its own methodological terms. Some
+     objections the book REFRAMES rather than REFUTES. See the
+     last tile of each turn."
+
+This line is not decorative; see Part C4.
+
+B2. The turn.
+
+The user picks an objection card. A DialecticTurn panel opens.
+The turn has three "tiles", shown in order:
+
+    TILE A. OBJECTION (full)
+        The authored objection in full. 2-4 sentences. Serif.
+
+    TILE B. BOOK'S RESPONSE
+        The authored response. 3-6 sentences. Serif. Includes a
+        clearly labeled sub-section called REFRAMES or REFUTES:
+        a single word indicator. This indicator is the book's
+        own self-description of its move, and it IS load-bearing.
+        (14.1 and 14.7 are REFRAMES; 14.2 and 14.3 are REFUTES;
+        14.4 is REFUTES-IN-PRINCIPLE; 14.5 is CONCEDES-AND-
+        DISCIPLINES; 14.6 is REFRAMES.)
+
+    TILE C. WHAT WOULD YOU SAY NEXT?
+        The user is offered three authored continuation
+        responses (radio) PLUS a free-text option. The three
+        authored continuations represent:
+            - A reader who accepts the book's response and
+              wants to press further on an adjacent question.
+            - A reader who is unconvinced and names the
+              specific premise they reject.
+            - A reader who is dismissive ("this is
+              word-games").
+        The user selects one or writes their own. Selection is
+        recorded. There is no judgment of the choice.
+
+After TILE C, a final summary strip:
+
+    "The book's response here is a [REFRAME / REFUTATION /
+     CONCESSION + DISCIPLINE]. If you still reject the response,
+     the disagreement is likely at [CITED CLAIM ID], which you
+     can open in the Ontology."
+
+For REFRAMES specifically, the strip adds:
+
+    "The book does not expect to convert a reader who rejects
+     [CLAIM ID]. It asks only that the reader state an
+     alternative account that does not reduce to [ALT]."
+
+B3. Return to deck.
+
+From a completed turn, the user may:
+    - Return to the deck. Completed objections are marked
+      "read" (mono check, --fg-dim). Their card may still be
+      reopened; re-reading is normal.
+    - Rank objections. After reading at least three, a "rank
+      by personal weight" affordance appears on the deck: the
+      user drags objections into a top-to-bottom list of which
+      they find most compelling. This ranking is stored in the
+      session but never transmitted. Its purpose is PERSONAL:
+      the user learns, by ordering, where their own critical
+      priority lies.
+    - Open adjacent material: each turn has an "OPEN IN"
+      affordance that can route to Ontology (on the cited
+      claim) or to Diamond Method Practicum (if the case is
+      treated there — e.g., 14.3 is treated in Case 1 of P03,
+      "silent compulsion").
+
+
+----------------------------------------------------------------------
+PART C — FILES, COMPONENT CONTRACTS, COPY CONVENTIONS
+----------------------------------------------------------------------
+
+C1. src/components/projects/purposeless-efficiency/Experience/
+    ObjectionsDojo/
+
+    ObjectionDeck.tsx
+        Props:
+            objections: Objection[];
+            readIds: Set<string>;
+            rankedIds: string[] | null;
+            onOpen(id): void;
+            onRank(ids: string[]): void;
+            hostWidthPx: number;
+
+    DialecticTurn.tsx
+        Props:
+            objection: Objection;
+            response: Response;
+            tile: "A" | "B" | "C";
+            onAdvance(): void;
+            onChooseContinuation(index: number | "custom", text?: string): void;
+            onOpenInOntology(claimId: string): void;
+            onOpenInDiamond(caseId: string): void;
+            reducedMotion: boolean;
+
+    MethodologyAdmission.tsx
+        Props:
+            currentResponseKind?: "REFRAME" | "REFUTE" | "REFUTE-IN-PRINCIPLE" | "CONCEDE-AND-DISCIPLINE";
+        Render:
+            A single-line strip that updates as the user moves
+            through turns, always visible and always honest about
+            what the book is doing methodologically.
+
+C2. src/lib/prp/objections.ts
+
+    export type ResponseKind =
+      | "REFRAME"
+      | "REFUTE"
+      | "REFUTE-IN-PRINCIPLE"
+      | "CONCEDE-AND-DISCIPLINE";
+
+    export interface Continuation {
+      stance: "press-further" | "reject-premise" | "dismiss";
+      label: string;
+      text: string;
+    }
+
+    export interface Objection {
+      id: string;                              // "14.1"
+      title: string;
+      urgency: 1 | 2 | 3 | 4 | 5;
+      targetClaimIds: string[];
+      objectionText: string;                   // authored paraphrase
+    }
+
+    export interface Response {
+      id: string;                              // same as Objection.id
+      kind: ResponseKind;
+      responseText: string;                    // authored
+      continuations: [Continuation, Continuation, Continuation];
+      openInOntologyClaimId: string;           // primary cited claim
+      openInDiamondCaseId?: string;            // if applicable
+      finalStripTemplate: string;              // parameterized
+      authorApproved: boolean;
+    }
+
+    export const OBJECTIONS: Objection[];
+    export const RESPONSES: Record<string, Response>;
+
+C3. Copy rules (verbatim where indicated).
+
+Tile labels (verbatim):
+
+    TILE A — OBJECTION
+    TILE B — THE BOOK'S RESPONSE
+    TILE C — WHAT WOULD YOU SAY NEXT?
+
+Response-kind badges (verbatim, uppercase mono, colored):
+
+    REFRAME                     --warn tint
+    REFUTE                      --ok tint
+    REFUTE-IN-PRINCIPLE         --ok-dim tint
+    CONCEDE-AND-DISCIPLINE      --neutral tint
+
+The kind badge is not a self-congratulation for the book when it
+is a REFUTE and a concession when it is a CONCEDE; it is a
+methodological tag. The color palette is chosen to NOT valorize
+REFUTE over REFRAME; both are legitimate argumentative moves and
+the user should see that.
+
+Continuation stance microcopy (verbatim, in the radio labels):
+
+    "Press further: [authored phrasing]"
+    "Reject the premise: [authored phrasing]"
+    "Say the book is playing with words: [authored phrasing]"
+
+The third option is mandatory because it is the hostile-reader
+voice; inclusion is an intellectual-honesty requirement. The book
+must be asked, inside its own dojo, whether it is doing
+philosophy or doing rhetoric, and the user must have that option
+available.
+
+Final strip template (verbatim; fill-in in brackets):
+
+    "The book's response here is a [KIND]. If you still reject
+     the response, the disagreement is likely at [CLAIM-ID],
+     which you can open in the Ontology."
+
+Addendum for REFRAMES specifically (verbatim):
+
+    "The book does not expect to convert a reader who rejects
+     [CLAIM-ID]. It asks only that the reader state an
+     alternative account that does not reduce to [ALT]."
+
+For REFRAMES, [ALT] is authored per objection:
+
+    14.1 -> "coherence or mysticism"
+    14.6 -> "a theory of evidence that does not reduce to an
+            argument for how to interpret evidence"
+
+C4. What the mode must not say.
+
+  - "Gotcha" (never, ever).
+  - "The book destroys this objection" (no).
+  - "Easy answer" / "obviously".
+  - "Critics claim..." (use "the objection is...").
+  - Any of the words "debunk", "takedown", "slam", "owns".
+  - "You might not understand that..." or any phrasing that
+    implies the dissenting user is uninformed. Disagreement is
+    first-class; the book's posture is to locate disagreement,
+    not to dismiss it.
+
+
+----------------------------------------------------------------------
+PART D — STATE STORE ADDITIONS
+----------------------------------------------------------------------
+
+Extend prpExperience.ts:
+
+    interface PrpExperienceState {
+      // ...
+      objections: {
+        openId: string | null;                // currently open objection
+        tile: "A" | "B" | "C" | null;         // current tile in the turn
+        readIds: Set<string>;
+        continuationChoice: Record<string, { index: number | "custom"; text?: string }>;
+        rankedIds: string[] | null;           // user's personal ranking
+      };
+      openObjection(id: string): void;
+      advanceTile(): void;
+      chooseContinuation(index: number | "custom", text?: string): void;
+      closeTurn(): void;
+      rankObjections(ids: string[]): void;
+    }
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P04
+----------------------------------------------------------------------
+
+  [ ] All seven objections render as deck cards.
+  [ ] Urgency rating displays; the rating is the book's own
+      assessment, not the user's.
+  [ ] Picking an objection opens DialecticTurn starting at Tile A.
+  [ ] Tiles advance in order A -> B -> C; ESC closes back to deck.
+  [ ] Tile B shows the correct response-kind badge.
+  [ ] Tile C shows three authored continuations and a custom
+      textarea; either can be selected/filled.
+  [ ] Continuation selection is stored in state.
+  [ ] Final strip renders with the correct kind and claim ref;
+      for REFRAME objections, the "not expect to convert" addendum
+      renders and includes the correct [ALT].
+  [ ] Cross-mode buttons route and preselect (open-in-ontology,
+      open-in-diamond).
+  [ ] After reading >=3 objections, the deck offers a rank-by-
+      weight affordance; ranking works via mouse, touch, and
+      keyboard.
+  [ ] MethodologyAdmission strip updates with current response
+      kind when a turn is open.
+  [ ] NARROW: deck single-column; turn tiles stack; continuation
+      radios are full-width.
+  [ ] reducedMotion: tile transitions are opacity only.
+  [ ] aria-live announces tile advance and the response-kind.
+  [ ] No runtime network calls.
+  [ ] Bundle under 12KB gzip.
+
+
+----------------------------------------------------------------------
+PART F — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+F1. This mode will be read by some users as where the book is
+    weakest. That is CORRECT. The mode is designed to let a
+    skeptical reader see the book's weaknesses explicitly. Do not
+    add rhetorical buttressing that softens this effect.
+
+F2. If authoring the response text strays from the Guide's
+    Chapter 14 content, pull it back. The dojo's value depends
+    on the responses being the book's actual positions, not
+    a spokesperson's recast.
+
+F3. The rank-by-weight affordance is intentionally quiet. It
+    should not be a prominent CTA. It earns the user's use
+    after they have read at least three objections; before then
+    it is not shown.
+
+F4. When a REFRAME response is rendered, the addendum saying
+    "the book does not expect to convert a reader who rejects
+    [CLAIM-ID]" is the single most important line in this mode.
+    Do not dilute it. It is the book's own acknowledgment of the
+    limits of rationalist dialectic, and the mode's
+    intellectual honesty depends on its presence.
+
+F5. There is a temptation to add an eighth objection along the
+    lines of "the book is too long / too dense / pretentious."
+    Do NOT. That objection is not about the argument, and
+    including it would invite a dismissive mode of reading that
+    the entire design opposes. If the author wants a "style"
+    objection, it belongs in the dossier, not the dojo.
+
+
+End of P04.

@@ -1,0 +1,530 @@
+P06 — COPY, FIXTURE INTEGRITY, AND SHIP VERIFICATION
+=====================================================
+
+Prerequisites: P01, P02, P03, P04, P05 — each having delivered
+their own acceptance clauses. This prompt does not add new
+features. It does three things:
+
+  1. Codifies the AUTHOR'S VOICE rules as a small, enforceable
+     lint that runs at build time and at test time on every
+     authored prose string in the PRP fixtures.
+  2. Defines the FIXTURE INTEGRITY contract: the shape every
+     fixture file must satisfy, the type-guard machinery that
+     verifies it, and the unpublished-work IP check that
+     prevents accidental leakage of manuscript prose.
+  3. Specifies the SHIP VERIFICATION protocol: the full matrix
+     of acceptance tests, a11y sweeps, performance budgets,
+     and cross-mode state checks that must pass before the
+     EXPERIENCE/DOSSIER toggle is flipped on for the PRP panel.
+
+
+----------------------------------------------------------------------
+PART A — AUTHOR VOICE LINT
+----------------------------------------------------------------------
+
+A1. The two modes of failure.
+
+All authored prose in this suite must avoid two distinct
+failure modes:
+
+    MARKETING VOICE
+        Hedged, hype-y, self-congratulatory, or ad-copy prose
+        that a corporate marketing editor would approve. The
+        book's voice does not permit it; the experience must
+        not drift into it.
+
+    ACADEMIC HEDGE
+        Prose that qualifies itself to unreadability. "Arguably",
+        "one might say", "some readers may feel that", "it
+        could be argued that". The book's voice takes positions
+        cleanly and either argues for them or declines to
+        discuss them. The experience must not soften the book
+        into a seminar hedge.
+
+A2. The lint rules.
+
+Implement as a node script at scripts/prp-prose-lint.ts that
+reads every fixture file under src/lib/prp/*.ts, extracts every
+string field marked as authored prose via the fixture type
+(see Part B), and checks each against the following rules.
+Failures exit the process with non-zero and print the offending
+file, field, and excerpt.
+
+Rule L01 (FORBIDDEN WORDS — marketing register).
+    The following tokens are forbidden in any authored prose:
+        "disruptive", "disruptive force", "paradigm shift",
+        "game-changing", "cutting-edge", "revolutionary",
+        "world-class", "next-generation", "best-in-class",
+        "value proposition", "unlock", "unleash", "supercharge",
+        "empower", "synergy", "leverage" (as verb),
+        "seamless", "frictionless", "turnkey", "mission-
+        critical", "at scale" (as sole qualifier), "robust"
+        (alone, without a domain), "solution" (as a noun
+        substitute for "approach" or "proposal"),
+        "platform" (for anything that is not actually a
+        platform), "journey" (for reading/learning), "story"
+        (for argument), "narrative" (for argument),
+        "thought leader", "take" (as noun, e.g., "a hot take").
+    Check case-insensitively; exempt occurrences in
+    double-quoted blocks representing objections or
+    counter-positions (these strings are intentionally voiced
+    in another register). See A4 for the exemption mechanism.
+
+Rule L02 (FORBIDDEN PHRASES — academic hedge).
+    Forbid, case-insensitively (again with A4 exemption):
+        "it could be argued that",
+        "one might say",
+        "some readers may feel",
+        "arguably",
+        "some would say",
+        "in a sense",
+        "in some sense",
+        "to some extent",
+        "as it were",
+        "per se" (when followed by a comma, used as filler),
+        "if you will",
+        "at the end of the day",
+        "when all is said and done".
+
+Rule L03 (ADJECTIVE INFLATION).
+    No single string may contain more than 4 adjectives in
+    any 120-character window. An adjective is tagged via a
+    small wordlist (not by a full POS tagger). Wordlist:
+    seed with roughly 400 common English adjectives; admit
+    false-negatives (we are trying to catch inflation, not
+    linguistically police the author).
+
+Rule L04 (EM-DASH OVERUSE).
+    No string may contain more than 2 em-dashes ("—") in a
+    single sentence, and no paragraph more than 4 em-dashes.
+    The Guide's own prose uses em-dashes heavily and the book
+    does too; this rule is not about style, it is about
+    preserving legibility at the small reveal-panel widths
+    the experience runs in. When the rule trips, revise to
+    parenthetical or semicolon.
+
+Rule L05 (UNDEFINED CAPITALS).
+    Any all-caps token that is not an approved claim ID (from
+    claims.ts), thinker ID, stance label, mode name, step
+    label, or response-kind badge, AND that exceeds 4 letters,
+    must be defined at first appearance in the string or
+    omitted. This catches accidental acronym invention.
+
+Rule L06 (FORBIDDEN CLAIMS).
+    The following phrases must never appear in any authored
+    string (no exemptions; even in objection-voice these are
+    off-limits):
+        "buy now", "buy the book", "preorder", "sign up",
+        "subscribe", "mailing list", "join our", "contact us",
+        "learn more" (use a direct link or a sentence that
+        names what the reader will learn).
+
+A3. Author-approved overrides.
+
+When a string legitimately must use a forbidden word (rare but
+possible, e.g., the dojo's objection continuation option that
+reads "Say the book is playing with words" might need
+"rhetorical" which is otherwise suspect), the string field in
+the fixture may be annotated:
+
+    export interface AuthoredProse {
+      text: string;
+      lintOverrides?: Array<{ rule: "L01" | "L02" | "L03" | "L04" | "L05"; reason: string }>;
+      authorApproved: boolean;
+    }
+
+Every override must include a one-line reason. Authorship of
+overrides is implicitly Michael; CI does not attempt to verify
+human identity. An override without a reason is a lint failure.
+
+A4. Objection-voice exemption.
+
+Tile A of the Objections Dojo (P04) renders the objection text,
+which intentionally voices the critic, not the book. Fixture
+strings flagged with kind: "objection-voice" are exempt from
+L01 and L02 rules. Flag is a fixture field, not a comment.
+
+A5. Sentence-length soft cap.
+
+No SINGLE SENTENCE may exceed 50 words. The Guide's prose often
+exceeds this; the experience is rendered at smaller widths and
+requires tighter pacing. A lint warning, not a hard failure, is
+printed on any authored sentence over 50 words.
+
+
+----------------------------------------------------------------------
+PART B — FIXTURE INTEGRITY
+----------------------------------------------------------------------
+
+B1. src/lib/prp/typeGuards.ts
+
+Defines runtime type guards for every fixture shape. Runs once
+at module load in dev and in the test bundle; shipped unused in
+production (tree-shaken).
+
+    import type { Claim, ClaimEdge } from "./claims";
+    import type { QuadrantCase } from "./quadrantCases";
+    import type { DiamondCase } from "./diamondCases";
+    import type { Objection, Response } from "./objections";
+    import type { Thinker } from "./thinkers";
+    import type { GlossaryTerm } from "./glossary";
+
+    export function assertFixtures(): void {
+      assertClaims();
+      assertEdges();
+      assertQuadrantCases();
+      assertDiamondCases();
+      assertObjections();
+      assertThinkers();
+      assertGlossary();
+      assertCrossReferences();
+    }
+
+Each assertX function verifies:
+
+    - All required fields present.
+    - Enum fields (stance, kind, verdict, quadrant, response
+      kind, etc.) match the declared union exactly — no stray
+      values.
+    - authorApproved=true for every v1-ship item AND the string
+      fields are non-empty and non-placeholder.
+    - No string field contains the "[GUIDE PARAPHRASE — PENDING
+      AUTHOR REVIEW]" prefix (this prefix is the drafting stub;
+      its presence in a ship build is a P06 failure).
+    - Numeric fields are in range (urgency 1-5; coordinates
+      0-100; delta values in {-2,-1,0,1,2}).
+
+assertCrossReferences verifies:
+
+    - Every claim ID cited anywhere (quadrantCase.claimRefs,
+      diamondCase.tagClaimIds, objection.targetClaimIds,
+      response.openInOntologyClaimId, thinker.connectedClaimIds,
+      glossary term.connectedClaimIds) exists in the CLAIMS
+      array.
+    - Every diamond caseId cited in response.openInDiamondCaseId
+      exists in DIAMOND_CASES.
+    - Every thinker ID referenced in any claim's thinkerRefs
+      (if added) exists in THINKERS.
+
+B2. Unpublished-work IP check.
+
+The book is unpublished. The suite must enforce:
+
+    - No authored prose string in the fixtures may claim to be
+      a direct book excerpt.
+    - A specific lint (L07) runs over authored prose and fails
+      if a string both (a) exceeds 200 characters and (b)
+      matches a regex that suggests it is excerpted (starts
+      with an opening quotation mark and ends with closing
+      quotation, has an em-dash-attribution "— Purposeless
+      Efficiency, Ch.X", etc.).
+    - Fixture items that DO want to include a short excerpt
+      must use a dedicated field shape:
+
+          export interface BookExcerpt {
+            text: string;                      // <= 200 chars
+            chapter: number;
+            permissionGranted: true;
+            preReleaseApproval: "author-approved-for-web";
+            approvedOn: string;                // ISO date
+          }
+
+      Fields that hold BookExcerpt are declared at the type
+      level so that the lint cannot confuse excerpts with
+      narration.
+
+    - No fixture module may import a text file from a path
+      outside src/lib/prp/. This blocks accidental inclusion
+      of manuscript content via build tooling.
+
+B3. Authoring workflow.
+
+A fixture item may be in one of three states:
+
+    DRAFT
+        authorApproved=false. Draft text may contain the
+        "[GUIDE PARAPHRASE — PENDING AUTHOR REVIEW]" prefix.
+        The item will NOT be rendered in production builds; in
+        the explorer mode it appears as a stub (e.g., "claim
+        pending author review").
+
+    AUTHOR-REVIEWED
+        authorApproved=true. Text must pass the full prose lint.
+        This is the ship-ready state.
+
+    RETIRED
+        Items can be retired by adding retired=true and
+        retiredReason. They remain in the data for reference but
+        are filtered out at render time. This supports the book's
+        own iterative working style.
+
+State transitions happen by editing the fixture file; there is
+no admin UI. Michael edits, the tests run, CI fails or passes.
+
+
+----------------------------------------------------------------------
+PART C — SHIP VERIFICATION PROTOCOL
+----------------------------------------------------------------------
+
+C1. Test matrix.
+
+Acceptance tests live under
+src/components/projects/purposeless-efficiency/Experience/__tests__/.
+Use the existing test harness (Vitest per prior prompts).
+
+Required suites:
+
+  chassis.spec.tsx
+      - Mounts PrpExperience at NARROW/STANDARD/WIDE widths.
+      - Verifies ModeTabBar tab order and active mode.
+      - Verifies EXPERIENCE/DOSSIER toggle preserves dossier.
+      - Verifies sessionStorage persistence of "prp.side".
+
+  ontology.spec.tsx
+      - Renders spine-only and all-claims views.
+      - Keyboard navigation traverses nodes in authored order.
+      - ClaimCard opens on Enter; ESC returns focus.
+      - DEPENDS ON / ENTAILS links update selectedClaimId.
+      - Footer "authored/total" count matches data.
+
+  quadrant.spec.tsx
+      - Chips render for all v1 cases.
+      - Drag-to-drop works via pointer events; keyboard-equiv
+        works via pick-up/move/drop.
+      - Interview toggles; interview questions advance.
+      - PlacementCompare shows agreement indicator correctly
+        for same / adjacent / opposite placements.
+      - Trajectory arrow renders for Sears and iPhone.
+
+  diamond.spec.tsx
+      - All six v1 cases render in grid.
+      - Stepper advances 1 -> 2 -> 3 -> 4; BACK preserves input.
+      - Step 4 cannot advance with all three consequences empty.
+      - Submit shows user walk and book walk side by side.
+      - Diagnostic block correctly flags Step 1 and Step 2
+        differences.
+      - ACCEPT / DISSENT / REDO all update store state.
+
+  objections.spec.tsx
+      - All seven objections render with correct urgency.
+      - Picking one opens DialecticTurn on Tile A.
+      - Tiles advance A -> B -> C.
+      - Response-kind badge renders correct kind.
+      - For REFRAME objections, addendum about "not expect to
+        convert" renders.
+      - Continuation selection persists across a re-open.
+      - Rank affordance appears only after 3+ objections read.
+
+  atlas.spec.tsx
+      - All v1 thinkers render at correct orbit coords.
+      - Stance colors correct.
+      - ThinkerDrawer shows all required sections.
+      - CONNECTED CLAIMS links route to Ontology.
+      - COUNTER-RECOMMENDATION renders only when non-null.
+      - Glossary strip visible across all five modes (mount
+        order does not matter).
+      - Full glossary search filters correctly.
+
+  cross-mode.spec.tsx
+      - Selecting a claim in Ontology persists across mode
+        switches.
+      - "Open in Diamond" from Objections preselects the
+        correct diamond case.
+      - "Open in Ontology" from Atlas preselects the correct
+        claim.
+      - Dossier toggle from any mode preserves the
+        currently-active mode state (e.g., a diamond walk
+        in-progress survives the round-trip).
+
+  a11y.spec.tsx
+      - No heading-order violations.
+      - All interactive elements have accessible names.
+      - All tab panels have tablist/tab/tabpanel roles.
+      - All drawers trap focus inside them when open and
+        return focus on close.
+      - aria-live region receives the expected announcements
+        on mode change, claim select, step advance, objection
+        open, thinker focus.
+      - reducedMotion media query mock forces opacity-only
+      - Color contrast is WCAG AA or better on every semantic
+        token used (--ok, --warn, --err, --fg, --fg-dim, --bg).
+
+  prose-lint.spec.ts
+      - Imports all fixture files and runs the lint rules.
+      - Fails on any L01/L02/L04/L05/L06/L07 violation.
+      - Reports L03 as test warnings.
+      - Reports sentence-length warnings (A5).
+
+  bundle-budget.spec.ts (or CI assertion step)
+      - Measures gzipped size of the PRP experience bundle
+        (code for all five modes + fixtures) and asserts it
+        is under 80KB.
+      - The 80KB total is the binding constraint from I01.
+      - Per-mode CODE targets (excluding fixture data):
+          Chassis        <=  6KB
+          Ontology       <= 10KB
+          Quadrant       <= 10KB
+          Diamond        <= 10KB
+          Objections     <= 10KB
+          Atlas+Glossary <= 12KB
+        Code subtotal target: <= 58KB.
+      - FIXTURE DATA budget (all files under src/lib/prp/*)
+        counted ONCE, not per-mode. Targets:
+          claims.ts          <= 5KB gzip
+          quadrantCases.ts   <= 3KB gzip
+          diamondCases.ts    <= 4KB gzip
+          objections.ts      <= 3KB gzip
+          thinkers.ts        <= 3KB gzip
+          glossary.ts        <= 4KB gzip
+        Data subtotal target: <= 22KB.
+      - Sum of code + data: <= 80KB.
+      - If code-splitting is applied per-mode, the data for each
+        mode's fixtures may be loaded on-demand, which improves
+        FIRST PAINT but does not change the total transferred
+        size if the user visits all modes. The 80KB binding
+        constraint is on the WORST CASE sum (user visits every
+        mode in the session).
+      - The per-mode CODE budgets above are internal
+        consistency targets; a mode that exceeds its target but
+        keeps the total under 80KB is acceptable, flagged only
+        as a drift warning in CI output.
+
+C2. Manual verification protocol (before toggling EXPERIENCE on
+for production).
+
+Even with the above test matrix green, a manual pass is
+required:
+
+  - Open PRP panel at screen widths 360, 640, 960, 1280, 1440.
+    Confirm no horizontal scroll, no clipping, no font-size
+    regression.
+  - Rotate through all five modes. Confirm:
+        - Tab bar shows the correct active state.
+        - No flash of unstyled content.
+        - No layout shift when the drawer opens.
+        - The glossary strip persists.
+  - Run through one diamond walk. Confirm the book's walk
+    reveals correctly for the selected case.
+  - Read each of the seven objection tiles. Confirm the
+    response-kind badge matches the text.
+  - Tab through the entire experience without a mouse. Confirm
+    every interactive element is reachable and usable.
+  - Enable reduced-motion in the OS. Confirm no translations,
+    no scale, no parallax.
+  - Enable screen reader. Confirm aria-live announcements are
+    useful (not spammy, not silent).
+  - Run axe-core via dev-tools. Zero violations required.
+  - Validate in Safari, Chrome, Firefox; on iOS Safari at
+    mobile viewport. Known issue to watch: drag-and-drop
+    polyfill on iOS Safari — must fall back to tap-to-pick,
+    tap-to-drop path.
+  - Build the production bundle. Inspect with a bundle analyzer
+    to confirm no accidental inclusion of test fixtures or
+    manuscript files.
+  - Confirm the EXPERIENCE/DOSSIER toggle correctly preserves
+    all Prompts 07-09 dossier content.
+
+
+----------------------------------------------------------------------
+PART D — RELEASE CHECKLIST
+----------------------------------------------------------------------
+
+Final gate — every item must be checked before the PRP panel
+ships with EXPERIENCE as default:
+
+    [ ] P01 acceptance criteria passed.
+    [ ] P02 acceptance criteria passed.
+    [ ] P03 acceptance criteria passed.
+    [ ] P04 acceptance criteria passed.
+    [ ] P05 acceptance criteria passed.
+    [ ] All v1 fixture items (seven spine claims + ~25-30
+        other claims, nine quadrant cases, six diamond cases,
+        seven objections, fourteen thinkers, thirty glossary
+        terms) are marked authorApproved=true by Michael.
+    [ ] typeGuards.ts runs clean at module load.
+    [ ] prose-lint passes (zero L01/L02/L04/L05/L06/L07
+        failures).
+    [ ] Cross-reference integrity passes.
+    [ ] No BookExcerpt fields are populated (v1 ships without
+        direct excerpts) OR every populated BookExcerpt field
+        has preReleaseApproval="author-approved-for-web" and an
+        ISO approvedOn date.
+    [ ] Bundle under 80KB gzip.
+    [ ] a11y.spec.tsx passes with zero axe violations.
+    [ ] Cross-browser manual check complete on Safari, Chrome,
+        Firefox desktop; iOS Safari and Chrome Android mobile.
+    [ ] EXPERIENCE/DOSSIER toggle verified preserving Prompts
+        07-09 dossier content.
+    [ ] ModeTabBar's "coming in next prompt" hover hints from
+        P01 Part E are REMOVED (they were build-state
+        affordances and must not ship).
+    [ ] I03 (Galley) prompt file has a header note added:
+        "SUPERSEDED BY 04_Purposeless_Efficiency_Deep. Do not
+         implement." — this is a prompt-file edit, not a code
+        change.
+
+
+----------------------------------------------------------------------
+PART E — POST-SHIP BEHAVIOR
+----------------------------------------------------------------------
+
+After ship, the following are NOT auto-updated:
+
+  - Fixture prose. Author edits manually; tests re-run on PR.
+  - Thinker list. New thinkers added manually to thinkers.ts.
+  - Orbit coordinates. Do not run auto-layout; coordinates are
+    authored.
+
+The following ARE expected to drift over time and should be
+checked quarterly:
+
+  - Quadrant cases: some institutions' trajectories will update
+    (e.g., an AI lab's Q-position may move). Each case's
+    trajectory field should include the year; author reviews
+    the list annually.
+  - Objections: if a new common objection emerges from reader
+    feedback and the book acknowledges it, add to the seven.
+    The canonical count is not sacred; the Guide lists seven
+    because seven are what it lists, not because seven is a
+    ceiling.
+  - Glossary: the Guide has ~40 terms. The book's working
+    files likely have more (the 55 build essays suggest
+    technical vocabulary will grow).
+
+None of these updates require a new prompt; they are
+authoring-level maintenance.
+
+
+----------------------------------------------------------------------
+PART F — A NOTE TO MICHAEL
+----------------------------------------------------------------------
+
+The three rules in tension across this suite are:
+
+  (i)  Render the book faithfully. Do not substitute a softer
+       or more accessible argument for the book's actual one.
+  (ii) Respect the reader. Do not grade, score, convert, or
+       preach.
+  (iii) Ship something that works. Every mode must be legible
+        at 360px and must pass a11y.
+
+When these rules appear to conflict — e.g., "fidelity to the
+book's REBUKE of Fukuyama" vs. "respect for a reader who has
+never read Fukuyama" — the answer is the COUNTER-RECOMMENDATION
+field, the "you can open this in the Ontology" path, and the
+methodology admission strip. Do not resolve the tension by
+softening the book. Resolve it by giving the dissenting reader
+a disciplined path to dissent.
+
+The experience's success is measured by one thing: whether a
+careful reader leaves it with a sharper sense of the book's
+specific claims and their specific arguments. Not by excitement;
+not by scroll depth; not by time on page. Those metrics lie.
+The right metric is: can the reader, on their way out, name the
+claim they reject first?
+
+If yes, the experience has done its job.
+
+
+End of P06.
+End of 04_Purposeless_Efficiency_Deep.
