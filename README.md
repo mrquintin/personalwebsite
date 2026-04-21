@@ -1,124 +1,100 @@
-# The Nash Lab
+# personalwebsite
 
-A research company for strategy. This repository ships the marketing site
-for **Hivemind**, a multi-agent AI that replaces consulting engagements
-with peer-reviewed, auditable strategic analysis.
+**Live site (canonical):** [https://personalwebsite-beta-nine.vercel.app](https://personalwebsite-beta-nine.vercel.app)
 
-## Quick start
+The Next.js app under `src/app/` is the **canonical** site. Legacy
+static HTML/CSS/JS under `public/` is deprecated; the Next app at `/`
+owns the routes. Legacy content is retained under `public/` for
+reference and may be archived to `public/_legacy/` in a follow-up.
+
+## Stack
+
+- Next.js 15 (App Router) + React 19 + TypeScript.
+- Vanilla CSS with CSS custom properties — see `src/styles/tokens.css`.
+- No Tailwind, no Radix, no MDX runtime, no UI libraries — by choice.
+- Content lives as TypeScript modules in `src/content/` (CMS-in-git).
+
+## Authoring docs (authoritative)
+
+- `docs/design-philosophy.md` — visual rules and forbidden patterns.
+- `docs/voice-guide.md` — copy voice + forbidden marketing words.
+- `docs/easter-eggs.md` — what is intentionally hidden on the site.
+- `docs/CHANGELOG.md`, `docs/critique-log.md`, `docs/visitor-log.md` —
+  iteration-loop surfaces.
+
+## Local development
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run dev           # http://localhost:3000
 npm run build
-npm run typecheck
+npm run lint
 ```
 
-## Deploy to Vercel
+### Copy lint
 
-One-click: import the repo at https://vercel.com/new — Vercel detects
-Next.js and ships with no config.
-
-CLI:
 ```bash
-npx vercel       # preview
-npx vercel --prod
+npx tsx scripts/lint-copy.ts
 ```
 
-`vercel.json` already sets the security headers (X-Content-Type-Options,
-X-Frame-Options, Referrer-Policy).
+Fails the build if any word from `src/content/forbidden-words.ts`
+appears in `src/` or `docs/`.
+
+## Adding a project
+
+1. Create `src/content/projects/<slug>.ts` (see existing files).
+2. Add one import line to `src/lib/projects/loader.ts`.
+3. (Optional) Create `src/app/<slug>/page.tsx` and set
+   `customPage: "/<slug>"` on the project metadata.
 
 ## Routes
 
-| Route             | Purpose                                                            |
-| ----------------- | ------------------------------------------------------------------ |
-| `/`               | Landing — Hero, Four Failures, Demo, Architecture, Audiences, CTA  |
-| `/architecture`   | Long-form technical brief                                          |
-| `/company`        | About + Core Beliefs + Hiring + Contact                            |
-| `/investors`      | Pitch + 6 pillars + Request the deck                               |
-| `/demo`           | Demo request form                                                  |
-| `/waitlist`       | Individual / small-org waitlist                                    |
-| `/api/submit`     | POST endpoint for all three forms                                  |
-| `/sitemap.xml`    | Auto-generated                                                     |
-| `/robots.txt`     | Auto-generated                                                     |
+| Route                       | What it is                                   |
+| --------------------------- | -------------------------------------------- |
+| `/`                         | Accordion landing + boot sequence            |
+| `/about`                    | Biography, identity, beliefs, work ledger    |
+| `/hivemind`                 | Bespoke dossier — strategic analytical software |
+| `/purposeless-efficiency`   | Book page (serif surface)                    |
+| `/theseus`                  | Principle graph + Noosphere console          |
+| `/resume`                   | CV with print stylesheet + PDF link          |
+| `/projects`                 | Sortable, filterable index                   |
+| `/projects/[slug]`          | Generic dossier (redirects if custom page set) |
+| `/changelog`                | Site changelog                               |
+| `/styleguide`               | Developer-only token reference (unlinked)    |
+| `*`                         | 404 in operator voice                        |
 
-## Form environment variables
+## Keyboard
 
-All three are optional. Without any of them, submissions are still
-console.logged and the user receives `{ ok: true }`.
+- `⌘K` / `Ctrl+K` — command palette
+- `F1` — help modal
+- `←` / `→` — accordion focus
+- `1`–`5` — expand accordion panel by index
+- `Esc` — collapse accordion to neutral / close palette
 
-| Var                | Purpose                                                            |
-| ------------------ | ------------------------------------------------------------------ |
-| `FORM_WEBHOOK_URL` | If set, every payload is POSTed here. Errors swallowed.            |
-| `RESEND_API_KEY`   | Plus `NOTIFY_TO_EMAIL`, sends a plain-text summary via Resend.     |
-| `NOTIFY_TO_EMAIL`  | Destination address for the Resend summary.                        |
+## Deploy
 
-## Customizing
+Push to `main`. Vercel builds the Next.js app. See the legacy README
+notes preserved below for Vercel / CI / sync-script specifics.
 
-| What                 | Where                                                          |
-| -------------------- | -------------------------------------------------------------- |
-| Hero subhead         | `components/Hero.tsx` — `SUBHEAD` constant                     |
-| Demo scenarios       | `lib/scenarios.ts`                                             |
-| Five components copy | `components/Architecture.tsx` — `COMPONENTS`                   |
-| Four failures copy   | `components/FourFailures.tsx` — `FAILURES`                     |
-| Core beliefs         | `components/CoreBeliefs.tsx` — `BELIEFS`                       |
-| Hiring procedures    | `app/company/page.tsx` — `HIRING`                              |
-| Investor pillars     | `app/investors/page.tsx` — `PILLARS`                           |
-| Audience cards       | `components/AudienceSplit.tsx` — `CARDS`                       |
-| Theorist roster      | `lib/scenarios.ts` — `THEORIST_DB`                             |
-| Colors               | `tailwind.config.ts` + `app/globals.css` `:root`               |
-| Typography           | `tailwind.config.ts` `fontFamily`, `fontSize`                  |
-| Form fields          | `components/{Demo,Investor,Waitlist}Form.tsx` — `FIELDS`       |
-| OG image             | `app/opengraph-image.tsx`                                      |
-| Favicon              | `app/icon.svg`                                                 |
+### If pushes succeed but the live site never changes
 
-## Project layout
+GitHub is only half of deploys: **Vercel must build *this* repo**. Open the production URL,
+**View Page Source**, and check `<title>`: this codebase serves **“Michael Quintin”** with
+description **“Operator. Writer. Founder of Hivemind.”** (see `src/app/layout.tsx`). If you
+instead see a different title (e.g. “Writer & Creative Strategist”), Tailwind marketing
+classes, or `og:url` pointing at another domain, that hostname is attached to a **different
+Vercel project or repo**. Fix it in **Vercel → Project → Settings → Git**: connect
+**`mrquintin/personalwebsite`**, Production branch **`main`**, Root **`.`**, then **Redeploy**.
+Also confirm **Domains** on that same project if you use a custom domain.
 
-```
-app/
-  api/submit/route.ts       form receiver
-  architecture/page.tsx
-  company/page.tsx
-  demo/page.tsx
-  investors/page.tsx
-  waitlist/page.tsx
-  globals.css               tokens + utilities (.eyebrow, .marquee, .noise…)
-  icon.svg                  favicon
-  layout.tsx                root layout — Nav / Footer / metadata
-  opengraph-image.tsx       1200×630 OG card
-  page.tsx                  landing composition
-  robots.ts                 robots.txt
-  sitemap.ts                sitemap.xml
-components/
-  Architecture.tsx
-  AudienceSplit.tsx
-  CoreBeliefs.tsx
-  CTABand.tsx
-  DemoForm.tsx | InvestorForm.tsx | WaitlistForm.tsx
-  DemoGraph.tsx             SVG visualization for the demo
-  Footer.tsx
-  Form.tsx                  reusable form primitive
-  FourFailures.tsx
-  Hero.tsx
-  HivemindDemo.tsx          demo orchestrator (state machine)
-  Nav.tsx
-  NetworkBackground.tsx     canvas drifting-nodes background
-  TheoristsRail.tsx         marquee of theorists
-  Wordmark.tsx              hex+network mark
-lib/
-  scenarios.ts              three scripted demo scenarios
-public/
-  .gitkeep                  drop-in for OG/favicons later
+### Sync script
+
+```bash
+npm run sync
 ```
 
-## Notes
+Runs `scripts/sync-to-github.sh`. Supports `SYNC_FORCE=1`,
+`SYNC_SKIP_WATCH=1`, and `SYNC_SKIP_VERIFY=1` (skips the automatic
+`npm run verify:ci` when `package.json` / `package-lock.json` changed).
 
-- **Reduced motion.** Shimmer, marquee, and `NetworkBackground` animation
-  all respect `prefers-reduced-motion: reduce`.
-- **No browser storage.** The site sets no cookies and uses no
-  localStorage / sessionStorage.
-- **Demo is scripted.** `HivemindDemo` runs against the data in
-  `lib/scenarios.ts`, not a live model. The state machine, transcript,
-  and audit trail are real; the substantive content is hand-authored.
-- **Operator site archive.** A prior iteration of this repo (Next 15
-  operator-aesthetic accordion site) lives under `_archive_operator/`
-  for reference.
+Before pushing dependency changes, run **`npm run verify:ci`** locally (same steps as the `build` job in CI: clean install, lint, typecheck, copy/token lint, build). That catches Linux `npm ci` / lockfile drift before CI does.
