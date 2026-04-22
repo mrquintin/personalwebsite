@@ -1,0 +1,455 @@
+M06 — HVM PANEL (narrow)
+================================================
+
+PURPOSE
+-------
+Narrow-mode rendering for the Hivemind panel (02,
+/hivemind). HVM has TWO faces sharing one ExperienceHost:
+the strategic face (05 suite — deliberation theater, knob
+bench, four-failures map, knowledge pipeline, audit
+artifact) and the technical face (06 suite — Coherence
+Engine: layer scoring lab, cosine paradox, domain-relative
+comparator, decision-policy gates with the §C8 regime
+selector, copy + fixture integrity).
+
+HVM is the most information-dense panel and the hardest to
+narrow well. This prompt is correspondingly the longest
+per-panel prompt.
+
+
+SCOPE
+-----
+Touches (new files):
+  src/content/projects/hivemind/narrow/
+    - StrategicFaceNarrow.tsx
+    - DeliberationTheaterNarrow.tsx
+    - KnobBenchNarrow.tsx
+    - FourFailuresNarrow.tsx
+    - KnowledgePipelineNarrow.tsx
+    - AuditArtifactNarrow.tsx
+  src/content/projects/coherence-engine/narrow/
+    - TechnicalFaceNarrow.tsx
+    - LayerScoringNarrow.tsx
+    - CosineParadoxNarrow.tsx
+    - DomainComparatorNarrow.tsx
+    - GateChainNarrow.tsx
+    - RegimeSelectorMobile.tsx
+
+Touches (edits):
+  src/components/panels/HivemindTeaser.tsx (branch on mode +
+    which-face)
+
+Does NOT touch:
+  05 or 06 suite (spec authority remains there).
+
+
+§A  FACE TOGGLE ON NARROW
+=========================
+
+Desktop behavior: the HVM panel, when expanded, renders a
+face-toggle (strategic / technical) near the top; the two
+faces share state via the ExperienceHost.
+
+Narrow behavior: preserve the face toggle. It becomes a
+two-button segmented control anchored at the top of the
+panel body, 100% width, 44 px tall, monospace labels
+"STRATEGIC" and "TECHNICAL" uppercase. Active state: --accent
+background, --bg-0 text. Inactive: --bg-2 background,
+--fg-mute text.
+
+  Render:
+    const { mode } = useExperienceHost();
+    const [face, setFace] = useState<"strategic" | "technical">("strategic");
+    return (
+      <>
+        <FaceToggle face={face} onSwitch={setFace} />
+        {face === "strategic"
+          ? <StrategicFaceNarrow />
+          : <TechnicalFaceNarrow />}
+      </>
+    );
+
+  Announce on face switch: `${face} face selected`.
+
+The face toggle is NOT a tab. It is a segmented control; tab
+semantics (arrow-key navigation between tabs) are not applied.
+On narrow, tap switches faces.
+
+
+§B  STRATEGIC FACE (05 suite) — NARROW
+======================================
+
+B1 — DELIBERATION THEATER (05/P01)
+-----------------------------------
+Desktop behavior: N agents arranged in a circle or grid,
+proposing / critiquing / voting; a central log scrolls with
+the deliberation transcript.
+
+Narrow behavior: one-agent-at-a-time with a top strip.
+
+  Render:
+    - TOP STRIP: a horizontal row of agent avatars (small
+      circles with initials), 36 px diameter each, 8 px gap,
+      touch-action: pan-x for overflow. The currently
+      focused agent has a --accent border. Tap an avatar to
+      focus that agent.
+    - MAIN: the focused agent's CARD:
+      - name + role (strategist / critic / pragmatist / etc.)
+      - current stance (a 1–2 line quote pulled from the
+        current deliberation state)
+      - a .prp-prose block with the agent's latest contribution
+    - BELOW: a transcript of the deliberation, scrolling
+      from oldest to newest. Each line is "AGENT NAME :: text";
+      the focused agent's lines are colored --accent.
+
+  Animation: the current desktop choreography has staggered
+  entries per agent (05/P01 spec). On narrow, reducedMotion
+  is default true (M03 §E). Under reducedMotion, deliberation
+  steps happen instantly. Under explicit opt-in motion, the
+  transcript fades new lines in at 180 ms.
+
+  No circular/arranged-agent visual on narrow. The
+  one-at-a-time agent card + transcript is the mobile
+  deliberation UX.
+
+  ACCEPTANCE:
+    [ ] DeliberationTheaterNarrow.tsx exists.
+    [ ] Tap on an avatar focuses that agent and updates the
+        main card within 200 ms.
+    [ ] Transcript is the page-scroll, not a nested scroller.
+
+B2 — KNOB BENCH (05/P02)
+------------------------
+Desktop behavior: a bench of parameter knobs that the user
+twists to change deliberation behavior (temperature,
+consensus threshold, adversarial weight, etc.).
+
+Narrow behavior: a vertical stack of labeled range sliders.
+
+  Each knob becomes a labeled row:
+    - label (mono, uppercase, --t-xs-size, --fg-mute)
+    - numeric value (mono, right-aligned, --t-sm-size, --fg)
+    - slider (native <input type="range">, full width, min
+      and max labels below left/right)
+
+  Why native range slider, not a custom knob control:
+    - Native sliders have excellent touch behavior on both
+      iOS Safari and Chrome Android.
+    - They respect user accessibility preferences.
+    - They are keyboard-operable without custom code.
+    - A custom circular knob at <44 px is unusable on touch.
+
+  Knob bench on narrow has AT MOST 6 knobs visible. If the
+  desktop version has more, group the extras into an
+  "Advanced" accordion that starts collapsed.
+
+  ACCEPTANCE:
+    [ ] KnobBenchNarrow.tsx exists.
+    [ ] Each knob is a native range slider with ≥44 px touch
+        height (use `touch-action: pan-x` and
+        `height: 44px` with a `::-webkit-slider-thumb`
+        size of 24 px).
+    [ ] Changing a knob announces
+        `${label} set to ${value}` via the host's announce().
+
+B3 — FOUR FAILURES MAP (05/P03)
+-------------------------------
+Desktop behavior: a 2×2 grid of failure modes (groupthink,
+hallucination-cascade, oscillation, false-consensus) with
+mini-vignettes per cell and connecting lines.
+
+Narrow behavior: a stack of four failure cards with a small
+"diagnosis" tool at the top that, given a deliberation
+fixture, highlights which failure is present.
+
+  Render:
+    - TOP: a fixture picker (one-line select: "Choose a
+      deliberation to diagnose"), rendering a native <select>
+      styled to match the dark theme.
+    - Below: a row of four mini-cards, one per failure mode,
+      each 44 px tall, dimmed by default. When the picker
+      changes, the card matching the diagnosed failure
+      lights up with --accent border.
+    - Below: the highlighted failure's full content in
+      .prp-prose.
+
+  The connecting-lines visual from desktop is dropped on
+  narrow (no visual mechanism for a 2×2 adjacency graph in
+  a single column).
+
+  ACCEPTANCE:
+    [ ] FourFailuresNarrow.tsx exists.
+    [ ] Native <select> is used for the fixture picker.
+    [ ] Diagnosed failure's card lights up within 200 ms of
+        picker change.
+
+B4 — KNOWLEDGE PIPELINE (05/P04)
+--------------------------------
+Desktop behavior: a left-to-right pipeline diagram with
+stages (ingest → filter → deliberate → distill → emit).
+
+Narrow behavior: a vertical pipeline, stage-per-row.
+
+  Render each stage as a row:
+    - icon (32×32 mono SVG glyph) left
+    - stage name (mono uppercase --t-xs-size) middle
+    - one-line summary (sans --t-sm-size) right
+    - a connecting bar that runs down the left edge, from
+      the first row's icon to the last row's icon, colored
+      --accent.
+
+  Tap on a stage opens a details drawer (bottom sheet) with
+  the full stage description and any demo fixtures.
+
+  ACCEPTANCE:
+    [ ] KnowledgePipelineNarrow.tsx exists.
+    [ ] Stages stack vertically; left-edge bar connects them.
+    [ ] Tap opens a bottom-sheet drawer with
+        `overscroll-behavior: contain` and a visible close
+        affordance.
+
+B5 — AUDIT ARTIFACT (05/P05)
+----------------------------
+Desktop behavior: a generated audit document rendered in a
+typewriter style with annotations in the margin.
+
+Narrow behavior: reading-mode typography; annotations as
+inline footnote numbers (not margin notes).
+
+  Render:
+    - The document text in .reading-mode or .prp-prose.
+    - Annotations replaced with ¹ ² ³ superscript markers,
+      inline with the text they annotate.
+    - At the bottom of the document, a footnotes block
+      listing each numbered annotation.
+    - Tap a superscript → scrolls to the footnote; tap the
+      footnote's "↵ back" affordance → scrolls back to the
+      marker.
+
+  The margin-notes pattern fails on narrow because there is
+  no margin. Footnotes preserve the annotation content.
+
+  ACCEPTANCE:
+    [ ] AuditArtifactNarrow.tsx exists.
+    [ ] No margin notes on narrow; all annotations are
+        inline-numbered footnotes.
+
+
+§C  TECHNICAL FACE (06 suite / Coherence Engine) — NARROW
+=========================================================
+
+C1 — LAYER SCORING LAB (06/P01)
+-------------------------------
+Desktop behavior: a multi-layer visualisation where each
+layer's contribution to the coherence score is shown with a
+horizontal bar / sparkline, and the running total accrues on
+the right.
+
+Narrow behavior: a vertical column of layer rows, each with
+a bar that sums left-to-right; the total renders at the
+bottom in a "TOTAL" row.
+
+  Render per layer:
+    - layer name (mono uppercase --t-xs-size)
+    - a horizontal bar showing this layer's contribution,
+      labeled numerically at the right
+    - a tap target on the row that opens a details drawer
+      with the layer's formula and fixture inputs
+
+  ACCEPTANCE:
+    [ ] LayerScoringNarrow.tsx exists.
+    [ ] Layers stack; each contributes to a visible total.
+    [ ] Tap a row → drawer with layer details.
+
+C2 — COSINE PARADOX (06/P02)
+----------------------------
+Desktop behavior: a side-by-side vector diagram illustrating
+how two vectors can have cosine 1 under one metric and cosine
+<1 under another (the "paradox" pedagogy).
+
+Narrow behavior: a stepper through 3 states (first metric,
+second metric, diff), each with a single-vector diagram at
+full width and an explanatory caption below in .prp-prose.
+
+  The diagrams are SVG; on narrow they render at full viewport
+  width (min 288 px) and should be authored to remain legible
+  at that width. Vector labels in --font-mono --t-xs-size.
+
+  ACCEPTANCE:
+    [ ] CosineParadoxNarrow.tsx exists.
+    [ ] Three states accessible via step buttons.
+    [ ] No side-by-side vector panels on narrow.
+
+C3 — DOMAIN-RELATIVE COMPARATOR (06/P03)
+----------------------------------------
+Desktop behavior: side-by-side CS (coherence score) computations
+for two domains at varying scales, with a log-axis chart.
+
+Narrow behavior: a single-domain view with a domain toggle at
+the top and the log-axis chart below (full-width, height ~
+240 px).
+
+  The chart is an SVG; the scale selector (S in CE4 notation)
+  is a native range slider (same pattern as B2 knobs).
+  Changing the slider reruns the score live; the chart redraws.
+
+  Two-domain comparison (the "paradox" of CSd0 dominance at
+  small S vs R-terms at large S) is preserved as an
+  OPTIONAL toggle: "Overlay second domain: off / market_economics
+  / governance / public_health". When overlay is on, a second
+  series plots on the same chart with a dashed stroke and a
+  small legend renders below.
+
+  ACCEPTANCE:
+    [ ] DomainComparatorNarrow.tsx exists.
+    [ ] Single-domain default; overlay as opt-in.
+    [ ] S slider is native range, ≥44 px touch height.
+
+C4 — GATE CHAIN (06/P04) — THE SIX GATES
+----------------------------------------
+Desktop behavior: six gates (quality, compliance, anti_gaming,
+portfolio, coherence, confidence) rendered horizontally in
+fixed order with pass/fail badges and inline micro-explanations.
+
+Narrow behavior: a vertical accordion-within-accordion. Each
+gate is a 56 px row with:
+  - gate index (1–6) in a 24 px circle at the left
+  - gate name (mono uppercase --t-xs-size)
+  - pass/fail badge on the right (a 12 px square, --ok
+    or --danger, with an ✓ or ✗ glyph)
+  - tap → expands the row in place to reveal:
+    - the gate's check predicate (one line)
+    - the current fixture's input values for that predicate
+    - a one-line explanation of why this run passed or failed
+
+  The per-gate expand transition mirrors the outer accordion's
+  max-height animation but is faster (200 ms) because the
+  content is smaller.
+
+  Only ONE gate can be expanded at a time within the chain.
+  Tapping a second gate collapses the first.
+
+  Fixed order is enforced in rendering. Do NOT permit
+  rearrangement on narrow.
+
+  ACCEPTANCE:
+    [ ] GateChainNarrow.tsx exists.
+    [ ] Six rows in fixed order.
+    [ ] Pass/fail badges visible at the row level without
+        expanding.
+    [ ] Expanding a gate reveals its predicate + inputs; only
+        one gate open at a time.
+
+C5 — REGIME SELECTOR (06/P04 §C8) — MOBILE-SPECIFIC
+---------------------------------------------------
+The regime selector (migrated from retired I02, per 06/P04
+§C8) is a three-button pill group choosing normal / defensive
+/ stress. On desktop it's wherever 06/P04 §C8d places it
+(inline with the gate chain, probably above). On narrow, it
+becomes a BOTTOM-ANCHORED persistent control:
+
+  - position: sticky; bottom: env(safe-area-inset-bottom);
+  - a full-width row with the three pills, each 44 px tall,
+    spanning 33% of width.
+  - subtle top border (--border-hair) and --bg-2 background
+    so the control visually detaches from scrolling content.
+  - the currently-active regime pill uses --accent background,
+    --bg-0 text.
+
+The N/D/S keyboard shortcuts from 06/P04 §C8d remain
+registered; on narrow they rarely fire but keyboard users
+still get them.
+
+Tapping a regime triggers the existing 06/P04 §C8c
+setActiveRegime action. The gate chain (C4) and any other
+C1–C3 views that depend on activeRegime re-render from the
+build-time precomputed regimeVariants.ts (06/P04 §C8b).
+
+ANNOUNCE: `regime set to ${regime}`.
+
+  ACCEPTANCE:
+    [ ] RegimeSelectorMobile.tsx exists; rendered at the
+        bottom of the TechnicalFaceNarrow.
+    [ ] Sticky-bottom with safe-area-inset-bottom respected.
+    [ ] Tap switches regime and re-renders dependent views
+        in ≤200 ms.
+    [ ] The three pills each have min-width ≥96 px and
+        min-height 44 px.
+    [ ] Announce fires on regime change.
+
+
+§D  PERFORMANCE
+===============
+
+HVM is heavy. The 05 + 06 suites together hit the 80 KB gzip
+per-experience budget (03/I01 LAZY-LOAD CONTRACT). Narrow
+variants must NOT increase this budget. Strategies:
+
+  - Narrow components import the SAME fixture modules as
+    desktop (no duplication).
+  - Narrow components reuse primitives from the 05/06
+    suites where possible (e.g., formula rendering, SVG
+    helpers) — they just compose them differently.
+  - Carousel / swipe libraries: do NOT add a third-party
+    carousel dependency. Use CSS scroll-snap + a tiny
+    useScrollPosition hook. Swiper.js and equivalents add
+    ~20 KB gzip; we can't afford it.
+  - Chart rendering on C3 (domain comparator) uses a custom
+    ~400-line SVG renderer, NOT Chart.js or D3. Drawing a
+    log-axis with 2 series is O(100 LOC).
+
+Budget: the addition of all narrow variants together should
+add ≤8 KB gzip to the HVM experience bundle. M09 validates.
+
+
+§E  STATE CONTINUITY
+====================
+
+A user who expands the HVM panel on narrow and selects the
+technical face, adjusts a knob, and sets regime=defensive,
+then rotates to landscape (mode: compact) — the state
+persists. This is ensured by:
+
+  - Per 06/P04 §A2, the Coherence Engine store (zustand)
+    holds activeRegime and related state. The store is
+    not remounted on resize. Narrow and non-narrow renders
+    read the same store.
+  - Strategic-face state (selected agent, knob values,
+    diagnosis fixture) lives in the 05 suite's equivalent
+    store. Same persistence rule.
+  - The face toggle (§A) state does NOT persist across
+    remounts unless it is lifted to the 05/06 combined
+    store or a sessionStorage key. RECOMMENDATION: use
+    sessionStorage["hvm.face"] = "strategic" | "technical".
+    Inexpensive, survives soft navigations.
+
+
+§F  ROUTE /hivemind ON NARROW
+=============================
+
+The route page renders the same face toggle + same narrow
+components, full-bleed. The ExperienceHost surface is "route"
+but the component tree is identical. The regime selector's
+sticky-bottom positioning works on both surfaces (accordion
+panel body and route page both have a scrolling parent = the
+page).
+
+
+ACCEPTANCE FOR M06 (cumulative)
+-------------------------------
+[ ] All narrow components under
+    src/content/projects/hivemind/narrow/ and
+    src/content/projects/coherence-engine/narrow/ exist.
+[ ] HivemindTeaser.tsx branches on mode === "narrow".
+[ ] Face toggle works; state persists in sessionStorage.
+[ ] At 320×568, all strategic and technical face sub-views
+    are reachable without horizontal overflow.
+[ ] Regime selector is sticky at bottom with safe-area-inset
+    padding; three pills each ≥96×44 px.
+[ ] Gate chain renders six gates in fixed order; only one
+    expanded at a time.
+[ ] HVM experience bundle at ≤80 KB gzip (no regression
+    against 03/I01 §LAZY-LOAD CONTRACT budget).
+[ ] No third-party carousel / chart library added.
+[ ] State persistence across orientation change verified at
+    375×667 ↔ 667×375.

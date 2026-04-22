@@ -1,0 +1,1286 @@
+P04 — MODE 3, SEVERITY GAUNTLET
+=================================
+
+ROLE: You are implementing MODE 3 of the Theseus Deep experience.
+The Severity Gauntlet is the panel in which the user directly
+practices Mayo's severity criterion: given a claim and a proposed
+test, the user decides — alternative by alternative — whether
+the test would have caught the claim's falsity under each
+plausible alternative hypothesis. The canonical verdict is
+authored (severe / non-severe / partially severe) and is revealed
+with a source-grounded rationale and, where applicable, a pointer
+to the production analog in Noosphere.
+
+This mode exists because severity is the single criterion whose
+violation produces the most common methodological failure —
+confirmation bias. The 00_INDEX declares this mode's teaching
+target as Q2 (the five formal properties and their reduction to a
+single principle), specifically the severity half of that
+question. Mode 2 (Reflection Lab) showed HOW severity is made
+generative (by reflecting the thesis to produce an antithesis);
+Mode 3 shows WHAT severity is in its raw form (a property of the
+test-claim pair, assessed against plausible alternatives).
+
+Read P01, P02, and P03 first. This prompt assumes
+the chassis is in place, OrdersSlice and ReflectionSlice are
+functional, and sources.ts / typeGuards.ts already carry the
+keys enumerated in P01–P03.
+
+---
+
+GROUNDING
+
+All content in this mode is grounded in:
+
+  TH2 §2.2   — Severity (Mayo). The statement, the provenance
+               (Error and the Growth of Experimental Knowledge;
+               Statistical Inference as Severe Testing), the
+               operational test, the production analog
+               (adversarial.py), and the load-bearing reason
+               ("severity inverts the criterion: you must show
+               that your method would have rejected the claim
+               under plausible alternatives").
+  TH2 §3     — the unifying principle and severity's role within
+               it ("severity is the criterion applied to a single
+               claim within a single test").
+  TH2 §5     — engineering consequences ("severity ⇒ adversarial
+               challenge + counterfactual replay").
+  TH4 §2.4   — geometry.py / meta_analysis.py; counterfactual
+               replay via the CorpusSlicer (severity made
+               computational — eliminates temporal leakage).
+  TH5 §8     — Stage 8 of the epistemic pipeline: the adversarial
+               challenge subsystem, its four challenge states
+               (pending / addressed / fallen / fatal), and the
+               declared targets ("attack the severity," "attack
+               the empirical grounding," "attack the
+               domain-transfer assumption").
+  TH6 §3     — the Dialectical Crucible (severity made generative;
+               the Crucible does not wait for an adversary, it
+               creates the strongest one structurally).
+
+The Mayo severity statement, to be rendered VERBATIM in the
+mode's footer and stored byte-identically in sources.ts under
+the key TH2_SEC_2_2_SEVERITY_STATEMENT:
+
+    "A method provides severe evidence for a claim H only if
+    the method would very probably have detected H's falsity,
+    had H been false. A test that would pass any reasonable
+    hypothesis in the same neighborhood is non-severe."
+                                                   (TH2 §2.2)
+
+The Mayo severity operational test, to be rendered verbatim in
+the SeverityVerdict sidebar and stored under
+TH2_SEC_2_2_SEVERITY_OP_TEST:
+
+    "For any claim the firm endorses, it asks: was this
+    analysis conducted in a way that would have detected the
+    claim's falsity under plausible alternative scenarios? Or
+    was the analysis structured such that any nearby hypothesis
+    would have been confirmed by the same evidence?"
+                                                   (TH2 §2.2)
+
+No other TH2 §2.2 content is rendered in this mode. The
+"severity is the computational formalization of steelmanning"
+sentence is a helpful summary but is NOT shown in the UI; the
+UI shows the definitional statements only. The reasoning for
+this restriction is that the mode is about application, not
+about summary slogans; the slogans risk moving the user toward
+vibes-based assessment rather than the alternative-by-
+alternative test the mode demands.
+
+---
+
+§A — FILE LAYOUT
+
+Create the following new files under the SeverityGauntlet
+subtree declared in 00_INDEX §FILE MANIFEST. Every path is
+rooted at src/components/panels/theseus/Experience/
+SeverityGauntlet/ (no new directories outside that subtree and
+no edits to files that belong to P01/P02/P03):
+
+    SeverityGauntlet/
+        index.tsx                    — mode root; composes the
+                                       three-step flow.
+        ClaimTestCard.tsx            — step (i) display: the
+                                       claim, the proposed test,
+                                       the picker-list of four
+                                       fixtures when no fixture
+                                       is active.
+        AlternativesInterrogator.tsx — step (ii) list of three
+                                       to five plausible
+                                       alternative hypotheses
+                                       for the active fixture;
+                                       each row is togglable
+                                       between UNSET /
+                                       DISTINGUISHED /
+                                       NOT_DISTINGUISHED.
+        SeverityVerdict.tsx          — step (iii) canonical
+                                       verdict tile +
+                                       rationale + production
+                                       pointer + the verbatim
+                                       TH2 §2.2 op-test
+                                       excerpt.
+
+Augment (do not rewrite) these existing files:
+
+    src/lib/theseus/severityFixtures.ts
+        - Declare the full fixture array. See §C.
+    src/lib/theseus/sources.ts
+        - Add the two TH2 §2.2 keys declared above plus
+          TH5_SEC_8_ADVERSARIAL_TARGETS and
+          TH4_SEC_2_4_COUNTERFACTUAL_REPLAY (see §H).
+    src/lib/theseus/typeGuards.ts
+        - Add assertSeverityFixture. See §J.
+    src/stores/theseusExperience.ts
+        - Add the SeveritySlice declared in §B.
+
+No other file is touched. In particular, the Reflection Lab's
+state, fixtures, and components are NOT edited. The ModeTabBar
+from P01 already declares the "severity" tab; activating it
+renders SeverityGauntlet/index.tsx.
+
+---
+
+§B — STORE SLICE
+
+Augment src/stores/theseusExperience.ts with a SeveritySlice. The
+shape:
+
+    type AlternativeMark =
+      | "unset"
+      | "distinguished"
+      | "not_distinguished";
+
+    interface SeveritySliceState {
+      activeFixtureId: string | null;    // null = picker view
+      // keyed first by fixtureId, then by alternativeId
+      marks: Record<string, Record<string, AlternativeMark>>;
+      // true iff user has asked to reveal the verdict for
+      // the active fixture at least once this session
+      revealed: Record<string, boolean>;
+    }
+
+    interface SeveritySliceActions {
+      pickFixture(fixtureId: string): void;
+      markAlternative(
+        fixtureId: string,
+        alternativeId: string,
+        mark: AlternativeMark
+      ): void;
+      revealVerdict(fixtureId: string): void;
+      resetFixture(fixtureId: string): void;
+      // clears everything in the slice; used by the "reset
+      // mode" affordance in P07
+      resetAllSeverity(): void;
+    }
+
+Initial state:
+
+    {
+      activeFixtureId: null,
+      marks: {},     // every fixture's marks map seeded to
+                     //   { [altId]: "unset" } lazily on
+                     //   pickFixture
+      revealed: {},
+    }
+
+openInMode(target, refId) from P01 is overridden in the
+severity slice: when target === "severity", refId (when set)
+MUST be interpreted as a fixtureId and the store MUST set
+activeFixtureId to refId before returning. (This is how Mode 4
+refuses a PublicationCandidate whose adversarial challenge
+points back at a Severity fixture.)
+
+State selectors exported from the same module:
+
+    selectActiveSeverityFixture(state): SeverityFixture | null
+    selectSeverityMarks(fixtureId): Record<altId, AlternativeMark>
+    selectSeverityCompletion(fixtureId):
+        { markedCount: number; totalCount: number;
+          allMarked: boolean }
+    selectSeverityRevealed(fixtureId): boolean
+
+No Severity action mutates any other slice. revealVerdict is the
+only action that announces via the reducedMotion-aware announce
+channel (see §H).
+
+---
+
+§C — SEVERITY FIXTURES
+
+Declare the full authored array in
+src/lib/theseus/severityFixtures.ts. The TypeScript shape:
+
+    export type SeverityCanonicalVerdict =
+      | "severe"
+      | "non-severe"
+      | "partially-severe";
+
+    export interface SeverityAlternative {
+      id: string;                         // stable; see §J
+      statement: string;                  // the alternative
+                                          //   hypothesis text
+      canonicalDistinguished: boolean;    // whether the proposed
+                                          //   test would
+                                          //   distinguish the
+                                          //   target from this
+                                          //   alternative
+      rationale: string;                  // one to three
+                                          //   sentences
+                                          //   explaining the
+                                          //   canonical mark
+    }
+
+    export interface SeverityFixture {
+      id: string;
+      domainLabel: string;                // short (<=3 words),
+                                          //   e.g. "investment",
+                                          //   "methodology",
+                                          //   "calibration",
+                                          //   "ideological text"
+      claim: string;                      // H (the claim under
+                                          //   test)
+      proposedTest: string;               // the analysis
+                                          //   structure
+      alternatives: SeverityAlternative[]; // 3-5 alternatives
+      canonicalVerdict: SeverityCanonicalVerdict;
+      verdictRationale: string;           // 3-6 sentences; the
+                                          //   authoritative
+                                          //   explanation
+      productionPointer: string;          // which Noosphere
+                                          //   module the
+                                          //   production
+                                          //   analog lives in
+      sourceAnchor: string;               // key into sources.ts,
+                                          //   e.g. TH2_SEC_2_2
+      // present only on the partially-severe fixture; if
+      // populated, the SeverityVerdict renders a second
+      // tile for domain B showing why the test does not
+      // transfer
+      domainTransferNote: string | null;
+    }
+
+The four authored fixtures. VERBATIM. This is the full content
+for severityFixtures.ts — no paraphrase, no shortening:
+
+-----------------------------------------------------------
+
+F1 — SEVERE (investment domain)
+  id: "f1_moat_net_retention"
+  domainLabel: "investment thesis"
+  claim:
+    "Company X has a durable competitive moat attributable to
+    network effects, not merely to switching costs or the
+    current credit regime."
+  proposedTest:
+    "Measure Company X's net revenue retention across three
+    distinct regulatory and macroeconomic regimes: pre-GDPR
+    (2017), post-GDPR (2019), and the 2022 credit tightening.
+    Require NRR ≥ 110% in all three regimes. Additionally
+    require that in at least one of the three regimes, a
+    direct competitor's NRR fell by ≥ 5 percentage points
+    while Company X's NRR held. Pre-register the three
+    regimes, the 110% threshold, the 5pp competitor-decline
+    clause, and the competitor set before examining the data."
+  alternatives:
+    [
+      { id: "f1_alt_switching_costs",
+        statement:
+          "Company X's retention is explained by switching
+          costs, not network effects. Customers stay because
+          leaving is expensive, not because the product
+          becomes more valuable as more customers join.",
+        canonicalDistinguished: true,
+        rationale:
+          "Network effects predict strengthening retention
+          when the installed base grows AND a competitor's
+          retention collapses (because network value is
+          concentrated in the winning platform). Pure
+          switching-cost moats do not require competitor
+          decline. The competitor-decline clause therefore
+          discriminates network effects from switching-cost
+          lock-in." },
+      { id: "f1_alt_credit_regime",
+        statement:
+          "Retention is high because the current credit regime
+          has kept capital cheap and corporate IT budgets
+          unusually generous; in a tightening, NRR would
+          collapse.",
+        canonicalDistinguished: true,
+        rationale:
+          "The three-regime requirement explicitly includes a
+          credit tightening (2022). If NRR held in that
+          regime, the alternative is falsified. If NRR did
+          not hold in that regime, the claim is falsified.
+          Either way the test discriminates." },
+      { id: "f1_alt_lagging_cohorts",
+        statement:
+          "Retention is a lagging indicator. It reflects deals
+          closed three to five years ago; Company X may
+          already be losing new cohorts but the averaged NRR
+          does not yet show it.",
+        canonicalDistinguished: true,
+        rationale:
+          "The test requires three CONSECUTIVE years of NRR ≥
+          110%, which is only attainable if renewed cohorts
+          (not just legacy ones) expand. A rolling three-year
+          NRR above threshold forces renewal by newer
+          cohorts; legacy-only expansion mathematically
+          cannot sustain it." },
+      { id: "f1_alt_cyclical_industry_tailwind",
+        statement:
+          "Retention is elevated for the whole industry in
+          this period — every comparable company also has NRR
+          ≥ 110%. There is nothing distinctive about Company
+          X.",
+        canonicalDistinguished: true,
+        rationale:
+          "The competitor-decline clause fails in the
+          scenario where the entire industry's NRR holds. The
+          test therefore returns a negative verdict in the
+          case where nothing distinctive is happening, which
+          is the correct behavior." }
+    ]
+  canonicalVerdict: "severe"
+  verdictRationale:
+    "The test distinguishes the network-effects claim from
+    the three most serious alternatives (switching costs,
+    credit regime, lagging cohorts) and correctly refuses to
+    confirm in the null case where the industry broadly
+    retains well. The pre-registration clause eliminates the
+    post-hoc rescue — having declared the 110% threshold and
+    the competitor-decline clause before examining the data,
+    the analyst cannot relax the criterion after seeing it.
+    This is severity in Mayo's sense: the test would probably
+    have detected the claim's falsity under each of the
+    plausible alternatives, had the claim been false."
+  productionPointer:
+    "noosphere/noosphere/adversarial.py generates the
+    structured 'attack the severity' challenge against a
+    firm-tier investment thesis; counterfactual replay via
+    CorpusSlicer (evaluation/) enforces the pre-registration
+    discipline by pinning the store to the pre-test as_of
+    date when the adversarial run executes (TH4 §2.4)."
+  sourceAnchor: "TH2_SEC_2_2_SEVERITY_STATEMENT"
+  domainTransferNote: null
+
+-----------------------------------------------------------
+
+F2 — SEVERE (methodology domain; the engine-on-itself claim)
+  id: "f2_engine_reliability"
+  domainLabel: "methodology"
+  claim:
+    "The six-layer coherence engine is reliable on ideological
+    texts in the sense that, on paragraphs where three
+    independent coders agree on the coherence label, the
+    engine agrees with the coders' label above its
+    pre-registered threshold and abstains (UNRESOLVED) within
+    its pre-registered band."
+  proposedTest:
+    "Construct a held-out test set of 500 ideological
+    paragraphs, drawn from sources disjoint from any text
+    that entered the engine's training or tuning corpus
+    (provenance audit required). Label each paragraph
+    independently by three coders as COHERENT / INCOHERENT /
+    MIXED; retain only paragraphs with 3-of-3 agreement as
+    the consensus set, and retain the remainder as the
+    contested set. Pre-register (a) the precision and recall
+    thresholds, (b) the tolerated UNRESOLVED band, and (c)
+    the failure-mode taxonomy (four named failure classes).
+    Apply the engine. Pass only if precision and recall both
+    exceed the pre-registered thresholds on the consensus
+    set AND the UNRESOLVED rate lies within the pre-
+    registered band on the full set AND no observed failure
+    falls outside the declared taxonomy."
+  alternatives:
+    [
+      { id: "f2_alt_training_leakage",
+        statement:
+          "The engine appears to work because the test set
+          happened to resemble its training distribution —
+          near-duplicates leaked through the corpus-audit
+          process.",
+        canonicalDistinguished: true,
+        rationale:
+          "The provenance-audit requirement forces a
+          cryptographic-hash comparison of every test
+          paragraph against the engine's training-corpus
+          manifest. Near-duplicates are flagged by
+          embedding-similarity screening above a
+          pre-registered threshold and excluded." },
+      { id: "f2_alt_unresolved_loophole",
+        statement:
+          "The engine's apparent 'reliability' is an artifact
+          of a generous UNRESOLVED setting: on any hard
+          case, the engine returns UNRESOLVED, and so its
+          precision on cases it commits to is high simply
+          because it never commits on the hard ones.",
+        canonicalDistinguished: true,
+        rationale:
+          "The pre-registered UNRESOLVED band prevents
+          widening the abstention zone to mask errors. If
+          the engine abstains more often than the band
+          permits, the test fails even if precision on the
+          committed-to cases is high." },
+      { id: "f2_alt_coder_unreliability",
+        statement:
+          "The coders' labels are themselves unreliable; an
+          'agreement' between the engine and the coders may
+          be two random-ish processes agreeing by chance.",
+        canonicalDistinguished: true,
+        rationale:
+          "The 3-of-3 agreement restriction for the
+          consensus set is exactly the inter-coder
+          reliability gate. Cohen's kappa must clear a
+          pre-registered floor. The contested set is
+          handled as an unresolved-rate check, not as a
+          label source." },
+      { id: "f2_alt_post_hoc_failure_rescue",
+        statement:
+          "When a failure occurs, the team labels it as a
+          'known failure mode' and excludes it from the
+          denominator.",
+        canonicalDistinguished: true,
+        rationale:
+          "The pre-registered four-class failure taxonomy
+          closes this hatch: any failure outside the
+          taxonomy is counted as an unhandled failure, and
+          a single unhandled failure trips the
+          pre-registered stop condition." }
+    ]
+  canonicalVerdict: "severe"
+  verdictRationale:
+    "Every loophole that would allow the test to confirm
+    the claim under a plausible alternative has been closed
+    by the pre-registration clauses: training-leakage via
+    hash audit, UNRESOLVED gaming via the pre-registered
+    band, coder noise via the 3-of-3 consensus cut, and
+    post-hoc failure relabeling via the declared taxonomy.
+    This is methodological severity in Mayo's strong sense.
+    It also exemplifies the firm's own stance toward its
+    own engine: the engine is evaluated by a test the
+    engine could fail."
+  productionPointer:
+    "The analog is noosphere/noosphere/meta_analysis.py
+    (the five-criterion gate applied to candidate
+    principles) composed with the external_battery/ corpus
+    framework (TH2 §2.5; TH5 §8). Counterfactual replay
+    (TH4 §2.4) pins the store to the pre-registration
+    as_of date so the thresholds cannot be adjusted ex
+    post."
+  sourceAnchor: "TH2_SEC_2_2_SEVERITY_STATEMENT"
+  domainTransferNote: null
+
+-----------------------------------------------------------
+
+F3 — NON-SEVERE (confirmation-bias trap)
+  id: "f3_aggregate_brier"
+  domainLabel: "calibration"
+  claim:
+    "Theseus's public forecasting track record is well-
+    calibrated."
+  proposedTest:
+    "Compute the firm's overall Brier score across every
+    public prediction resolved to date. If the aggregate
+    Brier falls below a named threshold, declare the firm
+    well-calibrated."
+  alternatives:
+    [
+      { id: "f3_alt_difficulty_mix",
+        statement:
+          "The predictions resolved so far happen to have
+          been drawn from low-difficulty problem classes
+          (base-rate-heavy, short horizon). The aggregate
+          Brier reflects question selection, not skill.",
+        canonicalDistinguished: false,
+        rationale:
+          "Aggregate Brier is not stratified by difficulty
+          class or horizon. A low score on easy questions
+          is indistinguishable from a low score on hard
+          questions when only the aggregate is reported." },
+      { id: "f3_alt_selective_publication",
+        statement:
+          "The firm selectively publishes predictions it is
+          confident in and privately retains uncertain ones.
+          The aggregate therefore measures selection, not
+          underlying calibration.",
+        canonicalDistinguished: false,
+        rationale:
+          "The test examines only the published-and-resolved
+          set. It is silent on the denominator. No
+          selective-publication hypothesis is ruled out." },
+      { id: "f3_alt_resolution_favoritism",
+        statement:
+          "Ambiguous outcomes have been resolved in the
+          firm's favor when interpretation is discretionary;
+          the aggregate reflects resolution decisions, not
+          predictive accuracy.",
+        canonicalDistinguished: false,
+        rationale:
+          "Aggregate Brier does not audit resolution
+          decisions. No resolution-favoritism hypothesis is
+          ruled out by this test structure." },
+      { id: "f3_alt_domain_masking",
+        statement:
+          "Good calibration on some domains masks bad
+          calibration on others. The firm may be excellent
+          on economics and poor on technology; the average
+          tells neither story.",
+        canonicalDistinguished: false,
+        rationale:
+          "An aggregate is a single scalar. By construction
+          it cannot reveal domain-conditional failures. A
+          Brier decomposition (calibration, resolution,
+          uncertainty) stratified by domain would reveal
+          this; the proposed test does none of that." },
+      { id: "f3_alt_brier_asymmetry",
+        statement:
+          "Brier score itself is vulnerable to asymmetric
+          event frequencies: on mostly-false-prediction
+          classes, a constant low-probability forecast
+          attains a deceptively good score.",
+        canonicalDistinguished: false,
+        rationale:
+          "The proposed test does not compute a base-rate
+          decomposition or a skill score relative to a
+          climatological baseline. The aggregate does not
+          discriminate against the trivial low-probability
+          forecaster." }
+    ]
+  canonicalVerdict: "non-severe"
+  verdictRationale:
+    "This is the canonical confirmation-bias trap. Mayo's
+    own warning: 'A test that would pass any reasonable
+    hypothesis in the same neighborhood is non-severe.'
+    An aggregate Brier score below a threshold would be
+    produced by a genuinely well-calibrated firm, by a
+    selectively-publishing firm, by a resolution-favoring
+    firm, by a domain-masking firm, and by a
+    base-rate-exploiting firm. The test cannot discriminate
+    between these hypotheses. It produces a confirming
+    number for every plausible neighbor of the claim, which
+    is the exact structural failure severity is defined
+    against. The remediation is not to raise the threshold;
+    it is to replace the test with a severe one: Brier
+    decomposed into calibration, resolution, and
+    uncertainty components, stratified by method and
+    domain, with an audit of publication selection and
+    resolution decisions. That severe replacement is the
+    Calibration Engine (TH6 §4), not the single-number
+    report."
+  productionPointer:
+    "The severe replacement exists in partial form at
+    noosphere/noosphere/scoring.py (Brier decomposition)
+    and in the external_battery/ corpus framework
+    (external audit). TH6 §4 describes the full Calibration
+    Engine, which generalizes the scoreboard with the
+    Method Attribution cross-reference. The Epistemic
+    Process Auditor (TH6 §7) is the system that would flag
+    THIS non-severe test as a Laudan coherence failure
+    between the firm's stated aim (calibrated forecasting)
+    and the method actually used to evaluate it (aggregate
+    Brier)."
+  sourceAnchor: "TH2_SEC_2_2_SEVERITY_STATEMENT"
+  domainTransferNote: null
+
+-----------------------------------------------------------
+
+F4 — PARTIALLY SEVERE (NFL hook — domain-sensitive)
+  id: "f4_reflection_coherence_by_domain"
+  domainLabel: "ideological text"
+  claim:
+    "The Householder reflection v' = v − 2(v·â)â, applied to
+    ideologically-charged source sentences across a named
+    concept axis, produces structurally coherent antitheses
+    that a blinded reviewer would classify as arguments
+    rather than as grammatical malformations."
+  proposedTest:
+    "On domain A (ideological text with a named concept axis
+    — CLASS, LIBERTY, EQUALITY, EFFICIENCY): select 40 source
+    sentences across the CLASS axis. Apply the Householder
+    reflection; retrieve the nearest five real-world
+    sentences from the authored reference corpus; render the
+    reflected argument. Three blinded reviewers rate the
+    reflected output on coherence (1-5). Pass the domain-A
+    test if mean coherence ≥ 4.0 and inter-reviewer kappa ≥
+    0.6. Domain-B extension: re-apply the same test to 40
+    empirical claims about causal mechanisms in climate
+    attribution, reflected across a candidate axis
+    'naturalistic / anthropogenic'."
+  alternatives:
+    [
+      { id: "f4_alt_reviewer_priming",
+        statement:
+          "Reviewers are primed by the juxtaposition of
+          original and reflected sentences; they rate the
+          reflected sentence as coherent because the
+          contrast structure is suggestive, not because the
+          reflected sentence stands alone as an argument.",
+        canonicalDistinguished: true,
+        rationale:
+          "Blinded review means reviewers see the reflected
+          sentence without the original or the axis label.
+          Priming by contrast is therefore excluded." },
+      { id: "f4_alt_corpus_nearest_neighbor_work",
+        statement:
+          "The reflected sentence's coherence comes from the
+          nearest-neighbor lookup in the authored reference
+          corpus, not from the reflection operation itself.
+          Any random vector's nearest neighbor from a
+          well-curated corpus will be coherent.",
+        canonicalDistinguished: false,
+        rationale:
+          "The proposed test does not ablate the
+          nearest-neighbor step. A severe version would
+          include a control arm in which the reflection is
+          replaced by a random vector of equal norm, with
+          the same nearest-neighbor lookup applied. Without
+          that control arm, the test cannot attribute
+          coherence to the reflection rather than to the
+          corpus." },
+      { id: "f4_alt_axis_selection",
+        statement:
+          "The technique works on paradigmatic ideological
+          axes (class, liberty, equality) because centuries
+          of political discourse have produced
+          well-populated antipodes on those axes; it will
+          not work on axes without that discourse history.",
+        canonicalDistinguished: false,
+        rationale:
+          "The domain-A test is restricted to the CLASS
+          axis. It cannot speak to axes with sparser
+          discourse histories. The domain-B extension
+          attempts to test one such axis (naturalistic /
+          anthropogenic) but the proposed test applies the
+          same coherence-rating protocol without adjusting
+          for the fact that empirical claims do not have
+          'antipodes' in the discursive sense ideological
+          claims do." }
+    ]
+  canonicalVerdict: "partially-severe"
+  verdictRationale:
+    "On domain A, the test is severe against the
+    reviewer-priming alternative but NON-severe against the
+    nearest-neighbor-does-the-work alternative, because no
+    control arm isolates the reflection's contribution. It
+    is also silent on the axis-selection alternative, which
+    is a coarser domain-sensitivity issue. The domain-A
+    result therefore cannot carry more than one cheer: the
+    method appears to produce coherent antitheses on the
+    CLASS axis, but the authored test cannot attribute the
+    coherence to the reflection operator itself. On domain
+    B, the test is INAPPLICABLE. Empirical claims about
+    causal mechanisms do not have a 'concept axis of
+    contention' in the sense ideological claims do;
+    reflecting them across a 'naturalistic / anthropogenic'
+    axis produces something grammatical that is not a
+    counter-hypothesis, because the claims do not have
+    structural antipodes. Extending the domain-A test to
+    domain B without modification would be a domain-
+    sensitivity failure in the No Free Lunch sense
+    (TH2 §2.5). This fixture therefore introduces the NFL
+    hook handled in Mode 5 (Fixed-Point Auditor): a test's
+    severity is domain-relative, and a meta-method that
+    does not track that relativity is itself non-severe."
+  productionPointer:
+    "noosphere/noosphere/adversarial.py handles the
+    reflection-based challenge on domain A. The external
+    corpus battery (external_battery/) tracks per-corpus
+    failure modes; the 'domain-transfer' attack target
+    (TH5 §8) is the production analog of the severity
+    failure shown here when the reflection is naively
+    applied across a domain it was not validated on. See
+    TH3 §5.3 (Domain-Relative Coherence) for the firm's
+    published position on this boundary."
+  sourceAnchor: "TH2_SEC_2_2_SEVERITY_STATEMENT"
+  domainTransferNote:
+    "On domain B (empirical causal claims) the authored
+    test is inapplicable: the axis 'naturalistic /
+    anthropogenic' is not a concept axis of contention in
+    the sense the reflection operator requires; applying
+    the test without modification would produce
+    grammatically well-formed but structurally empty
+    outputs and would count as a domain-sensitivity
+    violation (NFL). A different severity apparatus is
+    required in domain B, which Mode 5 develops as the
+    domain-to-method mapping primary output of the
+    meta-method."
+
+-----------------------------------------------------------
+
+END FIXTURES. The exported array MUST be frozen with
+Object.freeze at module load so that typeGuards.ts can run an
+integrity check; any attempt to mutate at runtime throws in
+non-production builds and logs a single warning in production.
+
+The fixture ids (f1_moat_net_retention, f2_engine_reliability,
+f3_aggregate_brier, f4_reflection_coherence_by_domain) are
+stable and depended on by Mode 4's PublicationCandidate F3,
+whose refusal reason references f1_moat_net_retention's
+alternative id f1_alt_switching_costs as the unaddressed
+adversarial challenge. Changing these ids requires a cross-
+fixture sweep in P05.
+
+---
+
+§D — COMPONENT CONTRACTS
+
+All three components are server components by default; the
+index is a "use client" boundary because it owns the zustand
+subscription.
+
+index.tsx:
+
+    export default function SeverityGauntlet(): JSX.Element;
+
+    Layout:
+      - If activeFixtureId === null:
+          Render the picker — a 2x2 grid at WIDE+, a vertical
+          list at STANDARD and NARROW. Each picker card
+          displays: the fixture's domainLabel, the claim
+          (truncated to first two lines at NARROW; full at
+          STANDARD+), and a neutral verdict badge placeholder
+          (the verdict is NEVER pre-revealed in the picker).
+      - If activeFixtureId !== null:
+          Render a three-phase layout:
+             Phase 1 — ClaimTestCard (always visible).
+             Phase 2 — AlternativesInterrogator (always
+                       visible once Phase 1 is mounted).
+             Phase 3 — SeverityVerdict (revealed on
+                       revealVerdict action; otherwise hidden
+                       behind a "Reveal canonical verdict"
+                       button disabled until allMarked ===
+                       true).
+      - A persistent footer renders the Mayo severity
+        statement verbatim (see §H). The footer is NOT a
+        tooltip; it is always on screen when any fixture is
+        active.
+
+ClaimTestCard.tsx:
+
+    interface Props {
+      fixture: SeverityFixture;
+      onBack(): void;   // clears activeFixtureId
+    }
+
+    export default function ClaimTestCard(p: Props): JSX.Element;
+
+    Renders the domainLabel chip, the claim as an H3-styled
+    string, and the proposedTest as a <pre>-styled block with
+    whitespace preserved. A "← choose a different fixture"
+    button calls p.onBack. No interactive state lives in this
+    component.
+
+AlternativesInterrogator.tsx:
+
+    interface Props {
+      fixture: SeverityFixture;
+      marks: Record<string, AlternativeMark>;
+      onMark(
+        alternativeId: string,
+        mark: AlternativeMark
+      ): void;
+    }
+
+    export default function AlternativesInterrogator(
+      p: Props
+    ): JSX.Element;
+
+    Each alternative renders as a row with:
+      - the alternative.statement (full; no truncation)
+      - a three-button segmented control with options
+        UNSET / DISTINGUISHED / NOT_DISTINGUISHED, keyboard-
+        navigable with LEFT/RIGHT arrows when the row has
+        focus, togglable with SPACE when a button has focus
+      - a neutral text indicator showing the current mark
+        (colorblind-safe; the component does not rely on
+        color alone — also uses a text label and a glyph:
+        • UNSET = "—", •  DISTINGUISHED = "✓",
+        • NOT_DISTINGUISHED = "✗")
+      - the rationale is NOT rendered here; it renders only
+        after revealVerdict fires, in SeverityVerdict's
+        expanded per-alternative drawer
+
+    When all alternatives are marked (UNSET count === 0), the
+    "Reveal canonical verdict" button in the parent becomes
+    enabled and the interrogator announces via aria-live:
+    "All alternatives marked. Canonical verdict ready to
+    reveal."
+
+    IMPORTANT: the interrogator does not itself expose the
+    canonical marks (canonicalDistinguished). The user MUST
+    be allowed to mark any alternative UNSET →
+    DISTINGUISHED or NOT_DISTINGUISHED without feedback from
+    the system. Feedback is deferred to SeverityVerdict. This
+    is deliberate: the purpose of the mode is to train the
+    user's own severity judgment, not to gamify agreement
+    with the canonical answer.
+
+SeverityVerdict.tsx:
+
+    interface Props {
+      fixture: SeverityFixture;
+      userMarks: Record<string, AlternativeMark>;
+      revealed: boolean;
+    }
+
+    export default function SeverityVerdict(p: Props): JSX.Element;
+
+    When revealed === false, the component renders a
+    single "Reveal canonical verdict" button with aria-
+    disabled={allMarked === false}.
+
+    When revealed === true, the component renders:
+      (a) the verdict tile — one of three:
+          • SEVERE (neutral success styling; label: "Severe")
+          • NON-SEVERE (neutral caution styling; label:
+            "Non-severe")
+          • PARTIALLY SEVERE (neutral mixed styling; label:
+            "Partially severe")
+      (b) the verdictRationale prose
+      (c) a per-alternative comparison list:
+           for each alternative,
+             - the statement,
+             - the user's mark (from userMarks),
+             - the canonical mark (from
+               alternative.canonicalDistinguished),
+             - an AGREE / DISAGREE indicator (derived; does
+               NOT contribute to a score),
+             - the alternative.rationale (authored)
+      (d) the productionPointer text, rendered in a compact
+          "Production analog" footer block with a neutral
+          chip labeling it as such
+      (e) for F4 only: a second tile, titled "Domain
+          transfer", rendering the fixture.domainTransferNote
+          prose. This tile is absent for F1-F3 (where
+          domainTransferNote === null) and its absence is
+          programmatic, not conditional styling.
+      (f) the verbatim Mayo severity operational-test excerpt
+          (TH2_SEC_2_2_SEVERITY_OP_TEST), rendered in a
+          <blockquote> with a citation trailer reading
+          "— II. The Meta-Method, §2.2". This is the same
+          excerpt required in the 00_INDEX MODE 3
+          specification ("'Would this test have caught the
+          falsity under plausible alternatives?' summary
+          renders verbatim from TH2 §2.2"). The op-test
+          excerpt is the selected verbatim.
+
+    No score is shown. No "you got N of M correct" surface
+    is rendered anywhere. The AGREE / DISAGREE indicators
+    are per-alternative only and are not summed. The
+    reasoning is the same as in P02's no-score rationale
+    (00_INDEX MODE 1): this is a teaching mode, not a quiz.
+
+---
+
+§E — UI STATE MACHINE
+
+    picker  ── pickFixture(id) ──►  fixtureActive
+    fixtureActive  ── (mark any alt) ──►  fixtureActive
+                                           (updates marks)
+    fixtureActive  ── allMarked ──►  verdictReady
+    verdictReady   ── revealVerdict(id) ──►  verdictRevealed
+    verdictRevealed  ── onBack / pickFixture(other) ──►
+                                                 fixtureActive
+                                                 (for other)
+                                                 or picker
+
+resetFixture(id) collapses any state for id back to initial
+and returns to the picker if id is the active fixture.
+
+Navigation away from the severity tab (setMode(other))
+preserves all marks and the revealed flag; returning via
+setMode("severity") OR openInMode("severity", id) rehydrates
+the last view.
+
+---
+
+§F — RESPONSIVE BREAKPOINTS
+
+hostWidthPx (from I01):
+
+    NARROW  <640   — single column; the three phases stack
+                     top-to-bottom. The footer severity-
+                     statement quote collapses to a two-line
+                     truncation with a "read full" toggle that
+                     expands inline (not a modal).
+    STANDARD 640-960 — single column; full footer visible.
+    WIDE    960-1280 — two-column: ClaimTestCard on the left
+                       (sticky; remains visible while user
+                       scrolls alternatives); Alternatives
+                       and Verdict on the right.
+    XWIDE   ≥1280  — three-column: ClaimTestCard left,
+                     Alternatives center, Verdict right (hidden
+                     by default until revealed, at which point
+                     the right column expands).
+
+No horizontal scroll at any width ≥ 360px. The
+AlternativesInterrogator's segmented control collapses from
+three side-by-side buttons to a stacked vertical button
+group when the row width drops below 280px.
+
+---
+
+§G — reducedMotion
+
+When reducedMotion === true (from I01):
+  - verdict reveal is a single opacity crossfade from 0 to
+    1 over 1 frame (effectively instantaneous); no scale
+    or translate animations on the verdict tile.
+  - segmented-control toggles change state with NO
+    transition animation (immediate swap).
+  - the footer severity-statement expand-collapse at NARROW
+    shows and hides immediately with no height animation.
+
+When reducedMotion === false:
+  - verdict tile fades in over 200ms and settles with a
+    subtle 1px inset-shadow pulse (one cycle); respects
+    prefers-color-scheme for the pulse color.
+  - segmented-control toggles have a 120ms color
+    transition.
+
+Neither setting affects bundle size budget (≤80KB gzip per
+I01; Severity mode must land at ≤18KB gzip of that budget
+after minification, per the per-mode budget partition
+declared in P07).
+
+---
+
+§H — sources.ts ADDITIONS
+
+Append the following keys to src/lib/theseus/sources.ts. Each
+value is byte-identical to the TH2 / TH4 / TH5 source as
+extracted in /outputs/ths02_meta_method.txt and
+/outputs/ths05_pipeline.txt. P07 runs a verbatim-drift check
+against these values.
+
+    TH2_SEC_2_2_SEVERITY_STATEMENT:
+      "A method provides severe evidence for a claim H only
+      if the method would very probably have detected H's
+      falsity, had H been false. A test that would pass any
+      reasonable hypothesis in the same neighborhood is
+      non-severe."
+
+    TH2_SEC_2_2_SEVERITY_OP_TEST:
+      "For any claim the firm endorses, it asks: was this
+      analysis conducted in a way that would have detected
+      the claim's falsity under plausible alternative
+      scenarios? Or was the analysis structured such that
+      any nearby hypothesis would have been confirmed by
+      the same evidence?"
+
+    TH4_SEC_2_4_COUNTERFACTUAL_REPLAY:
+      "Counterfactual replay is available. The evaluation
+      rig (noosphere/noosphere/evaluation/) includes a
+      CorpusSlicer that presents a read-only view of the
+      store pinned to a past as_of date; methods invoked
+      against the slice raise EmbargoViolation on any
+      out-of-slice read, eliminating temporal leakage. This
+      is severity (Mayo) made computational."
+
+    TH5_SEC_8_ADVERSARIAL_TARGETS:
+      "adversarial.py generates structured objections to
+      every firm-tier conclusion. Each objection is
+      generated with an explicit target ('attack the
+      severity,' 'attack the empirical grounding,' 'attack
+      the domain-transfer assumption,' etc.) and is scored
+      through the same six-layer coherence stack that
+      produced the original conclusion."
+
+(Note: the TH5 excerpt retains the author's original straight
+apostrophes inside the nested-quote targets; the P07 lint
+normalizes quote characters before comparison.)
+
+The Mayo severity statement appears in the UI footer of the
+Severity mode (persistent whenever a fixture is active) and
+is cited there with a trailing "— II. The Meta-Method, §2.2".
+The severity op-test excerpt appears exactly once — inside
+the SeverityVerdict tile (§D item f). The counterfactual-replay
+and adversarial-targets excerpts are NOT rendered directly in
+the UI; they exist in sources.ts so that the fixture
+productionPointer strings can cite them by key and so that
+P07's verbatim-drift check runs against complete source
+excerpts.
+
+---
+
+§I — A11Y CONTRACT
+
+  - Every fixture picker card is a native <button>.
+  - Each segmented-control button in
+    AlternativesInterrogator is a native <button> with
+    aria-pressed reflecting its selected state.
+  - The "Reveal canonical verdict" button has aria-
+    disabled={!allMarked}; when pressed in the disabled
+    state (e.g., via programmatic focus-click on some
+    assistive stacks), the announce channel says
+    "Mark every alternative before revealing the
+    canonical verdict" and the reveal does not fire.
+  - aria-live region: polite. Announces:
+      "Fixture selected: <domainLabel>."  on pickFixture
+      "Alternative <n> of <N> marked <mark>."  on mark
+      "All alternatives marked. Canonical verdict ready
+       to reveal."  on allMarked transition to true
+      "Canonical verdict: <verdict>. <first sentence of
+       verdictRationale>."  on reveal
+  - The severity-statement footer has role="note" and is
+    NOT re-announced on every render (only on fixture
+    activation and on panel focus).
+  - The verdict tile is focus-advanced on reveal (the
+    focus moves programmatically to the verdict tile so
+    that screen readers hear it immediately).
+  - ESC: when focus is inside the
+    AlternativesInterrogator or SeverityVerdict, ESC
+    calls onBack and returns focus to the picker card
+    the user came from.
+  - Keyboard shortcut inventory, announced in the panel's
+    "Help" drawer (inherited from P01):
+      SPACE on a segmented-control button: toggle it
+        selected
+      LEFT / RIGHT on a focused segmented-control row:
+        move focus between buttons in the group
+      ENTER on "Reveal canonical verdict": reveal
+      ESC: exit to picker
+      Shift+Tab / Tab: normal focus order
+  - reducedMotion does not affect focus management.
+
+---
+
+§J — typeGuards.ts ADDITIONS
+
+Add to src/lib/theseus/typeGuards.ts:
+
+    export function assertSeverityFixture(
+      f: unknown
+    ): asserts f is SeverityFixture {
+      invariant(typeof f === "object" && f !== null,
+        "SeverityFixture must be an object");
+      const g = f as Record<string, unknown>;
+      invariant(typeof g.id === "string" && g.id.length > 0,
+        "SeverityFixture.id must be a non-empty string");
+      invariant(typeof g.domainLabel === "string",
+        "SeverityFixture.domainLabel must be a string");
+      invariant(typeof g.claim === "string"
+        && g.claim.length > 0,
+        "SeverityFixture.claim must be non-empty");
+      invariant(typeof g.proposedTest === "string"
+        && g.proposedTest.length > 0,
+        "SeverityFixture.proposedTest must be non-empty");
+      invariant(Array.isArray(g.alternatives)
+        && g.alternatives.length >= 3
+        && g.alternatives.length <= 5,
+        "SeverityFixture must have between 3 and 5 " +
+        "alternatives (MODE 3 spec in 00_INDEX).");
+      const altIds = new Set<string>();
+      for (const alt of g.alternatives as unknown[]) {
+        invariant(typeof alt === "object" && alt !== null,
+          "alternative must be an object");
+        const a = alt as Record<string, unknown>;
+        invariant(typeof a.id === "string" && a.id.length > 0,
+          "alternative.id must be non-empty");
+        invariant(!altIds.has(a.id as string),
+          "alternative ids must be unique within a " +
+          "fixture");
+        altIds.add(a.id as string);
+        invariant(typeof a.statement === "string"
+          && (a.statement as string).length > 0,
+          "alternative.statement must be non-empty");
+        invariant(typeof a.canonicalDistinguished === "boolean",
+          "alternative.canonicalDistinguished must be a " +
+          "boolean");
+        invariant(typeof a.rationale === "string"
+          && (a.rationale as string).length > 0,
+          "alternative.rationale must be non-empty");
+      }
+      invariant(
+        g.canonicalVerdict === "severe"
+        || g.canonicalVerdict === "non-severe"
+        || g.canonicalVerdict === "partially-severe",
+        "canonicalVerdict must be one of the three " +
+        "literals");
+      invariant(typeof g.verdictRationale === "string"
+        && (g.verdictRationale as string).length > 0,
+        "verdictRationale must be non-empty");
+      invariant(typeof g.productionPointer === "string"
+        && (g.productionPointer as string).length > 0,
+        "productionPointer must be non-empty");
+      invariant(typeof g.sourceAnchor === "string"
+        && ((g.sourceAnchor as string)
+            .startsWith("TH2_SEC_2_2_")
+            || (g.sourceAnchor as string)
+            .startsWith("TH5_SEC_8_")),
+        "sourceAnchor must be a TH2 §2.2 or TH5 §8 key");
+      invariant(
+        g.domainTransferNote === null
+        || (typeof g.domainTransferNote === "string"
+            && (g.domainTransferNote as string).length > 0),
+        "domainTransferNote must be null or a non-empty " +
+        "string");
+    }
+
+    export function assertSeverityFixtureArray(
+      arr: unknown
+    ): asserts arr is readonly SeverityFixture[] {
+      invariant(Array.isArray(arr),
+        "Severity fixture array must be an array");
+      invariant(arr.length === 4,
+        "00_INDEX MODE 3 spec requires exactly 4 severity " +
+        "fixtures (two severe, one non-severe, one " +
+        "partially severe).");
+      const severe = arr.filter(
+        (f: any) => f.canonicalVerdict === "severe"
+      ).length;
+      const nonSevere = arr.filter(
+        (f: any) => f.canonicalVerdict === "non-severe"
+      ).length;
+      const partiallySevere = arr.filter(
+        (f: any) => f.canonicalVerdict === "partially-severe"
+      ).length;
+      invariant(severe === 2,
+        "Expected exactly 2 severe fixtures; found " +
+        String(severe));
+      invariant(nonSevere === 1,
+        "Expected exactly 1 non-severe fixture; found " +
+        String(nonSevere));
+      invariant(partiallySevere === 1,
+        "Expected exactly 1 partially-severe fixture; found " +
+        String(partiallySevere));
+      const partial = arr.find(
+        (f: any) => f.canonicalVerdict === "partially-severe"
+      );
+      invariant(
+        partial && typeof (partial as any).domainTransferNote
+          === "string",
+        "The partially-severe fixture must carry a " +
+        "non-null domainTransferNote; MODE 3 NFL-hook " +
+        "requirement.");
+      const ids = new Set<string>(
+        arr.map((f: any) => f.id)
+      );
+      invariant(ids.size === 4,
+        "fixture ids must be unique");
+      invariant(ids.has("f1_moat_net_retention")
+        && ids.has("f2_engine_reliability")
+        && ids.has("f3_aggregate_brier")
+        && ids.has("f4_reflection_coherence_by_domain"),
+        "Severity fixture ids are load-bearing; P05 " +
+        "PublicationCandidate F3 references " +
+        "f1_moat_net_retention.f1_alt_switching_costs.");
+      for (const f of arr) assertSeverityFixture(f);
+    }
+
+Both guards are invoked from src/lib/theseus/
+severityFixtures.ts's module initializer in non-production
+builds. In production, only assertSeverityFixtureArray
+runs (once, at first import), and throws to fail-fast rather
+than degrading silently.
+
+---
+
+§K — ACCEPTANCE CRITERIA
+
+The Severity Gauntlet mode ships when:
+
+  [ ] The "severity" tab in the ModeTabBar (from P01)
+      renders SeverityGauntlet/index.tsx with no runtime
+      error at hostWidthPx from 360 upward.
+  [ ] Four authored fixtures render: two severe, one
+      non-severe, one partially severe (NFL hook). The
+      assertSeverityFixtureArray guard enforces this ratio
+      at import time.
+  [ ] Each fixture exposes 3-5 alternatives, each markable
+      UNSET / DISTINGUISHED / NOT_DISTINGUISHED, with full
+      keyboard navigation and correct aria-pressed
+      semantics.
+  [ ] No running score is shown. AGREE / DISAGREE
+      indicators are per-alternative only; no aggregate
+      display exists.
+  [ ] Canonical verdict reveal is gated on allMarked ===
+      true; the button is aria-disabled and visually muted
+      until the gate passes; the announce channel refuses
+      premature reveal with the authored message in §I.
+  [ ] The Mayo severity STATEMENT (TH2 §2.2,
+      TH2_SEC_2_2_SEVERITY_STATEMENT) renders verbatim in
+      the persistent footer whenever a fixture is active,
+      with citation trailer "— II. The Meta-Method, §2.2".
+  [ ] The Mayo severity OPERATIONAL-TEST excerpt (TH2 §2.2,
+      TH2_SEC_2_2_SEVERITY_OP_TEST) renders verbatim inside
+      SeverityVerdict once and only once per revealed
+      fixture, in a <blockquote>, with the same citation
+      trailer.
+  [ ] The F4 fixture (partially-severe) renders its
+      domainTransferNote as a distinct second tile labeled
+      "Domain transfer" only after verdict reveal. F1-F3
+      do not render this tile (programmatic condition on
+      domainTransferNote !== null).
+  [ ] The productionPointer strings cite adversarial.py,
+      meta_analysis.py, scoring.py / external_battery/,
+      and adversarial.py + external_battery respectively,
+      matching the authored content in §C.
+  [ ] Bundle: the severity mode's contribution to the
+      theseus experience bundle is ≤18KB gzip (P07 will
+      confirm; the five per-mode partitions must sum to
+      ≤80KB by I01).
+  [ ] reducedMotion: verdict reveal is an immediate opacity
+      crossfade; no scale / translate; segmented controls
+      swap state immediately.
+  [ ] Keyboard: every fixture, every alternative row, and
+      every verdict button is reachable by Tab; SPACE
+      toggles segmented controls; LEFT/RIGHT moves between
+      segmented buttons in a row; ENTER fires reveal when
+      allMarked; ESC exits to the picker.
+  [ ] a11y announce channel fires on pickFixture, on each
+      mark, on allMarked transition, and on reveal. Focus
+      moves to the verdict tile on reveal.
+  [ ] Cross-mode integrity: the fixture ids f1_..., f2_...,
+      f3_..., f4_... are stable. Changing them would break
+      P05 (Refusal Panel F3 cites
+      f1_moat_net_retention.f1_alt_switching_costs as the
+      unaddressed adversarial challenge).
+  [ ] No content from Mode 2 (ReflectionSlice), Mode 1
+      (OrdersSlice), or any other suite's vocabulary
+      (Purposeless Efficiency frameworks, Coherence
+      Engine 5-layer, etc.) appears in any Severity
+      fixture string. The P07 prose lint enforces this.
+  [ ] The verbatim source excerpts in §H are byte-
+      identical to the corresponding substrings in
+      /outputs/ths02_meta_method.txt and
+      /outputs/ths05_pipeline.txt under the P07
+      verbatim-drift check.
+  [ ] No runtime ML inference. No embedding calls, no
+      LLM calls, no scoring functions executed at runtime.
+      Every value shown is authored. (Consistent with
+      the 00_INDEX standing constraint (a).)
+
+---
+
+§L — CROSS-SUITE ISOLATION REMINDER
+
+The Severity Gauntlet teaches the severity criterion and ONLY
+the severity criterion. It must not mention:
+
+  - Any 05 (Hivemind / Purposeless Efficiency) proper nouns:
+    Nash-GT, Porter-5F, Christensen-DI, Drucker-MBO,
+    Kahneman-BE.
+  - Any 06 (Coherence Engine) proper nouns: the 5-layer
+    weights, the CSreq formula, the 42-dim axis, the
+    pitch-time coherence construct, the CE1 §8 Quintin
+    Hypothesis (which is distinct from TH3's Quintin
+    Hypothesis).
+  - Any 04 (Purposeless Efficiency project panel) proper
+    nouns specific to that suite's fixtures.
+
+Theseus's six-layer coherence engine (NLI, argumentation,
+probabilistic, geometry, information-theoretic,
+LLM-as-judge — TH4 §2.3) may be referenced BY NAME where
+material (e.g., in F2's proposed test), and must not be
+conflated with the 06 suite's 5-layer engine. The 00_INDEX
+RELATIONSHIP TO PRIOR SUITES block is the governing
+statement.
+
+P07's prose lint includes a banned-token list that
+mechanically enforces these exclusions.
+
+---
+
+END P04. Mode 3 ships. Proceed to P05 — REFUSAL PANEL.

@@ -1,7 +1,7 @@
 P01 — CHASSIS + ARGUMENT ONTOLOGY EXPLORER
 ===========================================
 
-Prerequisites: 00_INDEX of this suite; I01 (ExperienceHost,
+Prerequisites: I01 (ExperienceHost,
 ExperienceScaffold, mode/hostWidthPx/reducedMotion/announce);
 Prompts 07-09 for the PRP dossier content (must remain reachable
 via the EXPERIENCE/DOSSIER toggle).
@@ -123,7 +123,160 @@ Single zustand store. The full shape is defined in the INDEX
     a prior selection. Every mode must render usefully with
     selectedClaimId=null.
 
-A4. File: src/components/projects/purposeless-efficiency/Panel.tsx
+A4. File: src/styles/prp-prose.css (NEW)
+
+This is the shared prose-typography utility for the PRP panel. It is
+the concrete implementation of the commitment in 00_INDEX §"RELATIONSHIP
+TO I03" (lines 278–282) that the Galley's serif body treatment would
+survive into this suite. Without this file, the commitment is orphaned.
+
+Provenance: inherited verbatim (with minor adjustments noted below)
+from the retired 03_Interactive_Experiences/I03 §VISUAL LANGUAGE spec
+for the Galley. I03 authored the typographic decisions; the Galley
+container around them was superseded by this suite's richer modes.
+Only the typography is ported.
+
+CSS, verbatim (add to src/styles/prp-prose.css; import from
+globals.css or from PrpExperience.tsx as an unconditional side-effect
+import, NOT as a CSS Module):
+
+    /*
+      prp-prose.css
+      Serif-prose utility for the Purposeless Efficiency panel.
+      Ported from retired I03 §VISUAL LANGUAGE. The PRP panel is the
+      ONE place on the site where a serif typeface appears in body
+      copy; do NOT apply this utility outside the PRP experience, and
+      do NOT leak it into the spine, the tab bar, or the panel margin.
+    */
+
+    .prp-prose {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: var(--t-md-size);
+      line-height: 1.7;
+      max-width: 64ch;
+      hyphens: auto;
+      hanging-punctuation: first last;    /* honored by Safari; gracefully
+                                             ignored by Chromium/Firefox */
+      color: var(--fg);
+    }
+
+    /*
+      Drop cap: only on the first <p> of a SUBSTANTIAL prose passage.
+      Opt-in via the modifier class — do NOT apply it to short (1-3
+      sentence) claim statements or quadrant diagnoses; the drop cap
+      on a short paragraph looks ornamental, not functional. Use
+      .prp-prose--drop-cap only on bodies ≥ ~120 words.
+    */
+    .prp-prose--drop-cap > p:first-of-type::first-letter {
+      float: left;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 3.5em;
+      line-height: 0.85;
+      padding: 0.05em 0.08em 0 0;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    /*
+      Prose-level heading inside a .prp-prose block: small-caps
+      monospace. Used for "THE BOOK'S VIEW", "WHERE DEVELOPED",
+      "OBJECTION", etc. Matches I03 §VISUAL LANGUAGE line 213–214.
+    */
+    .prp-prose h4,
+    .prp-prose .prp-prose-heading {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fg-mute);
+      margin-top: 1.5em;
+      margin-bottom: 0.4em;
+    }
+
+    /*
+      Monospace note adjacent to a prose passage (annotation voice,
+      objection summary, etc). I03 §VISUAL LANGUAGE line 138–139
+      and 215.
+    */
+    .prp-prose .prp-prose-note {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--fg-dim);
+    }
+
+    /*
+      reduced-motion: if any consumer adds hover-driven underline
+      transitions to children of .prp-prose, suppress them here
+      centrally. No structural change.
+    */
+    @media (prefers-reduced-motion: reduce) {
+      .prp-prose a,
+      .prp-prose .prp-pinned {
+        transition: none;
+      }
+    }
+
+Adjustments from I03 (intentional):
+
+  - I03 line 208 specified a "paper" background (oklch(0.20 0.01 75))
+    for the Galley container. That was Galley-specific; in this suite
+    the PRP panel's own background (set by the accordion chassis per
+    Prompt 08 and globals.css) is retained, and the prose utility
+    applies only to the text, not the container. Porting the paper
+    background would conflict with the accordion's neutral surface and
+    re-introduce the exact ontological confusion the Galley's retirement
+    was meant to resolve.
+
+  - I03 used "--t-md" as the font-size token. This suite uses whatever
+    token `--t-md-size` resolves to in globals.css; if that token does
+    not exist, add it before shipping this CSS. Do not hard-code a px
+    value.
+
+  - `hanging-punctuation: first last` is a progressive enhancement; on
+    Chromium and Firefox the declaration is silently ignored. Do NOT
+    add a polyfill — the visual benefit on Safari is large and the cost
+    elsewhere is zero, which is the ideal browser-specific CSS posture
+    (I03 did not specify a polyfill either).
+
+Where this utility is applied (enumerate; do NOT apply site-wide):
+
+  - P01  ClaimCard body (apply .prp-prose; no drop cap).
+  - P02  QuadrantCell "the book's reasoning" paragraphs (apply
+         .prp-prose; no drop cap; 2-3 paragraphs).
+  - P03  DiamondCase reveal paragraphs (apply .prp-prose;
+         .prp-prose--drop-cap ONLY on reveal bodies ≥ ~120 words).
+  - P04  ObjectionResponse "book's response" essay (apply .prp-prose
+         + .prp-prose--drop-cap; this is the typical 200–500 word
+         response and is the canonical drop-cap site).
+  - P05  ThinkerCard biographical paragraphs (apply .prp-prose; no
+         drop cap — the card is a grid cell, the drop-cap competes
+         with the thinker's name).
+
+Where this utility is FORBIDDEN (the non-leak rule):
+
+  - Never on ModeTabBar, spine labels, panel margin, footer text,
+    lint output, or any monospace-native surface.
+  - Never as a global body style. It is a scoped utility.
+
+Bundle: the CSS file is ≤ 0.5KB gzip. Webfont loading for Source
+Serif 4 is out of scope for this prompt; the chassis is expected to
+use `font-display: optional` so that absence of the webfont falls back
+to Georgia without layout shift. If Source Serif 4 is not already
+loaded by Prompt 08's chassis, defer the webfont decision to P06 and
+ship with Georgia fallback in the meantime.
+
+Acceptance (added to §E):
+  [ ] src/styles/prp-prose.css exists and is imported exactly once
+      in the PRP experience bundle (not in globals.css site-wide).
+  [ ] .prp-prose applied in each of the five sites enumerated above.
+  [ ] .prp-prose--drop-cap applied ONLY in P03 reveals ≥ 120 words
+      and P04 ObjectionResponse essays.
+  [ ] No .prp-prose class anywhere outside the PRP experience
+      directory (grep ship-gate).
+
+A5. File: src/components/projects/purposeless-efficiency/Panel.tsx
          (MODIFICATION, not creation)
 
 Import ExperienceHost from I01 and mount:

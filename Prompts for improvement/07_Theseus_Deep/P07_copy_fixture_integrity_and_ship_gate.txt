@@ -1,0 +1,738 @@
+P07 — COPY, FIXTURE INTEGRITY, AND SHIP-GATE VERIFICATION
+===========================================================
+
+ROLE: You are implementing the final prompt of the 07 Theseus
+Deep suite. P07 is the ship-gate: every check that must pass
+for the Theseus experience to go live is defined here, every
+check is an automated test (not a visual review), and every
+failure here blocks the panel from entering the build.
+
+P07 does NOT add new UI. It does NOT add new fixtures. It
+lints the fixtures P02-P06 declared, it verifies that the
+verbatim excerpts in sources.ts are byte-identical to the
+source documents in /outputs/, it confirms the bundle budget
+partition sums to ≤80KB gzip per I01, and it enforces the
+cross-suite isolation rules the 00_INDEX declared (the
+RELATIONSHIP TO PRIOR SUITES block).
+
+This prompt mirrors the ship-gate prompts of the 04, 05, and
+06 suites in structure (04/P06, 05/P06, 06/P06). The
+invariants enforced are Theseus-specific, but the mechanism
+— build-time scripts plus a CI gate — is shared.
+
+Read P01 through P06 first. This prompt
+assumes all five modes are implemented and that fixtures,
+store slices, type guards, and sources.ts keys are in place.
+
+---
+
+§A — FILES CREATED BY P07
+
+Create the following new files:
+
+    scripts/theseus/
+        prose_lint.ts                     — prose-lint
+                                            enforcement (bans,
+                                            tone, length
+                                            caps).
+        verbatim_drift.ts                 — compares
+                                            sources.ts against
+                                            /outputs/ths01-
+                                            ths06.txt.
+        bundle_budget.ts                  — measures per-mode
+                                            and total gzipped
+                                            bundle size.
+        cross_suite_isolation.ts          — enforces banned-
+                                            token list from
+                                            04, 05, 06
+                                            suites.
+        ship_gate.ts                      — orchestrator;
+                                            returns exit 0
+                                            iff every check
+                                            passes.
+
+    src/lib/theseus/
+        shipGateAssertions.ts             — runtime
+                                            (module-init)
+                                            assertions
+                                            imported into the
+                                            bundle; kept tiny
+                                            so bundle cost is
+                                            <2KB gzip.
+
+    tests/theseus/
+        unresolved_presence.test.ts       — assertUnresolved
+                                            Present.
+        candid_frontier_uniqueness.test.ts — assertCandid
+                                            Frontier.
+        criterion_verbatim.test.ts        — byte-identical
+                                            test for the five
+                                            TH2 §4 excerpts.
+        nine_checks_structure.test.ts     — invariants on
+                                            PublicationCandidate
+                                            structure.
+        severity_fixture_distribution.test.ts — 2/1/1 split
+                                            test.
+        orders_deck_distribution.test.ts  — first/second/
+                                            third distribution
+                                            over cards.
+
+No other files are edited. The shipGateAssertions module is
+imported by each mode's index.tsx once at top of file so
+that in development the assertions run at mount and in
+production they run at first import and throw a visible
+error if any invariant fails.
+
+---
+
+§B — THE PROSE LINT
+
+scripts/theseus/prose_lint.ts walks every string field of
+every fixture (orders deck, thesis-axis fixtures, severity
+fixtures, publication candidates, criteria-on-self, candid
+anchors, the DOSSIER text in P01, the ModeTabBar labels,
+and any hard-coded authored prose in the five modes'
+components).
+
+Enforced rules:
+
+  B1. Sales-posture banned-token list:
+      - "our AI" / "our artificial intelligence"
+      - "breakthrough"
+      - "revolutionary"
+      - "state-of-the-art"
+      - "seamless"
+      - "empower" / "empowering"
+      - "cutting-edge"
+      - "decides what is true"
+      - "tells you the truth"
+      - "knows the answer"
+      Every instance in authored prose is a FAIL. The source
+      itself uses none of these. Rationale: the honest
+      posture is load-bearing (00_INDEX standing constraint
+      (b)) and sales vocabulary contaminates the mode that
+      most depends on restraint.
+
+  B2. LLM-presence-implying banned-token list:
+      - "chat with Theseus"
+      - "ask Theseus"
+      - "generate" (when a subject is not a pre-computed
+        fixture — context-sensitive check)
+      - "streaming"
+      - "live inference"
+      The 00_INDEX standing constraint (a) governs: no
+      runtime ML inference, and no UI language that implies
+      it. Fixture strings may describe what the PRODUCTION
+      software does (adversarial.py generates challenges);
+      they may not describe the EXPERIENCE as doing the
+      same thing live.
+
+  B3. Cross-suite vocabulary banned-token list. The 00_INDEX
+      RELATIONSHIP TO PRIOR SUITES block declares the
+      following terms off-limits inside ANY Theseus fixture
+      or component string:
+        05 (Hivemind strategic face):
+          "Nash-GT", "Porter-5F", "Christensen-DI",
+          "Drucker-MBO", "Kahneman-BE".
+        06 (Coherence Engine technical face):
+          "5-layer coherence engine" (Theseus has a SIX-
+            layer engine; this string would conflate the
+            two),
+          "CSreq",
+          "42-dim axis",
+          "42-dimensional axis",
+          "pitch-time coherence",
+          "contradiction-argumentation-embedding-compression-
+           structural" (the CE 5-layer sequence).
+        04 (Purposeless Efficiency):
+          Any proper noun unique to 04's fixture files
+          (scripts/theseus/cross_suite_isolation.ts reads
+          04/src/lib/purposelessEfficiency/*.ts at build
+          time and auto-generates the banned-list tail).
+      Any hit is a FAIL.
+
+  B4. Length caps. Per field:
+        - orders deck card.statement: ≤ 240 chars
+        - orders deck card.rationale: ≤ 420 chars
+        - orders deck card.consequenceIfMisclassified: ≤ 280
+        - thesis-axis fixture.thesisSentences[i]: ≤ 280
+        - thesis-axis fixture.reflectedSentences[i]: ≤ 320
+        - severity fixture.claim: ≤ 320
+        - severity fixture.proposedTest: ≤ 800
+        - severity alternative.statement: ≤ 320
+        - severity alternative.rationale: ≤ 420
+        - severity fixture.verdictRationale: ≤ 900
+        - publication candidate.title: ≤ 80
+        - publication candidate.oneLineSummary: ≤ 180
+        - check outcome.rationale: ≤ 520
+        - gate verdict rationale: ≤ 900
+        - layer outcome.rationale: ≤ 280
+        - criterion step.framingQuestion: ≤ 240
+        - criterion step.falsificationNote: ≤ 600
+        - criterion step.productionApparatus: ≤ 700
+        - candid anchor.whyItMatters: ≤ 600
+      Any overshoot is a FAIL.
+
+  B5. Required-token checks. Per mode:
+        - Severity mode: EVERY severity fixture's
+          verdictRationale must contain the substring
+          "plausible alternative" (TH2 §2.2 vocabulary).
+        - Refusal mode: EVERY publication candidate's
+          gateVerdictRationale must mention either
+          "nine" / "9" (check count) or "rigor gate" or
+          "UNRESOLVED" (verdict state).
+        - Fixed-Point mode: EVERY criterion step's source
+          Excerpt must start with the criterion's
+          framing sentence pattern ("Progressive? Yes.",
+          "Severe? Yes.", "Coherent with aims? Yes.",
+          "Compressible? Yes.", "Domain-sensitive? Yes.");
+          this is a prefix check against TH2 §4.
+
+  B6. Honest-posture integrity (moved here from scattered
+      per-mode acceptance): exactly three "honest-posture
+      first-sentence anchor" strings exist across the
+      entire Theseus experience, each appearing verbatim
+      only inside the CandidFrontier mode surface:
+        1. "The meta-method is not certainty."
+        2. "The meta-method is not neutrality."
+        3. "Nothing in the five criteria guarantees that a
+           method applied to a new problem will succeed."
+      The prose lint runs a full-file scan of every file
+      under src/components/panels/theseus/ and
+      src/lib/theseus/ and counts matches for each anchor.
+      Each must be exactly 2 (heading + first-sentence of
+      blockquote, both inside CandidFrontier — see P06 §E
+      for why the duplication is expected) OR exactly 1
+      (if the blockquote renders the fullExcerpt without
+      the leading sentence repeating). The implementer
+      MUST pick ONE of those two conventions for the full
+      excerpt rendering and document it; either is
+      acceptable; deviation is a FAIL.
+
+The prose_lint.ts script runs as both a build-time script
+(ship gate) and a lightweight check invoked by the test
+suite (so failures surface in the test log, not just at
+deploy time).
+
+---
+
+§C — VERBATIM DRIFT
+
+scripts/theseus/verbatim_drift.ts reads every value in
+src/lib/theseus/sources.ts and compares it BYTE-FOR-BYTE
+against the matching substring in the corresponding extracted
+source text file in /outputs/. The mapping:
+
+    TH1_*   →  /outputs/ths01_orientation.txt
+    TH2_*   →  /outputs/ths02_meta_method.txt
+    TH3_*   →  /outputs/ths03_research.txt
+    TH4_*   →  /outputs/ths04_architecture.txt
+    TH5_*   →  /outputs/ths05_pipeline.txt
+    TH6_*   →  /outputs/ths06_seven_projects.txt
+
+For each key, the script:
+  1. Normalizes both strings: collapses internal whitespace,
+     standardizes straight vs. curly quotes (PDF extraction
+     commonly produces curly quotes; sources.ts uses
+     straight quotes for code-friendliness; the normalizer
+     maps between the two one-to-one), and strips trailing
+     whitespace per line.
+  2. Confirms the key's value appears as a contiguous
+     substring of the normalized source file.
+  3. Emits a clear diff on failure with line numbers in
+     the source file so the drift can be resolved quickly.
+
+Keys that MUST be verbatim-drift-tested (complete list
+across P01-P06):
+
+    From P01 (chassis / DOSSIER):
+      TH2_SEC_3_UNIFYING_PRINCIPLE
+        — the "a method is reliable to the extent that it
+          would detect its own failure" sentence printed
+          verbatim inside the DOSSIER paragraph (P01 §E2)
+          and re-used as the opening screen of Mode 5.
+          Because the DOSSIER is a chassis deliverable,
+          this key is declared at chassis time (P01 §E6),
+          not by any mode prompt.
+
+    From P02 (Three Orders Sorter):
+      TH1_SEC_2_ORDER_1
+      TH1_SEC_2_ORDER_2
+      TH1_SEC_2_ORDER_3
+      TH1_SEC_2_POSITION
+        — the four TH1 §2 definitional excerpts declared
+          and used by Mode 1's OrderReveal panels and the
+          capstone (P02 §I).
+
+    From P03:
+      TH3_SEC_5_HOUSEHOLDER_DEF
+      TH3_SEC_5_1_WHY_REFLECTION
+      TH3_SEC_5_2_HYPOTHESIS
+
+    From P04:
+      TH2_SEC_2_2_SEVERITY_STATEMENT
+      TH2_SEC_2_2_SEVERITY_OP_TEST
+      TH4_SEC_2_4_COUNTERFACTUAL_REPLAY
+      TH5_SEC_8_ADVERSARIAL_TARGETS
+
+    From P05:
+      TH5_SEC_12_NINE_CHECKS
+      TH5_SEC_12_HUNDRED_PERCENT_ANCHOR
+      TH4_SEC_2_3_UNRESOLVED_DISCIPLINE
+      TH5_SEC_10_PEER_REVIEW
+
+    From P06:
+      TH2_SEC_4_PROGRESSIVE
+      TH2_SEC_4_SEVERE
+      TH2_SEC_4_COHERENT
+      TH2_SEC_4_COMPRESSIBLE
+      TH2_SEC_4_DOMAIN_SENSITIVE
+      TH2_SEC_4_FIXED_POINT_STATEMENT
+      TH2_SEC_4_DEEPEST_CLAIM
+      TH2_SEC_6_NOT_CERTAINTY
+      TH2_SEC_6_NOT_NEUTRALITY
+      TH2_SEC_6_NFL_GUARANTEES_OPPOSITE
+
+A missing key is a FAIL. A drifted key is a FAIL. Sources.ts
+extra keys that have no /outputs/ mapping are a warning, not
+a fail (a caller may add supplementary anchors for internal
+use; they must still be source-grounded but need not be
+TH-keyed).
+
+---
+
+§D — BUNDLE BUDGET
+
+scripts/theseus/bundle_budget.ts runs after the production
+build and measures the gzipped byte size contributed by the
+Theseus panel experience. Per-mode partition:
+
+    Mode 1 (Three Orders Sorter):           ≤ 14KB gzip
+    Mode 2 (Reflection Lab):                ≤ 20KB gzip
+      — carries the authored SVG projection
+        fixtures and the KaTeX-SSR Householder formula.
+    Mode 3 (Severity Gauntlet):             ≤ 18KB gzip
+    Mode 4 (Refusal Panel):                 ≤ 20KB gzip
+      — carries the 9-check pipeline + 6-layer aggregator +
+        override modal.
+    Mode 5 (Fixed-Point Auditor):           ≤ 14KB gzip
+    Chassis (Panel.tsx, TheseusExperience,
+             ModeTabBar, Dossier, store,
+             typeGuards, sources, shared):  ≤ 8KB gzip
+    shipGateAssertions.ts                   ≤ 2KB gzip
+
+    TOTAL                                   ≤ 96KB gzip
+    HARD CEILING (I01 budget)               ≤ 80KB gzip
+
+The sum of the per-mode partitions is 96KB, which exceeds
+the I01 ceiling. This is INTENTIONAL: it gives each mode a
+pessimistic partition while the total still has to clear
+80KB. The discipline is:
+  - If the total exceeds 80KB gzip, the ship gate fails.
+  - If any single mode exceeds its partition, the ship gate
+    fails even if the total is under 80KB. The reason:
+    violating a per-mode partition signals that mode has
+    become unexpectedly heavy (e.g., an animation library
+    leaked in), which will compound in later revisions.
+  - If the total is under 80KB but a mode has exceeded its
+    partition by ≤10%, the ship gate emits a WARNING and
+    the implementer may elect to rebalance partitions
+    (update the per-mode caps in bundle_budget.ts with
+    committed justification) rather than cutting features.
+    Rebalances are allowed at most once per quarter; P07's
+    git-log check enforces the cadence.
+
+The measurement methodology:
+  - Each mode's partition is measured by the size of the
+    Webpack/Turbopack chunk that contains its index.tsx
+    transitive closure, gzipped with level 9.
+  - Shared code (TheseusExperience, the store, shared
+    fixtures from sources.ts beyond the mode's direct
+    needs) is attributed to the chassis, not to individual
+    modes.
+  - Third-party dependencies (framer-motion, zustand) are
+    attributed to their shared chunk; the Theseus bundle
+    measurement is net-of-shared-dep.
+  - KaTeX is NOT included at runtime; the Householder
+    formula is server-rendered to static HTML at build
+    time and embedded as a string. KaTeX's runtime bytes
+    must equal zero in the panel measurement; the script
+    asserts this explicitly.
+
+---
+
+§E — CROSS-SUITE ISOLATION
+
+scripts/theseus/cross_suite_isolation.ts enforces the
+RELATIONSHIP TO PRIOR SUITES constraints from 00_INDEX. It
+is a companion to the prose lint's B3 check but runs at a
+wider scope:
+
+  E1. Imports discipline. No file under
+      src/components/panels/theseus/ or src/lib/theseus/
+      imports anything from src/components/panels/hivemind/
+      (CE / Hivemind suites), src/components/panels/
+      purposelessEfficiency/, src/lib/purposelessEfficiency/,
+      src/lib/hivemind/, or src/lib/coherenceEngine/. The
+      Theseus panel stands alone. A cross-import is a FAIL.
+
+  E2. Store discipline. The theseusExperience zustand store
+      MUST NOT read from or write to any other suite's
+      store. The check walks the store definition and
+      its action bodies for any forbidden imports.
+
+  E3. Terminology drift between the six-layer engine (TH4
+      §2.3) and the five-layer Coherence Engine (06 suite).
+      The script searches for the pattern "five-layer" or
+      "5-layer" anywhere in Theseus fixture prose EXCEPT:
+        - Fixed-Point Auditor's whyItMatters fields may
+          mention "five criteria" freely (the TH2 §3
+          reduction).
+        - The string "five criteria" is allowed everywhere;
+          the string "five-layer engine" / "5-layer
+          coherence engine" is forbidden.
+      The detection is a regex with a context-sensitive
+      exclusion list, tested against the P01-P06 authored
+      prose.
+
+  E4. Quintin Hypothesis discipline. The TH3 Quintin
+      Hypothesis (geometric detectability of coherence
+      predicting outcomes) is a distinct object from the
+      CE1 §8 Quintin Hypothesis (pitch-time coherence
+      predicting durability). The Theseus fixtures may
+      reference the TH3 Quintin Hypothesis by name ONLY
+      inside Mode 2 (Reflection Lab) fixtures and ONLY in
+      contexts where TH3 §5.2 is the cited source. Any
+      other mention is a FAIL.
+
+---
+
+§F — TEST FILES
+
+tests/theseus/unresolved_presence.test.ts :
+
+    test("UNRESOLVED verdict renders in exactly one " +
+         "PublicationCandidate fixture", () => {
+      const candidates = require("...publicationCandidates");
+      const matches = candidates.ALL.filter(
+        (c: any) =>
+          c.sixLayerAggregator.aggregatorVerdict ===
+          "unresolved"
+      );
+      expect(matches).toHaveLength(1);
+      expect(matches[0].id).toBe("f4_refuse_unresolved");
+    });
+
+tests/theseus/candid_frontier_uniqueness.test.ts :
+
+    test("honest-posture first-sentence anchors appear " +
+         "verbatim only inside CandidFrontier", () => {
+      // Read every .tsx / .ts file under
+      // src/components/panels/theseus/ and src/lib/theseus/
+      // except candidFrontier.ts itself + CandidFrontier.tsx.
+      // Scan concatenated content for each anchor.
+      const anchors = [
+        "The meta-method is not certainty.",
+        "The meta-method is not neutrality.",
+        "Nothing in the five criteria guarantees that a " +
+          "method applied to a new problem will succeed."
+      ];
+      for (const a of anchors) {
+        expect(otherFilesContent.includes(a)).toBe(false);
+      }
+      // And each anchor appears in the Candid Frontier
+      // files at least once (heading) and at most twice
+      // (heading + blockquote-first-sentence).
+      for (const a of anchors) {
+        const n = countOccurrences(candidFrontierFiles, a);
+        expect(n).toBeGreaterThanOrEqual(1);
+        expect(n).toBeLessThanOrEqual(2);
+      }
+    });
+
+tests/theseus/criterion_verbatim.test.ts :
+
+    test("the five TH2 §4 criterion excerpts are byte-" +
+         "identical to /outputs/ths02_meta_method.txt",
+         async () => {
+      const src = await fs.readFile(
+        "/outputs/ths02_meta_method.txt", "utf8"
+      );
+      const normalized = normalize(src);
+      const keys = [
+        "TH2_SEC_4_PROGRESSIVE",
+        "TH2_SEC_4_SEVERE",
+        "TH2_SEC_4_COHERENT",
+        "TH2_SEC_4_COMPRESSIBLE",
+        "TH2_SEC_4_DOMAIN_SENSITIVE",
+        "TH2_SEC_4_FIXED_POINT_STATEMENT",
+        "TH2_SEC_4_DEEPEST_CLAIM"
+      ];
+      for (const key of keys) {
+        expect(normalized).toContain(
+          normalize(sourcesMap[key])
+        );
+      }
+    });
+
+tests/theseus/nine_checks_structure.test.ts :
+
+    test("every PublicationCandidate has exactly 9 check" +
+         "Outcomes with unique CheckIds from TH5 §12",
+         () => {
+      const candidates = require("...publicationCandidates");
+      const expectedIds = new Set([
+        "provenance","calibrated_confidence","peer_review",
+        "freshness","adversarial_status","cascade_soundness",
+        "method_signatures","publication_conditions",
+        "corpus_hash"
+      ]);
+      for (const c of candidates.ALL) {
+        expect(c.checkOutcomes).toHaveLength(9);
+        const ids = new Set(
+          c.checkOutcomes.map((x: any) => x.id)
+        );
+        expect(ids).toEqual(expectedIds);
+      }
+    });
+
+tests/theseus/severity_fixture_distribution.test.ts :
+
+    test("severity fixtures: 2 severe + 1 non-severe + 1 " +
+         "partially-severe (00_INDEX MODE 3 spec)", () => {
+      const severities = require("...severityFixtures");
+      const verdicts = severities.ALL.map(
+        (f: any) => f.canonicalVerdict
+      );
+      const tally = verdicts.reduce(
+        (acc: any, v: any) =>
+          ({...acc, [v]: (acc[v] ?? 0) + 1}),
+        {}
+      );
+      expect(tally).toEqual({
+        "severe": 2,
+        "non-severe": 1,
+        "partially-severe": 1
+      });
+    });
+
+tests/theseus/orders_deck_distribution.test.ts :
+
+    test("orders deck: at least 3 first-order, at least 3 " +
+         "second-order, at least 3 third-order, exactly 1 " +
+         "capstone (00_INDEX MODE 1 spec, 10-12 cards " +
+         "total)", () => {
+      const deck = require("...ordersDeck").ALL;
+      expect(deck.length).toBeGreaterThanOrEqual(10);
+      expect(deck.length).toBeLessThanOrEqual(12);
+      const byOrder = { first: 0, second: 0, third: 0,
+                        capstone: 0 };
+      for (const card of deck) {
+        if (card.kind === "capstone") byOrder.capstone++;
+        else byOrder[card.canonicalOrder]++;
+      }
+      expect(byOrder.capstone).toBe(1);
+      expect(byOrder.first).toBeGreaterThanOrEqual(3);
+      expect(byOrder.second).toBeGreaterThanOrEqual(3);
+      expect(byOrder.third).toBeGreaterThanOrEqual(3);
+    });
+
+All tests must pass on every CI run. A failing test blocks
+the merge.
+
+---
+
+§G — SHIP GATE ORCHESTRATOR
+
+scripts/theseus/ship_gate.ts runs the following in order
+and exits non-zero on any failure:
+
+    1. prose_lint.ts
+    2. verbatim_drift.ts
+    3. cross_suite_isolation.ts
+    4. (pnpm) build (production)
+    5. bundle_budget.ts   (against the build output)
+    6. (pnpm) test          tests/theseus/*
+
+The CI workflow invokes ship_gate.ts as a single command
+and surfaces its exit code. A 0 exit is the ONLY ship
+condition. No manual override is available. (The firm's
+own posture — TH5 §12's override discipline — is for
+production rigor gate overrides on conclusions the firm
+publishes, not for process-integrity overrides on the
+panel that teaches the concept. Overriding P07's ship gate
+would undermine the mode's own teaching.)
+
+---
+
+§H — A11Y BUDGETS
+
+Across all five modes, the following a11y invariants hold:
+
+  H1. Every interactive element reachable by Tab.
+  H2. ESC closes any open modal / drawer; at rest, ESC is a
+      no-op (never hijacks the user's keyboard).
+  H3. aria-live announcements fire for mode change, card
+      flip (Mode 1), axis selection (Mode 2), verdict
+      reveal (Modes 3-4), override modal open/close and
+      ledger append (Mode 4), criterion-step advance
+      (Mode 5), Candid Frontier anchor first-focus
+      (Mode 5). Announcements are polite; no assertive
+      interruptions.
+  H4. Color is never load-bearing. Every verdict tile
+      pairs color with a glyph and text label. Every
+      segmented-control button has a visual state
+      distinguishable without color.
+  H5. Focus visible at 2px outline, contrast ≥ 3:1 against
+      every background surface.
+  H6. All prose passes contrast ≥ 4.5:1.
+  H7. reducedMotion governed by prefers-reduced-motion;
+      opacity-only transitions throughout when "reduce"
+      is set; every mode's acceptance specifies its
+      reducedMotion behavior (P02 §G, P03 §G, P04 §G,
+      P05 §G, P06 §H).
+
+ci tooling: axe-core on every mode's storybook story;
+keyboard-walk test that tabs through every control on a
+headless browser and asserts that the expected elements
+are focused in the expected order.
+
+---
+
+§I — PANEL MOUNTING (FINAL)
+
+The Theseus experience is mounted INSIDE the THS accordion
+panel (00_INDEX PANEL DISPOSITION). P07 confirms:
+
+  I1. src/components/panels/theseus/Panel.tsx exists and
+      is rendered by the accordion's open handler for the
+      THS panel id.
+  I2. The TheseusTeaser (src/components/panels/
+      TheseusTeaser.tsx) remains the collapsed-state
+      summary and is NOT modified.
+  I3. Pre-existing src/components/projects/theseus/ files
+      (PrinciplesList, PrincipleGraph, NoosphereConsole,
+      ExportPrinciples) are NOT modified by this suite.
+      If any are still live, they continue to render.
+  I4. src/lib/panels.ts is NOT modified; the THS panel id
+      still points to the same handler shape and no new
+      panel is added.
+  I5. The ExperienceHost / ExperienceScaffold from I01
+      govern the panel's prop contract.
+
+ci tooling: a storybook story that mounts Panel.tsx at
+each of the four I01 viewport thresholds (NARROW 360,
+STANDARD 800, WIDE 1100, XWIDE 1440) and asserts no
+horizontal scroll, no clipping, no console errors or
+warnings.
+
+---
+
+§J — FINAL SHIP CHECKLIST
+
+This is the complete list. Every item is an automated
+check; none requires subjective review. Ship when all pass.
+
+  [ ] prose_lint.ts: 0 violations across fixtures and
+      authored component strings.
+  [ ] verbatim_drift.ts: every TH-keyed sources.ts value is
+      byte-identical (after normalization) to the matching
+      /outputs/ths0*.txt substring.
+  [ ] cross_suite_isolation.ts: no forbidden imports, no
+      forbidden tokens, the six-layer vs five-layer
+      distinction is preserved.
+  [ ] bundle_budget.ts: per-mode partitions all clear;
+      total Theseus experience ≤ 80KB gzip.
+  [ ] tests/theseus/ all pass:
+        unresolved_presence.test.ts
+        candid_frontier_uniqueness.test.ts
+        criterion_verbatim.test.ts
+        nine_checks_structure.test.ts
+        severity_fixture_distribution.test.ts
+        orders_deck_distribution.test.ts
+  [ ] axe-core: no violations across any mode.
+  [ ] keyboard-walk test: every mode's Tab order matches
+      the expected sequence.
+  [ ] Storybook viewport stories: no horizontal scroll at
+      360px; no clipping at any of the four I01 widths.
+  [ ] No runtime ML inference: bundle contains zero
+      SBERT/DeBERTa/Whisper/spaCy/KaTeX-runtime bytes as
+      active code paths; a string-grep test on the built
+      bundle confirms.
+  [ ] No API keys, no network calls from the Theseus
+      bundle to any external service. A CSP test rejects
+      any outbound fetch originating from the panel's
+      code.
+  [ ] The Panel.tsx DOSSIER paragraph renders unchanged
+      when EXPERIENCE <-> DOSSIER toggles; the I01
+      integration test asserts this.
+  [ ] The ModeTabBar shows five tabs with the authored
+      labels at every viewport; P01's tab-label
+      responsiveness table is the invariant.
+
+The ship gate runs on every pull request that touches
+src/components/panels/theseus/, src/lib/theseus/,
+src/stores/theseusExperience.ts, or
+scripts/theseus/. Without a clean ship-gate run, the PR
+cannot merge.
+
+---
+
+§K — POST-SHIP MONITORING (OUT OF SCOPE NOTES)
+
+P07 does not specify runtime monitoring. For the record
+(not enforced by the ship gate):
+
+  K1. The Theseus panel has no live data dependencies. It
+      neither fetches nor writes anything at runtime. Error
+      budgets are therefore build-time only.
+  K2. The authored fixtures are frozen at module init.
+      Drift in the fixtures between deploys is caught by
+      snapshot tests in tests/theseus/ and by the prose
+      lint.
+  K3. Any update to the six Theseus Guides (ths01-ths06
+      PDFs; the six TH documents) triggers a verbatim-
+      drift failure in CI, forcing a re-synchronization
+      of sources.ts against the new /outputs/ extractions.
+      This is by design: the panel is a mirror of the
+      source, and source drift should not silently become
+      panel drift.
+
+---
+
+§L — END-STATE RESTATEMENT
+
+When P07 passes, the Theseus Deep experience ships. Its
+user-facing surface is:
+
+  - A single collapsed teaser card (unchanged from before
+    this suite): the existing TheseusTeaser.tsx.
+  - On accordion-open: a five-mode experience, in this
+    order:
+      Mode 1 — Three Orders Sorter (default).
+      Mode 2 — Reflection Lab.
+      Mode 3 — Severity Gauntlet.
+      Mode 4 — The Refusal Panel.
+      Mode 5 — Fixed-Point Auditor (capstone).
+  - Each mode is source-faithful (every verbatim excerpt
+    checked byte-for-byte), interactive but not generative
+    (all fixtures are authored; no runtime ML), and
+    honest-posture-preserving (the three TH2 §6 anchors
+    carry the closing weight).
+  - The entire experience is ≤ 80KB gzip.
+  - No runtime network calls, no API keys, no model
+    weights, no LLM.
+
+The suite's implicit message to the visitor — and the one
+the ship gate exists to protect — is the message TH2 §4
+closes with: the firm's method can evaluate itself and
+survive the evaluation; what the method guarantees is not
+success but visible failure; what it does not guarantee
+(NFL) is everything else. That message is the content;
+P07 is the machinery that keeps the content intact through
+the build pipeline.
+
+---
+
+END P07. Suite complete. The Theseus accordion panel is
+ready to mount.

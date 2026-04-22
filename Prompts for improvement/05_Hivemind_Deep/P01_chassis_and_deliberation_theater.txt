@@ -1,0 +1,648 @@
+P01 — CHASSIS + DELIBERATION THEATER
+=====================================
+
+Prerequisites: I01 (ExperienceHost,
+ExperienceScaffold, mode/hostWidthPx/reducedMotion/announce);
+existing HVM dossier content that must remain reachable via the
+EXPERIENCE/DOSSIER toggle.
+
+This prompt does two things. First, it lays the chassis for the
+Hivemind experience (top-strip mode switcher, shared state store,
+viewport-responsive shell, glossary portal outlet if we later
+mount one). Second, it delivers the DELIBERATION THEATER — the
+load-bearing mode that shows a full Hivemind run end-to-end on
+an authored strategic problem.
+
+
+----------------------------------------------------------------------
+PART A — THE CHASSIS
+----------------------------------------------------------------------
+
+A1. File: src/components/projects/hivemind/Experience/
+         HivemindExperience.tsx
+
+Root component mounted by ExperienceHost when the HVM accordion
+is expanded and EXPERIENCE is the active toggle side. Responsible
+for:
+
+  - Reading hostWidthPx and selecting a layout regime.
+  - Rendering ModeTabBar at the top.
+  - Rendering the active mode body.
+  - Keyboard: arrow keys between tabs when focus is on tab bar;
+    ESC returns focus to the tab bar from any mode's interior.
+  - Calling announce(...) on mode changes.
+
+Layout regimes (derived strictly from hostWidthPx):
+
+  NARROW   hostWidthPx < 640
+      Mode tabs are a horizontal scrolling strip.
+      Mode body is single-column. Any "stage + strip" layout
+      stacks. The Theater's playback controls collapse to a
+      bottom bar.
+
+  STANDARD 640 <= hostWidthPx < 960
+      Full tab labels with numerals (e.g., "1 · DELIBERATION").
+      Mode body may split into two regions.
+
+  WIDE     hostWidthPx >= 960
+      Full tabs, three-region layouts allowed (Theater has one:
+      agent strip / stage / panels).
+
+When mode="route" (standalone page), the chassis renders WIDE
+with larger type scale and a persistent breadcrumb above the
+tab bar ("HIVEMIND / DELIBERATION THEATER").
+
+A2. File: src/components/projects/hivemind/Experience/ModeTabBar.tsx
+
+Five tabs in canonical order:
+
+    1  DELIBERATION
+    2  KNOBS
+    3  FOUR FAILURES
+    4  PIPELINE
+    5  AUDIT
+
+Same a11y contract as 04's ModeTabBar: role="tablist" containing
+role="tab" buttons with aria-selected, aria-controls, unique ids.
+Arrow keys move focus; Enter/Space activates. DOM order is the
+canonical order above, never reordered.
+
+Visual: mono numeral + serif name. Active tab has a 1px underline
+in --accent. NARROW tab bar uses scroll-snap.
+
+A3. File: src/stores/hivemindExperience.ts
+
+Single zustand store; full shape in INDEX. Notes for P01:
+
+  - mode defaults to "theater".
+  - theater slice contains all playback state (see PART C).
+  - openInMode(target, refId): central cross-mode routing. Refs
+    for "theater" are event-ids; for "knobs" they are tuple
+    names; for "failures" they are failure-ids; for "pipeline"
+    they are stage-ids; for "audit" they are event-ids (same
+    format as theater refs, sharing a corpus).
+
+A4. File: src/components/projects/hivemind/Panel.tsx (MODIFICATION)
+
+Mount ExperienceHost:
+
+    <ExperienceHost
+        projectId="hvm"
+        experience={<HivemindExperience />}
+        dossier={<ExistingDossierContent />}
+        defaultSide="experience"
+    />
+
+Preserve every byte of existing dossier content. The
+EXPERIENCE/DOSSIER toggle from I01 switches visible side. User's
+preference is recorded in sessionStorage under "hvm.side";
+localStorage is not used.
+
+
+----------------------------------------------------------------------
+PART B — THE DELIBERATION THEATER
+----------------------------------------------------------------------
+
+B1. What the user sees, in plain description.
+
+The mode opens on a stage arrangement with three regions at WIDE:
+
+    LEFT STRIP (18% width, min 120px)
+        AgentStrip. A vertical list of the theory-network agents
+        participating in this replay. Each agent is a compact
+        card showing:
+          - Agent name (serif). v1 uses five authored shorthand
+            names, one per strategic school named in Guide II §1:
+            "Nash-GT" (Nash's game theory), "Porter-5F" (Porter's
+            five forces), "Christensen-DI" (Christensen's
+            disruption — the school actually named in Guide II,
+            not jobs-to-be-done), "Drucker-MBO" (Drucker's
+            management-by-objectives), "Kahneman-BE" (Kahneman's
+            behavioral economics). These shorthands are authored
+            display labels; the authoritative school names are
+            what the lint (P06 L09) enforces in the expanded
+            agent card's "framework" field.
+          - Analytical framework tag (mono, 11px).
+          - A status dot: IDLE / PROPOSING / CRITIQUING / REVISING.
+          - A compact round counter (R0 for initial, R1/R2/... for
+            revisions).
+        At NARROW, the strip becomes a horizontal scroll at the
+        top of the body.
+
+    CENTER STAGE (62%, WIDE only)
+        TheaterStage. The scrollable transcript of the
+        deliberation. Each event renders as a TranscriptLine:
+          - event type badge (PROPOSAL, CRITIQUE, REVISION,
+            CLUSTER-FORMED, PRACTICALITY-SCORE, VETO, PASS,
+            OUTPUT)
+          - agent attribution (from agent strip)
+          - body text (authored; no LLM at runtime)
+          - round number
+        New lines append during playback. When paused, user can
+        scroll the transcript freely; resuming playback auto-
+        scrolls to tail if the user is within 40px of the bottom,
+        otherwise the scroll position is preserved and a small
+        "JUMP TO PRESENT" pill appears.
+
+    RIGHT STRIP (20%)
+        Two stacked panels:
+
+        MonitorPanel (top). Shows the Monitor's running state:
+          - Number of solutions proposed this round.
+          - Number of unique clusters after latest aggregation.
+          - Sufficiency value set for this run.
+          - Sufficiency bar: cluster count vs. sufficiency
+            value, with halting threshold marked.
+          - Similarity-threshold indicator (display-only; set by
+            the firm per Guide II §5).
+
+        PracticalityPanel (bottom). Shows the practicality
+        network's state. Before the theory loop halts, this
+        panel is dim (not yet invoked). After halt, panel
+        populates with:
+          - Per-constraint agent scores (0-100) for each
+            clustered solution. Constraint agents are: LEGAL,
+            REGULATORY, FINANCIAL, OPERATIONAL, REPUTATIONAL
+            (enterprise tier; individual tier would switch to
+            SOCIAL/OCCUPATIONAL/REPUTATIONAL per Guide II, but
+            v1 ships enterprise tier for the replay).
+          - Average score.
+          - Feasibility value set for this run.
+          - VETOED or PASSED verdict.
+
+At STANDARD, the MonitorPanel and PracticalityPanel stack below
+the stage; the AgentStrip becomes collapsible.
+
+At NARROW, AgentStrip is a horizontal strip at the top; the stage
+is the body; the two panels stack below the stage as expandable
+accordions.
+
+Below the stage, a PlaybackControls strip, always visible:
+
+    [<<]  [<]  [ PLAY / PAUSE ]  [>]  [>>]    0:42 / 2:14
+          step back  step forward  jump to end                 speed: [1x] [2x] [4x]
+
+B2. What the user controls.
+
+The Theater is a REPLAY of a canned run. The user can:
+
+  - Play / pause.
+  - Step forward one event ([>]) or back one event ([<]).
+  - Jump to the end ([>>]) to see the final output.
+  - Jump to the start ([<<]) to restart.
+  - Change playback speed (1x default; 2x and 4x).
+  - Click an event in the transcript to jump to that event.
+  - Click an agent in the strip to filter the transcript to
+    only that agent's events (plus its received critiques).
+    Clicking the filtered agent again clears the filter.
+  - Change the SUFFICIENCY slider at the top of MonitorPanel —
+    BUT ONLY BETWEEN RUNS. During playback the slider is
+    disabled. To change sufficiency, the user must Reset the
+    theater (resets to start, new slider value persists).
+    Changing sufficiency swaps to an alternate pre-authored
+    run from the fixture that used that sufficiency value.
+    The fixture carries runs for sufficiency ∈ {1, 2, 3, 4}.
+  - Similarly, a FEASIBILITY slider changes to a run fixture
+    for feasibility ∈ {40, 55, 70, 85}. Changing feasibility
+    may switch the run from PASS to VETOED, illustrating the
+    restart mechanism.
+
+The theory-network-density knob is NOT surfaced in the Theater
+(because changing it would require re-slicing the KB, which the
+replay does not simulate). Density is surfaced in the Knob Bench
+mode (P02).
+
+Single-density constraint. The Theater's 16-run fixture (4×4 of
+sufficiency×feasibility) is authored at density=1200 only. This
+is why the P02 Knob Bench's SEND TO THEATER button is enabled
+only when the bench is also at density=1200: the Theater simply
+has no run to switch to at other densities. If a future revision
+authors density-variant theater runs, P02's gating can be
+relaxed accordingly.
+
+B3. What the user CANNOT do.
+
+  - Type a prompt. The replay runs on a fixed authored problem
+    (see B4). A "try your own question" path would require a
+    live LLM, which is banned in this panel (see INDEX).
+  - Edit agent behavior. The personas are fixed in the fixture.
+  - Modify the knowledge base. That flow is in P04 Pipeline.
+  - Export the audit trail from the Theater. That is the
+    Audit Artifact mode's job (P05).
+
+This is a pedagogical constraint, not a technical one. Letting
+the user think they "ran Hivemind" from the panel would conflict
+with the honesty posture.
+
+B4. The authored problem.
+
+The replay runs on a single authored strategic problem chosen
+because it is vivid, non-sensitive, and stresses multiple theory
+frameworks. Authored by Michael.
+
+Default problem (placeholder until author approval):
+
+    "A $2B regional grocer is deciding whether to respond to
+     a national discount entrant by (a) matching price aggressively,
+     (b) doubling down on private-label quality and local sourcing,
+     or (c) acquiring two local competitors to raise store density.
+     Which path maximizes long-term profit without exposing the
+     firm to fatal cash-flow risk over the next four quarters?"
+
+This problem intentionally invites the five schools of thought
+named in Guide II §1: Porter's five forces for competitive
+positioning, Christensen's disruption for the national-entrant
+threat analysis, Nash's game theory for competitor response
+modeling, Drucker's management-by-objectives for execution, and
+Kahneman's behavioral economics for consumer response. The fixture
+carries:
+
+  - Five theory agents (one per framework).
+  - A single initial round of proposals (one per agent).
+  - Two debate rounds (critique + revise).
+  - Monitor aggregation at each round, producing clusters.
+  - Practicality scoring after halt.
+  - A combined final output with all surviving clusters and
+    their preserved per-framework rationales.
+
+The default run uses sufficiency=3, feasibility=55, density
+implicit-at-fixture. Alternate runs (sufficiency ∈ {1,2,4};
+feasibility ∈ {40,70,85}) are authored as separate fixture
+branches; they differ only in where the theory loop halts and
+whether the practicality network vetos.
+
+
+----------------------------------------------------------------------
+PART C — FILES, COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+C1. src/components/projects/hivemind/Experience/DeliberationTheater/
+
+    TheaterStage.tsx
+        Props:
+            events: TranscriptEvent[];
+            cursor: number;                // index of last rendered event
+            filterAgentId: string | null;
+            onSeek(index: number): void;
+            reducedMotion: boolean;
+        Behavior:
+            - Renders events[0 .. cursor] as <ol> of TranscriptLine.
+            - If filterAgentId is set, renders only events where
+              event.speakerId === filterAgentId OR event
+              references that agent as a critique target.
+            - Auto-scroll behavior as described in B1.
+
+    TranscriptLine.tsx
+        Props:
+            event: TranscriptEvent;
+            agent: TheoryAgent | null;
+            isActive: boolean;             // is this the current cursor?
+            onJumpTo(): void;
+        Render:
+            Event-type badge (uppercase mono); agent name and
+            framework tag; round numeral; body text (serif). The
+            active cursor line has a 1px left border in --accent.
+
+    AgentStrip.tsx
+        Props:
+            agents: TheoryAgent[];
+            statuses: Record<string, AgentStatus>;
+            filterAgentId: string | null;
+            onFilter(id: string | null): void;
+            onOpenAgent(id: string): void;
+
+    MonitorPanel.tsx
+        Props:
+            clusters: ClusterSnapshot[];       // current state
+            sufficiencyValue: number;
+            onChangeSufficiency(v: number): void;
+            isPlaying: boolean;                // disables slider
+            similarityThresholdLabel: string;  // display-only
+
+    PracticalityPanel.tsx
+        Props:
+            enabled: boolean;                   // after theory halt
+            scores: PracticalityScore[];
+            feasibilityValue: number;
+            onChangeFeasibility(v: number): void;
+            verdict: "VETOED" | "PASSED" | null;
+
+    PlaybackControls.tsx
+        Props:
+            state: "idle" | "playing" | "paused" | "ended";
+            currentTimeSec: number;
+            totalTimeSec: number;
+            speed: 1 | 2 | 4;
+            onPlay(): void;
+            onPause(): void;
+            onStepForward(): void;
+            onStepBack(): void;
+            onJumpToStart(): void;
+            onJumpToEnd(): void;
+            onSetSpeed(s: 1 | 2 | 4): void;
+
+C2. src/lib/hivemind/theaterScript.ts
+
+    export type EventType =
+      | "proposal"
+      | "critique"
+      | "revision"
+      | "cluster_formed"
+      | "practicality_score"
+      | "veto"
+      | "pass"
+      | "output";
+
+    export interface TranscriptEvent {
+      id: string;                            // stable ref for routing
+      type: EventType;
+      round: number;                         // 0 = initial, 1.., -1 = post-halt
+      speakerId: string | null;              // agent id, or null for Monitor events
+      targetSpeakerId?: string;              // for critiques
+      body: string;                          // authored
+      tSec: number;                          // virtual time within run
+      authorApproved: boolean;
+    }
+
+    export interface TheoryAgent {
+      id: string;
+      name: string;                          // "Porter-FF"
+      framework: string;                     // "Porter's Five Forces"
+      principlesOneLiner: string;            // 1 sentence
+      authorApproved: boolean;
+    }
+
+    export interface ClusterSnapshot {
+      round: number;
+      clusters: Array<{
+        id: string;
+        representativeText: string;
+        contributingAgentIds: string[];
+        rationalesBySide: Array<{ agentId: string; rationale: string }>;
+      }>;
+    }
+
+    export interface PracticalityScore {
+      constraint: "LEGAL" | "REGULATORY" | "FINANCIAL" | "OPERATIONAL" | "REPUTATIONAL";
+      clusterId: string;
+      score: number;                         // 0-100
+      note: string;                          // one-line authored
+    }
+
+    export interface TheaterRun {
+      id: string;                            // runId format is always
+                                             // "suff{N}-feas{F}-v1"
+                                             // where N ∈ {1,2,3,4}
+                                             // and F ∈ {40,55,70,85};
+                                             // density is fixed at
+                                             // 1200 for all v1 runs.
+      sufficiencyValue: number;
+      feasibilityValue: number;
+      densityLabel: string;                  // "balanced (~1200 tokens/slice)"
+      problem: { title: string; body: string };
+      agents: TheoryAgent[];
+      events: TranscriptEvent[];             // ordered by tSec
+      clusterSnapshots: ClusterSnapshot[];
+      practicalityScores: PracticalityScore[];
+      verdict: "VETOED" | "PASSED";
+      finalOutput: Array<{
+        clusterId: string;
+        recommendation: string;
+        rationalesBySide: Array<{ framework: string; rationale: string }>;
+      }> | null;                             // null if VETOED; note that vetoes trigger full restart in the real system, and the theater shows one restart cycle before terminating
+      durationSec: number;                   // total virtual duration
+    }
+
+    export const THEATER_RUNS: TheaterRun[];  // exactly 16; one per
+                                              // (suff, feas) cell;
+                                              // all at density=1200.
+
+    // The default run is the one the theater loads on mount, the
+    // one the Audit Artifact (P05) mirrors, and the one the
+    // Knob Bench (P02) SEND TO THEATER resolves to when the
+    // bench is at DEFAULT_TUPLE:
+    export const DEFAULT_THEATER_RUN_ID = "suff3-feas55-v1";
+
+C3. Playback engine.
+
+The Theater does NOT stream from an LLM. Playback is a scheduled
+walk over events[] keyed by tSec and an active rate (1x/2x/4x).
+Implementation:
+
+  - On PLAY, an interval-based scheduler advances cursor so that
+    event.tSec advances at the current rate. setTimeout chains
+    (not setInterval) so that each next-event delay respects the
+    actual gap (some events cluster, some are spaced out).
+  - On PAUSE, the scheduler clears its timer.
+  - Step-forward/back adjust cursor by one event and re-sync
+    virtual time.
+  - On speed change mid-play, the current timer is cleared and
+    recomputed against the new rate.
+  - reducedMotion forces speed 1x minimum (no acceleration
+    animation) and disables the subtle entry opacity on new
+    TranscriptLines (they appear instantly).
+
+C4. State slice.
+
+    interface TheaterState {
+      activeRunId: string;
+      cursor: number;                         // event index
+      state: "idle" | "playing" | "paused" | "ended";
+      speed: 1 | 2 | 4;
+      sufficiencyValue: number;
+      feasibilityValue: number;
+      filterAgentId: string | null;
+      followTail: boolean;                    // true iff user near bottom
+    }
+
+    interface HivemindExperienceState {
+      // ...
+      theater: TheaterState;
+      selectRun(runId: string): void;         // swaps fixture; resets
+      play(): void;
+      pause(): void;
+      setSpeed(s: 1 | 2 | 4): void;
+      stepForward(): void;
+      stepBack(): void;
+      jumpToEvent(id: string): void;
+      jumpToStart(): void;
+      jumpToEnd(): void;
+      setFilter(agentId: string | null): void;
+      setSufficiency(v: number): void;        // swap run fixture, reset
+      setFeasibility(v: number): void;        // swap run fixture, reset
+      setFollowTail(b: boolean): void;
+    }
+
+
+----------------------------------------------------------------------
+PART D — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+D1. Event-type badges (verbatim, uppercase mono).
+
+    PROPOSAL          --fg
+    CRITIQUE          --warn
+    REVISION          --fg
+    CLUSTER FORMED    --accent
+    SCORE             --fg-dim
+    VETO              --err
+    PASS              --ok
+    OUTPUT            --ok
+
+The terminology is drawn from the Guides:
+    - "proposal" and "critique" and "revision" are Guide II.
+    - "cluster" is Guide II's aggregation term.
+    - "veto" is Guide II's term; preferred over "reject".
+    - "output" is Guide II's final-artifact term.
+
+D2. Status labels on the AgentStrip (verbatim):
+
+    IDLE
+    PROPOSING
+    CRITIQUING
+    REVISING
+
+D3. Slider labels (verbatim):
+
+    SUFFICIENCY                — "halt when unique clusters <= this"
+    FEASIBILITY                — "veto below this average score"
+
+Tooltips are mandatory on first encounter. The exact tooltip
+strings (verbatim) are:
+
+    SUFFICIENCY:
+        "Lower sufficiency means tighter agreement across the
+         theory network before the loop halts. Higher means the
+         loop ends sooner with a broader menu of distinct
+         recommendations."
+
+    FEASIBILITY:
+        "Feasibility is the veto threshold. If the practicality
+         network's average score is below this, the entire
+         theory pass is discarded and the theory network starts
+         over."
+
+D4. Problem framing (verbatim, serif, small italic caption
+above the stage):
+
+    "Authored problem for illustration. Hivemind does not run
+     in this panel; the replay below is a recording of one
+     complete deliberation under a pre-set knowledge base."
+
+This caption is NOT optional. It is the honesty caption. Do not
+remove.
+
+D5. What the mode must not say.
+
+  - "AI magic", "instant insight", "strategic superpower",
+    "unlock", "game-changing", or any marketing tonality.
+  - "Answer" (use "recommendation"; Hivemind outputs
+    recommendations, not answers).
+  - "Our AI" (use "Hivemind" or "the theory network").
+  - "Agent thinks..." (LLM-anthropomorphism; use "agent
+    proposes / critiques / revises").
+  - "In real time" about the replay (it is NOT real-time, it
+    is a recording).
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P01
+----------------------------------------------------------------------
+
+  [ ] Panel.tsx mounts ExperienceHost; EXPERIENCE/DOSSIER
+      preserves dossier content.
+  [ ] ModeTabBar renders with only tab 1 active (tabs 2-5
+      disabled pending P02-P05; "coming in next prompt" hover
+      hint present; P06 requires its removal before ship).
+  [ ] Theater renders at WIDE with three-region layout; at
+      STANDARD with two regions (strip stacks below);
+      at NARROW as single column.
+  [ ] Default run (sufficiency=3, feasibility=55) plays start
+      to finish and ends in PASSED verdict with final output.
+  [ ] Step forward/back work by exactly one event each.
+  [ ] Jump to start/end work; jump-to-end renders the final
+      output without playing intermediate events.
+  [ ] Speed change (1x/2x/4x) affects timing but not output.
+  [ ] Changing sufficiency or feasibility DURING playback is
+      disabled; changing between runs loads the alternate
+      fixture and resets cursor.
+  [ ] Agent filter: clicking an agent restricts the transcript
+      to that agent's own events plus critiques it received;
+      clicking again clears.
+  [ ] MonitorPanel cluster count updates as cluster_formed
+      events fire.
+  [ ] PracticalityPanel is dim until theory halt; after halt,
+      populates with per-constraint scores and verdict.
+  [ ] VETOED run (e.g., sufficiency=3, feasibility=85) shows
+      one restart cycle before terminating — the authored
+      fixture includes the restart's fresh initial round and
+      terminates at its post-restart outcome.
+  [ ] Keyboard: Space toggles play/pause when focus is in the
+      stage or controls; Left/Right step; Home/End jump;
+      1/2/4 change speed.
+  [ ] reducedMotion: no opacity fade on new lines (they appear
+      instantly); speed acceleration ignored; content still
+      readable.
+  [ ] aria-live announces: run start, theory halt, practicality
+      verdict, output ready. Not per-line (too noisy).
+  [ ] Prose lint (per P06 rules) passes on all event bodies,
+      agent cards, problem body.
+  [ ] No runtime model/network calls.
+  [ ] Bundle gzip: Deliberation Theater code <=18KB gzip
+      (excluding chassis, which is budgeted separately at <=5KB
+      in P06 D1); Theater fixture data (16 runs × ~100 events ×
+      200 chars ≈ 320KB raw; target <=10KB gzip because events
+      share much vocabulary).
+
+
+----------------------------------------------------------------------
+PART F — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+F1. The Theater is a READER, not a simulator. Do not be tempted
+    to "randomize" events or "add subtle variation" for realism.
+    The value is that the recording is a recording; the user
+    can step through a real deliberation's transcript. Variation
+    would suggest non-determinism inside the product that is
+    already Guide II §5's concern (the Monitor's similarity
+    threshold and LLM adjudication are non-deterministic in the
+    real system); the theater should not pretend otherwise.
+
+F2. The sufficiency and feasibility sliders are discrete. Do not
+    allow intermediate values; snap to {1,2,3,4} for sufficiency
+    and {40,55,70,85} for feasibility. The fixture only carries
+    those eight runs in the sixteen-cell matrix; intermediates
+    are not interpolated.
+
+F3. Do not auto-advance sufficiency or feasibility on load. The
+    user should pick. The default run is pre-set; changing a
+    slider is an explicit action.
+
+F4. Do not render the agent persona as a headshot, avatar, or
+    stylized icon. The AgentStrip is a text-and-status strip.
+    Headshots would suggest the agents are people-like in ways
+    Guide III §1.3 explicitly rejects ("an agent is not an
+    autonomous entity that decides what to do next").
+
+F5. Five agents is the v1 cap. Do not balloon the AgentStrip to
+    show twelve theory agents in an attempt to impress. Five is
+    enough to demonstrate the adversarial structure and fits at
+    NARROW without horizontal scrolling.
+
+F6. The PASS/VETO distinction is important. When VETO fires, the
+    theater must NOT just show "REJECTED" and end. It must show
+    the restart — the theory network regenerating from scratch
+    per Guide II §3 Component 3. The fixture for a vetoed run
+    carries both the pre-restart events (ending in VETO) and
+    the post-restart events (ending in PASS or a second VETO).
+
+F7. If at any point the implementer considers "let's just call
+    the live Anthropic API from the panel", the answer is no.
+    Even if compiled with a demo key, the resulting usage is
+    (a) a cost center, (b) a security concern, (c) a breach of
+    the client-infrastructure deployment claim that Hivemind's
+    honesty depends on. The panel is a teaching artifact; the
+    product lives on client machines.
+
+
+End of P01.

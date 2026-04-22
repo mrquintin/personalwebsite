@@ -1,0 +1,318 @@
+M09 — SHIP GATE & MOBILE ACCEPTANCE
+================================================
+
+PURPOSE
+-------
+Measurable, mechanical acceptance for the entire 09 suite.
+Every item below is a pass/fail check the release is gated
+on. Most are automatable (Playwright, Lighthouse, axe-core,
+grep); a few are manual (VoiceOver, TalkBack).
+
+When this suite's tasks complete successfully, an agent OR a
+human MUST run the checks in this file and record the output.
+A failing check blocks merge until resolved.
+
+
+SCOPE
+-----
+Touches:
+  e2e/                    (add mobile Playwright specs)
+  scripts/                (add mobile audit scripts if useful)
+  package.json            (add `test:mobile` script)
+  .github/workflows/      (CI integration if applicable;
+                           defer if not already set up)
+
+
+§A  GREP SHIP-GATES
+===================
+
+Run each grep in CI or pre-merge. Any match blocks merge.
+
+A1 — No inline 100vh outside print.css or tokens.css:
+
+     grep -rn '100vh' src/ \
+        --exclude='print.css' \
+        --exclude='tokens.css'
+     # expected: 0 matches (all migrated to 100dvh/100svh per M08 C1)
+
+A2 — No overflow: auto inside .panel-body selectors:
+
+     grep -rn 'panel-body' src/app/globals.css | \
+       grep -n 'overflow.*auto'
+     # expected: the DESKTOP-only occurrence remains, but no
+     # instance is unconditional. Inspect.
+
+A3 — No `window.matchMedia` outside src/components/shell/
+     and src/lib/hotkeys/:
+
+     grep -rn 'matchMedia' src/ | \
+       grep -v 'src/components/shell/' | \
+       grep -v 'src/lib/hotkeys/'
+     # expected: 0 matches (M03 §I: mode queries go through
+     # useExperienceHost())
+
+A4 — No 100vh inside palette, drawers, or the accordion
+     (restated): redundant check against A1, keeping as
+     guardrail.
+
+A5 — PRP confinement (carryover from 04/P06 ship-gate):
+
+     grep -rn '.prp-prose\|Source Serif' src/ | \
+       grep -v 'src/content/projects/purposeless-efficiency/' | \
+       grep -v 'src/styles/prp-prose.css'
+     # expected: 0 matches.
+
+A6 — No `unload` event listener:
+
+     grep -rn "addEventListener('unload'" src/
+     grep -rn 'addEventListener("unload"' src/
+     # expected: 0 matches (M08 F2)
+
+A7 — No third-party carousel / chart library added:
+
+     grep -E 'swiper|keen-slider|splide|chart.js|d3|recharts' \
+       package.json
+     # expected: 0 matches (M06 §D)
+
+A8 — No runtime-ML, no Three.js on THS:
+
+     grep -rn 'three.js\|three \|onnxruntime\|tensorflow' \
+       src/content/projects/theseus/ package.json
+     # expected: 0 matches (M07 §F / 07 architectural
+     # constraint)
+
+
+§B  PLAYWRIGHT SMOKE TESTS
+==========================
+
+Add a new `e2e/mobile.spec.ts` with the viewports and
+scenarios below. Each assertion is a ship-gate.
+
+B1 — Viewports:
+     - iPhone SE portrait:     { width: 320, height: 568, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+     - iPhone 13 mini:         { width: 375, height: 667, deviceScaleFactor: 3, isMobile: true, hasTouch: true }
+     - iPhone 14 Pro:          { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true }
+     - iPad portrait:          { width: 768, height: 1024, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+     - iPad landscape:         { width: 1024, height: 768, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+
+B2 — Per-viewport landing-page checks:
+     [ ] No horizontal scroll at any scroll position
+         (verify by asserting document.scrollingElement.scrollWidth
+         === document.scrollingElement.clientWidth).
+     [ ] Tapping each panel header expands ONLY that panel
+         within 500 ms.
+     [ ] Expanding a panel scrolls its header to block:start
+         on narrow (scrollY matches header's offsetTop within
+         8 px).
+     [ ] ariaExpanded flips correctly on the tapped spine
+         button.
+     [ ] announce() text appears in #operator-aria-live within
+         300 ms of expand.
+
+B3 — Route-page smoke (each of /about, /hivemind,
+     /purposeless-efficiency, /theseus, /resume):
+     At 375×667 on narrow:
+     [ ] No horizontal overflow.
+     [ ] The ExperienceHost data-mode attribute is "narrow".
+     [ ] Primary content visible above the fold (for narrow,
+         first meaningful paint inside the first 568 px of
+         scroll).
+
+B4 — Per-panel narrow-specific:
+     ABT / CV (M04):
+       [ ] .projects-cards visible on narrow; .projects-table
+           display:none via computed style.
+       [ ] Resume projects tap opens the project page.
+
+     PRP (M05):
+       [ ] OntologyExplorerNarrow renders; tapping a category
+           navigates to its list; URL hash updates.
+       [ ] DiamondCarouselNarrow has dot indicators; left
+           chevron hidden on first slide.
+       [ ] ObjectionsStackNarrow has no side-by-side layout;
+           .prp-prose--drop-cap renders.
+
+     HVM (M06):
+       [ ] Face toggle switches strategic ↔ technical.
+       [ ] RegimeSelectorMobile is position:sticky with
+           bottom:env(safe-area-inset-bottom).
+       [ ] GateChainNarrow renders six gates in fixed order.
+       [ ] Expanding one gate collapses any other.
+
+     THS (M07):
+       [ ] ModeTabBarNarrow horizontally scrollable.
+       [ ] ReflectionVizNarrow renders static under
+           reducedMotion (default on touch).
+       [ ] ContradictionAxisNarrow renders 42 bars without
+           overflow.
+
+B5 — Orientation change persistence:
+     [ ] Rotate iPhone 13 mini landscape ↔ portrait; HVM
+         face selection persists; THS view mode persists;
+         PRP ontology path persists.
+
+B6 — Motion-preference respect:
+     Set prefers-reduced-motion: reduce in Playwright context:
+     [ ] No CSS transitions exceed 0 ms on .panel-body,
+         .diamond-carousel scroll, .mode-tabs-narrow
+         scrollIntoView.
+
+
+§C  LIGHTHOUSE MOBILE
+=====================
+
+Run Lighthouse Mobile (Moto G4 simulation, Fast 3G, 4× CPU
+slowdown) against:
+  - http://localhost:3000/
+  - http://localhost:3000/about
+  - http://localhost:3000/hivemind
+  - http://localhost:3000/purposeless-efficiency
+  - http://localhost:3000/theseus
+  - http://localhost:3000/resume
+
+Budgets (ship-gate):
+  [ ] Performance ≥90.
+  [ ] Accessibility ≥95.
+  [ ] Best Practices ≥95.
+  [ ] SEO ≥95.
+  [ ] LCP ≤2.5 s.
+  [ ] CLS ≤0.05.
+  [ ] TBT ≤200 ms.
+  [ ] Interaction to Next Paint ≤200 ms on tap of accordion
+      header.
+
+
+§D  AXE-CORE A11Y
+=================
+
+Run axe-core against each of the six URLs above at 320×568
+and at 375×667.
+
+Ship-gate: zero axe-core violations of severity "serious" or
+"critical". "Moderate" and "minor" violations are logged but
+do not block.
+
+Specific checks that must pass:
+  [ ] aria-expanded flips correctly on accordion expand.
+  [ ] Focus is programmatically moved into an expanded panel
+      body (M02 B3).
+  [ ] Skip-to-content link is reachable via Tab (Shell.tsx:19)
+      and becomes visible on focus-visible (M02 F2).
+  [ ] Every interactive element has a touch target ≥44×44 px
+      (bot/manual eyeball; axe-core "target-size" rule
+      enforces 24×24 by default; elevate to 44×44 via a
+      custom rule or manual spec).
+  [ ] No keyboard-only interaction without a touch-equivalent
+      (M03 §D4, hover-to-expand is desktop-only).
+  [ ] Color contrast ≥4.5:1 for normal text, 3:1 for large.
+  [ ] All images / SVGs have aria-label or are aria-hidden.
+
+
+§E  MANUAL A11Y
+===============
+
+The following require a human tester. Track in release
+notes, not as an automated gate, but they MUST be performed
+before release.
+
+E1 — VoiceOver (iOS):
+     [ ] Rotor navigation through headings shows panel
+         headers.
+     [ ] Expanding a panel reads the expand announcement.
+     [ ] Inside the expanded body, content is reached in
+         logical order.
+
+E2 — TalkBack (Android):
+     [ ] Same as E1, substituting TalkBack gestures.
+
+E3 — Dynamic type / font-scale:
+     [ ] At iOS "Larger Text" max setting, content remains
+         legible with no clipping.
+     [ ] At Android font-scale 2.0, content remains legible.
+
+E4 — Low vision / zoom:
+     [ ] At browser zoom 400% (desktop), content reflows
+         without horizontal overflow (WCAG 1.4.10).
+
+
+§F  BUNDLE SIZE
+===============
+
+Run `npm run build` and inspect output:
+
+  [ ] First-load JS for /: ≤120 KB gzip (baseline + 6 KB
+      delta from this suite).
+  [ ] Each panel's lazy chunk: ≤80 KB gzip (retained
+      03/I01 budget).
+  [ ] CSS total: ≤40 KB gzip.
+
+If any regression is observed, identify the cause per bundle.
+
+
+§G  REAL-DEVICE SMOKE
+=====================
+
+Manual check on AT LEAST:
+  - An iPhone running Safari (any model from the last 3 years)
+  - An Android phone running Chrome (any model)
+  - An iPad running Safari
+
+Scenarios:
+  [ ] Open the landing page, expand each panel in turn,
+      interact with any visible affordance.
+  [ ] Open each route directly (/about, /hivemind, etc.)
+      and verify content is visible and reachable.
+  [ ] Rotate the device; verify state persistence.
+  [ ] Trigger the palette (tap key-cap); verify it opens
+      as a bottom sheet and the virtual keyboard appears.
+
+
+§H  REGRESSION AGAINST PRIOR SUITES
+===================================
+
+This suite must NOT break any prior suite's ship-gate.
+
+H1 — 08 Accordion Hover Choreography:
+     [ ] Desktop hover-intent state machine still fires at
+         ≥768 px width.
+     [ ] Hover-pin keyboard interaction works.
+     [ ] Hover does not trigger on touch devices.
+
+H2 — 04 PRP Ship-gate (04/P06):
+     [ ] .prp-prose and "Source Serif" references confined
+         to PRP directory. (Re-run A5.)
+     [ ] regimeVariants.ts byte-identity across variants
+         (06/P06 check) passes.
+
+H3 — 05/06/07 suite acceptance:
+     [ ] 05, 06, 07 per-suite ship-gates pass unchanged.
+     [ ] The only additions are narrow components that
+         coexist with standard components; no desktop
+         component is modified.
+
+
+§I  RELEASE NOTES
+=================
+
+Release notes MUST include:
+  - "Mobile surface substantially rewritten. If you've used
+    the site on a phone before, it should work now."
+  - Known limitations (e.g., the reducedMotion-default on
+    touch is opinionated — document as a feature, not a bug).
+
+
+FINAL ACCEPTANCE CHECKLIST
+==========================
+[ ] All greps (§A) return expected counts.
+[ ] All Playwright assertions (§B) pass.
+[ ] All Lighthouse budgets (§C) met across six URLs at two
+    viewports.
+[ ] Zero serious/critical axe-core violations (§D).
+[ ] Manual a11y (§E) performed and logged.
+[ ] Bundle budgets (§F) met.
+[ ] Real-device smoke (§G) performed on at least three
+    devices.
+[ ] Prior-suite regression (§H) passes.
+[ ] Release notes drafted per §I.
+[ ] Any new failure discovered during gate-runs is added to
+    M01's audit taxonomy and addressed, NOT silently patched.

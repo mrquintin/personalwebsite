@@ -1,0 +1,343 @@
+M04 — ABT & CV PANELS (narrow)
+================================================
+
+PURPOSE
+-------
+Narrow-mode rendering for the two identity panels:
+  - ABT (About) — panel 01, /about
+  - CV  (Resume) — panel 05, /resume
+
+These are the two panels whose content is predominantly prose
+and structured metadata. They have NO interactive visualisations
+of the sort the other three panels carry. Their mobile form is
+therefore also the most conservative. This prompt establishes
+the READING MODE layout and typography that M05–M07 inherit for
+their prose interludes.
+
+
+SCOPE
+-----
+Touches:
+  src/components/panels/AboutTeaser.tsx
+  src/components/panels/ResumeTeaser.tsx
+  src/app/about/page.tsx (route surface)
+  src/app/resume/page.tsx (route surface)
+  src/app/globals.css (the .dossier-*, .metadata-*, .artifacts,
+                       .projects-table classes on narrow)
+
+Does NOT touch:
+  The underlying .md / .mdx content files.
+  The component routing or link structure.
+
+
+§A  READING MODE LAYOUT (shared by ABT & CV narrow)
+===================================================
+
+The reading mode is the canonical prose-first layout for any
+experience that, on narrow, degrades to "show the text, hide
+the chrome." M05 (PRP) and M07 (THS) specify interludes that
+adopt this layout.
+
+Rules:
+  - Measure: 100% width, padding 16 px (--mobile-gutter). The
+    effective text column is viewport minus 32 px, which at
+    320 px gives 288 ch-units of actual text (serif at 17 px
+    renders ~28 characters per line on the narrow viewport —
+    below the typographic ideal of 45–75 but acceptable as
+    mobile).
+  - Line-height: 1.6 for sans, 1.65 for serif. The existing
+    --t-md-lh: 28px on --t-md-size: 17px = 1.647 — already
+    close; use the existing token.
+  - Font-size floor on narrow: 16 px for body text. Any class
+    using --t-sm-size or smaller for body copy on narrow is
+    bumped to --t-base-size (15 px) or 16 px.
+  - No fixed-width grid columns. Replace any
+    `grid-template-columns: 96px 1fr` with
+    `display: grid; grid-template-columns: max-content 1fr;
+     column-gap: var(--s-4);` — the key column sizes to its
+     content and the value takes the rest. On narrow this
+     means the key wraps to a single line (since keys are
+     short) and the value flows.
+  - No text-align: right on metadata keys at narrow.
+    Right-aligned labels next to left-aligned values look
+    wrong on a narrow viewport.
+  - Uppercase labels retained; letter-spacing 0.08 em.
+
+
+§B  ABT PANEL — NARROW CHANGES
+==============================
+
+B1 — Dossier chrome.
+  .dossier padding on narrow: var(--s-5) var(--mobile-gutter).
+  The existing `padding: var(--s-6) var(--s-7)` at globals.css:190
+  is desktop-only; add a media query branch.
+
+B2 — .dossier-grid.
+  Already collapses to single-column at <=1024 px
+  (globals.css:206). Retain. No change.
+
+B3 — .metadata-pane.
+  Existing .row uses `grid-template-columns: 96px 1fr`
+  (globals.css:210). On narrow, change to
+  `grid-template-columns: max-content 1fr` and remove the
+  text-align: right on .k per §A rule.
+
+  Additionally: .metadata-pane font-size is `var(--t-sm-size)` =
+  13 px. Bump to `var(--t-base-size)` = 15 px on narrow via
+  a .experience-host[data-mode="narrow"] .metadata-pane scope.
+
+B4 — .artifacts.
+  Existing .artifacts li uses
+  `grid-template-columns: 120px 1fr 1em` (globals.css:219).
+  At 288 px effective content width, 120+1em leaves ~150 px for
+  the middle column — cramped but not broken. The real bug is
+  `font-size: var(--t-sm-size)` at 13 px on narrow. Bump to
+  --t-base-size (15 px) and change columns to
+  `grid-template-columns: max-content 1fr 1em`.
+
+B5 — Synopsis block.
+  .synopsis already uses `max-width: var(--measure-prose)`.
+  --measure-prose on narrow should be 100% or unset. Add the
+  token if missing:
+
+    @media (max-width: 639px) {
+      :root { --measure-prose: 100%; }
+    }
+
+B6 — Teaser component interaction.
+  AboutTeaser.tsx is the mounted content inside the ABT panel.
+  It is prose + metadata. No interactive narrow/non-narrow
+  branch is required at the teaser level — the CSS changes in
+  B1–B5 suffice.
+
+B7 — Route surface /about.
+  Same content as the teaser, but wrapped in ExperienceHost
+  surface="route". Inherits the narrow CSS.
+
+
+§C  CV PANEL — NARROW CHANGES
+=============================
+
+C1 — Resume rows.
+  The resume shows a sequence of roles / projects. Each row
+  has a left column of dates (mono, uppercase) and a right
+  column of role/title/summary. Audit the actual component
+  (ResumeTeaser.tsx) for the exact grid; then on narrow,
+  either:
+    (a) convert to a vertical stack where each role renders
+        as dates on top (small-caps), title below (serif
+        regular), summary below (sans), and artifacts as a
+        compact chip list; or
+    (b) retain two-column but change columns to
+        `grid-template-columns: max-content 1fr` and bump
+        fonts per §A.
+
+  RECOMMENDED: (a). The stack is the canonical mobile CV
+  layout; the two-column form wastes space on narrow because
+  the date column is only 60–70 px wide and the summary
+  wraps badly.
+
+C2 — Projects table.
+  The .projects-table at globals.css:225 uses
+  `white-space: nowrap` on th/td — horizontal overflow on
+  narrow. The table at ≥1280 even splits to a 1fr 320 px grid
+  with a sticky detail pane (globals.css:256). On narrow, the
+  table is unworkable as a table.
+
+  Narrow form: convert the table to a card list. Each row
+  becomes a card with:
+    - title (largest, --t-base-size bold)
+    - status pill (using existing .pill classes)
+    - date / tech stack as a small meta row
+    - one-line description
+
+  Tap on a card → navigates to the project page (existing row
+  click behavior becomes card tap behavior). Selected-row
+  highlight (existing `tr[aria-selected="true"] { box-shadow: inset
+  2px 0 0 var(--accent); }`) becomes a border-left on the card.
+
+  Sort header controls: on narrow, the table headers become a
+  single horizontal scroll strip of sort-pills. This is the
+  one place in this suite where a horizontal scroller is
+  permitted on a non-swipe surface, because alphabetic sort /
+  date sort / status sort are all cheap and the scroll is short.
+  Set `touch-action: pan-x` on the strip.
+
+C3 — Route surface /resume.
+  Same content as teaser, wrapped in ExperienceHost
+  surface="route". Inherits all narrow CSS.
+
+
+§D  NEW / MODIFIED CSS (globals.css)
+====================================
+
+Append after the existing `/* ----- projects table ----- */`
+block at globals.css:224+:
+
+  /* ----- narrow mode: dossier / metadata / artifacts ----- */
+  @media (max-width: 639px) {
+    :root { --measure-prose: 100%; }
+
+    .dossier { padding: var(--s-5) var(--mobile-gutter); }
+
+    .metadata-pane { font-size: var(--t-base-size); }
+    .metadata-pane .row {
+      grid-template-columns: max-content 1fr;
+      padding: 6px 0;
+    }
+    .metadata-pane .k { text-align: left; }
+
+    .artifacts { font-size: var(--t-base-size); }
+    .artifacts li {
+      grid-template-columns: max-content 1fr 1em;
+      padding: 4px 0;
+    }
+
+    /* Projects table → card list */
+    .projects-table { display: none; }
+    .projects-cards { display: block; }
+  }
+
+  @media (min-width: 640px) {
+    .projects-cards { display: none; }
+  }
+
+  /* .projects-cards is a new narrow-only component, rendered
+     conditionally by the projects list; see §C2. */
+  .projects-cards { font-family: var(--font-mono); }
+  .projects-cards .card {
+    display: block;
+    padding: var(--s-4);
+    border-bottom: var(--border-hair);
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  .projects-cards .card[aria-selected="true"] {
+    border-left: 2px solid var(--accent);
+    padding-left: calc(var(--s-4) - 2px);
+  }
+  .projects-cards .card h3 {
+    font-size: var(--t-base-size);
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 4px;
+  }
+  .projects-cards .card .meta {
+    font-size: var(--t-xs-size);
+    color: var(--fg-mute);
+    display: flex; gap: var(--s-3); flex-wrap: wrap;
+  }
+  .projects-cards .card .desc {
+    font-family: var(--font-sans);
+    font-size: var(--t-sm-size);
+    color: var(--fg-dim);
+    margin-top: 4px;
+  }
+
+
+§E  CV-SPECIFIC NARROW DECISIONS
+================================
+
+E1 — Print styles are untouched. print.css already sets
+     max-width 100% and padding 0; no narrow-CSS changes
+     needed.
+
+E2 — Downloadable PDF link, if any, is rendered as a
+     44×44 px touch target at the top of the narrow CV,
+     with the label "Download PDF" and an icon. The
+     download attribute points to the existing PDF artifact.
+
+E3 — Resume narrow uses reading-mode typography (serif body,
+     16 px floor, 1.65 line-height) not the mono-heavy
+     dossier chrome. CV is FIRST a document, SECOND an
+     artifact.
+
+
+§F  READING MODE AS A SHARED UTILITY
+====================================
+
+Create `src/styles/reading-mode.css` (new file) imported
+from globals.css immediately after tokens.css. Contents:
+
+  /* reading-mode.css — narrow-viewport prose-first layout
+     shared by ABT, CV, and any PRP/THS interlude that adopts
+     the same grammar. */
+
+  .reading-mode {
+    /* Flow container for prose + aligned metadata. */
+    font-family: var(--font-sans);
+    color: var(--fg);
+    font-size: var(--t-md-size);
+    line-height: var(--t-md-lh);
+  }
+  .reading-mode h1 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: var(--t-xl-size);
+    line-height: var(--t-xl-lh);
+    margin-bottom: var(--s-4);
+  }
+  .reading-mode h2 {
+    font-family: var(--font-mono);
+    font-size: var(--t-xs-size);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg-mute);
+    margin-top: var(--s-6);
+    margin-bottom: var(--s-3);
+  }
+  .reading-mode p { margin-bottom: var(--s-4); }
+  .reading-mode p + p { margin-top: 0; }
+
+  @media (min-width: 640px) {
+    .reading-mode { max-width: 64ch; }
+  }
+
+Applied as a className on the outer wrapper of both
+AboutTeaser and ResumeTeaser (and referenced by later prompts).
+
+
+§G  ROUTE-SURFACE CONSIDERATIONS
+================================
+
+On the /about and /resume routes (full-bleed, no accordion),
+the .experience-host's contentRect will be the viewport width.
+On narrow, mode="narrow" is correct. On a large desktop
+viewing a route page (the "read my resume" deep-link case),
+mode="wide" activates — ensure the route page caps content to
+--measure-prose = 64ch to avoid 1440-px-wide prose lines.
+
+Add to globals.css (desktop):
+  .experience-host[data-surface="route"][data-mode="wide"] .reading-mode,
+  .experience-host[data-surface="route"][data-mode="standard"] .reading-mode {
+    max-width: 72ch;
+    margin-inline: auto;
+    padding: var(--s-8) var(--s-6);
+  }
+
+
+ACCEPTANCE FOR M04
+------------------
+[ ] /about on 320×568 has no horizontal overflow at any scroll
+    position.
+[ ] /resume on 320×568 has no horizontal overflow at any scroll
+    position; projects render as cards, not table.
+[ ] .metadata-pane on narrow has no right-aligned keys; keys
+    wrap naturally; row font-size ≥ 15 px.
+[ ] .projects-cards is rendered on narrow; .projects-table is
+    rendered on ≥640. Both exist in the tree; only one is
+    displayed per viewport.
+[ ] Each .projects-cards .card has min-height 44 px; tap
+    navigates to the project route.
+[ ] The sort-pill strip on narrow is horizontally scrollable
+    with `touch-action: pan-x`; all sort affordances are
+    reachable without overflow clipping.
+[ ] Every announce() call on ABT/CV is triggered by a user
+    action, not a layout event.
+[ ] reading-mode.css exists and is imported from globals.css.
+[ ] AboutTeaser.tsx and ResumeTeaser.tsx root elements have
+    className="reading-mode" (or include it in their wrapper).
+[ ] On /about at 1440 wide, reading-mode content is capped
+    at 72ch and centered; not full-bleed.
+[ ] axe-core reports zero a11y violations on both /about
+    and /resume at 320×568 and at 375×667.

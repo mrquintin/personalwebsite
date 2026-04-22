@@ -1,0 +1,408 @@
+M03 — MODE PROPAGATION & GESTURE GRAMMAR
+================================================
+
+PURPOSE
+-------
+Fulfil the I01 hostWidthPx contract at the CONSUMER side: make
+every interactive experience aware of its host width so it can
+branch on narrow. Establish the committed gesture set for
+mobile, and name the gestures that are FORBIDDEN.
+
+
+SCOPE
+-----
+Touches (new files):
+  src/components/shell/ExperienceHost.tsx              (NEW)
+  src/components/shell/experience-context.ts           (NEW)
+
+Touches (edits):
+  src/components/panels/*.tsx                          (wrap children)
+  src/components/shell/Panel.tsx                       (mount host)
+
+Does NOT touch:
+  experience interiors (their narrow branches live in M04–M07)
+  src/lib/panels.ts
+  08 hover choreography
+
+
+§A  CONTEXT FOR WHY THIS IS NEEDED
+==================================
+
+The I01 contract (03/I01 lines 112–150) names five host-exposed
+values — mode, hostWidthPx, reducedMotion, announce, prefersDense —
+and four canonical thresholds. But the current code (audited in
+M01 §B) has no ExperienceHost in the tree. The panels embed their
+teaser directly. The contract is a spec, not a runtime.
+
+M03 makes the contract live. Not by building every primitive the
+I01 contract names — that is the job of the per-panel implementations
+when they consume the host — but by building the TRANSPORT that
+moves those values from the shell layer down to the experience
+children without prop-drilling through the panel bodies.
+
+
+§B  ExperienceHost COMPONENT
+============================
+
+B1 — File: src/components/shell/ExperienceHost.tsx
+
+Sketch:
+
+  "use client";
+  import { useEffect, useRef, useState, type ReactNode } from "react";
+  import { ExperienceContext, type ExperienceMode,
+           type ExperienceHostValue } from "./experience-context";
+
+  type Props = {
+    /** "panel" when mounted inside the accordion; "route" when mounted
+     *  at a dedicated /<slug> page. */
+    surface: "panel" | "route";
+    /** Panel code (ABT/HVM/PRP/THS/CV) for announce() messages. */
+    panelCode: string;
+    children: ReactNode;
+  };
+
+  function widthToMode(w: number): ExperienceMode {
+    if (w < 640)  return "narrow";
+    if (w < 960)  return "compact";
+    if (w < 1280) return "standard";
+    return "wide";
+  }
+
+  export default function ExperienceHost({ surface, panelCode, children }: Props) {
+    const ref = useRef<HTMLDivElement | null>(null);
+    const [width, setWidth] = useState<number>(0);
+    const [reducedMotion, setReducedMotion] = useState(false);
+    const [prefersDense, setPrefersDense] = useState(false);
+
+    useEffect(() => {
+      const el = ref.current;
+      if (!el || typeof ResizeObserver === "undefined") return;
+      const ro = new ResizeObserver((entries) => {
+        const w = entries[0]?.contentRect.width ?? 0;
+        setWidth(Math.round(w));
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      const mRM = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const mCoarse = window.matchMedia("(pointer: coarse)");
+      const update = () => {
+        /* Touch devices default to reducedMotion: true UNLESS the
+         * user has explicitly set prefers-reduced-motion: no-preference
+         * AND has a fine pointer. This is the mobile-first motion
+         * default (M03 §E). */
+        setReducedMotion(mRM.matches || mCoarse.matches);
+        setPrefersDense(mCoarse.matches);
+      };
+      update();
+      mRM.addEventListener?.("change", update);
+      mCoarse.addEventListener?.("change", update);
+      return () => {
+        mRM.removeEventListener?.("change", update);
+        mCoarse.removeEventListener?.("change", update);
+      };
+    }, []);
+
+    const mode = widthToMode(width);
+
+    const announce = (text: string) => {
+      if (typeof document === "undefined") return;
+      const live = document.getElementById("operator-aria-live");
+      if (!live) return;
+      live.textContent = ""; /* force re-announcement on repeat */
+      requestAnimationFrame(() => { live.textContent = text; });
+    };
+
+    const value: ExperienceHostValue = {
+      surface, panelCode, mode, hostWidthPx: width,
+      reducedMotion, prefersDense, announce,
+    };
+
+    return (
+      <div ref={ref} className="experience-host" data-mode={mode} data-surface={surface}>
+        <ExperienceContext.Provider value={value}>
+          {children}
+        </ExperienceContext.Provider>
+      </div>
+    );
+  }
+
+Notes:
+  - The host reports `width: 0` on the first SSR render. Children
+    MUST NOT make layout decisions before hydration; they may
+    render a minimal placeholder for the first paint. The I01
+    contract's "initialising · coherence-receiver" placeholder
+    pattern (03/I01 §LAZY-LOAD CONTRACT lines 159–163) covers this.
+  - The `data-mode` attribute on the host element is a CSS hook
+    for experiences that want to branch in CSS rather than in JS.
+    Children can selector-scope against `.experience-host[data-mode="narrow"]
+    .foo`.
+  - `surface` is "panel" on the landing accordion; "route" on
+    dedicated pages like /hivemind. Experiences may render
+    slightly differently; this prompt does not mandate that
+    difference, it simply carries it.
+
+
+B2 — File: src/components/shell/experience-context.ts
+
+  import { createContext, useContext } from "react";
+
+  export type ExperienceMode = "narrow" | "compact" | "standard" | "wide";
+
+  export type ExperienceHostValue = {
+    surface: "panel" | "route";
+    panelCode: string;
+    mode: ExperienceMode;
+    hostWidthPx: number;
+    reducedMotion: boolean;
+    prefersDense: boolean;
+    announce: (text: string) => void;
+  };
+
+  export const ExperienceContext = createContext<ExperienceHostValue | null>(null);
+
+  export function useExperienceHost(): ExperienceHostValue {
+    const v = useContext(ExperienceContext);
+    if (!v) {
+      /* Fallback for render outside a host: assume standard desktop,
+       * motion-full, no announce. Logs a dev warning. */
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("useExperienceHost called outside ExperienceHost provider");
+      }
+      return {
+        surface: "route",
+        panelCode: "—",
+        mode: "standard",
+        hostWidthPx: 1024,
+        reducedMotion: false,
+        prefersDense: false,
+        announce: () => {},
+      };
+    }
+    return v;
+  }
+
+Notes:
+  - The fallback is deliberately present: it prevents a hard
+    crash if a component is unit-tested in isolation or mounted
+    in a Storybook frame. The hook warns in dev.
+  - No CSS is generated by the context itself. The host element's
+    data-mode attribute is the CSS hook.
+
+
+§C  MOUNT SITES
+===============
+
+C1 — Inside Panel.tsx (the existing body div at line 71):
+
+  BEFORE:
+    <div className="panel-body" style={{ flex: 1, ... }}>
+      {children}
+    </div>
+
+  AFTER:
+    <div className="panel-body" style={{ flex: 1, ... }}>
+      <ExperienceHost surface="panel" panelCode={panel.code}>
+        {children}
+      </ExperienceHost>
+    </div>
+
+  The `overflow: auto` already on the panel-body is desktop-only
+  (per M02 §C3). The ExperienceHost is purely a measurement /
+  context wrapper — no visual treatment.
+
+C2 — Inside each route page (/about, /hivemind, /purposeless-efficiency,
+     /theseus, /resume), the page component wraps its body with
+     ExperienceHost surface="route" and the corresponding panelCode.
+     Full-bleed pages can size the host to max 100% width; the
+     ExperienceHost does not impose padding.
+
+C3 — Fallback: any panel teaser that has not yet been migrated to
+     consume useExperienceHost() still works. The context is
+     available; unused is fine.
+
+
+§D  COMMITTED GESTURE GRAMMAR (narrow)
+======================================
+
+Exhaustive list. Every other gesture is forbidden inside this
+site's mobile surface.
+
+D1 — TAP
+     - On a collapsed panel header: expand that panel (collapses
+       any other expanded panel).
+     - On an expanded panel header: collapse that panel back to
+       neutral.
+     - On any interactive control inside an expanded panel body:
+       the control's own action.
+     - All tap targets ≥44×44 px.
+
+D2 — VERTICAL SCROLL
+     - Scrolls the page. The page is the only scroller on narrow
+       (M02 §C3). There are no nested scrollers.
+     - EXCEPTION: an experience may introduce a horizontally-
+       scrolling inner strip (e.g., the THS mode pill-scroller
+       in M07) or a vertically-scrolling drawer if and only if
+       that drawer is explicitly invoked by a TAP on a visible
+       affordance (e.g., the HVM regime-detail drawer in M06).
+       A drawer always has a dismiss affordance (an × button)
+       AND responds to an explicit close gesture (tap-outside,
+       or swipe-down on its header).
+
+D3 — HORIZONTAL SWIPE — ONLY INSIDE AN EXPERIENCE THAT DECLARES
+     IT
+     - The accordion itself does NOT swipe. A swipe across the
+       page surface does not change panel — tap is the only
+       panel-change affordance.
+     - An experience MAY implement horizontal swipe within its
+       body to page through fixtures (e.g., PRP Diamond-Method
+       carousel in M05). Such experiences MUST:
+         - render visible dot-indicators at the bottom of the
+           swipeable element,
+         - provide left/right chevron buttons as tap-equivalents,
+         - set `touch-action: pan-x` on the swipe surface.
+     - Fewer than three horizontal-swipe surfaces across the
+       entire site. Overuse produces "where do I swipe?"
+       confusion.
+
+D4 — NO MULTI-TOUCH, NO PINCH, NO LONG-PRESS, NO 3D TOUCH, NO
+     EDGE SWIPE.
+     The user's native browser gestures (back swipe on iOS,
+     page-up/page-down swipes on Chrome Android, pinch-zoom
+     everywhere) are respected — we never override them.
+
+
+§E  DEFAULT-MOTION ON TOUCH
+===========================
+
+The ExperienceHost (B1) sets reducedMotion=true when the
+pointer-capability is coarse, EVEN IF the user has not set
+prefers-reduced-motion. Rationale:
+
+  - Battery. Touch devices run on batteries. Gratuitous
+    animation drains them.
+  - Vestibular. Mobile users commonly use the device on
+    transit, where screen motion compounds induced motion.
+  - Distraction. A touch device is often in a secondary
+    attention context; motion pulls attention back.
+
+Users who want motion on touch can explicitly set
+prefers-reduced-motion: no-preference (the default), AND
+be on a device with fine-pointer capability (rare; this is
+"iPad with Apple Pencil / trackpad Magic Keyboard"). This
+specific user lands in mode="standard" (hostWidth) but
+coarse-pointer (matchMedia) — the host still sets
+reducedMotion=true. If they want animation, they can add
+?motion=1 as a URL param (an opt-in, not specified here —
+FUTURE WORK).
+
+This is an opinionated default. Document it in M09 acceptance
+as a note, not a bug.
+
+
+§F  NARROW-MODE CSS BRANCHING
+=============================
+
+An experience that wants to branch purely in CSS (no React
+state needed) can use:
+
+  .experience-host[data-mode="narrow"] .my-thing { ... }
+  .experience-host[data-mode="compact"] .my-thing { ... }
+  .experience-host[data-mode="standard"] .my-thing { ... }
+  .experience-host[data-mode="wide"] .my-thing { ... }
+
+This is the RECOMMENDED pattern for static layout decisions
+(stack vs grid, padding, font-size). Use React-state branching
+only when the component needs to render a DIFFERENT component
+tree (e.g., <Swiper> vs <Grid>), not just different styles.
+
+
+§G  INTERACTION WITH 08 HOVER CHOREOGRAPHY
+==========================================
+
+The 08 suite (Accordion Hover Choreography) operates on the
+existing desktop-only matchMedia guard at Accordion.tsx:114.
+On narrow, (hover: hover) is false and (pointer: fine) is
+false, so the hover expansion never fires. 08's intent state
+machine, pin logic, and keyboard interplay are all gated on
+desktop presence and are dormant on narrow.
+
+M03 makes no changes to 08's wiring. If 08 is updated in the
+future to add new hover-driven behaviors, they MUST use the
+same matchMedia guard and be silent on narrow.
+
+
+§H  ANNOUNCE() FROM EXPERIENCES
+===============================
+
+Experiences MAY call announce() from the host context to push
+messages to #operator-aria-live:
+
+  const { announce } = useExperienceHost();
+  announce("gate 4 failed; coherence below threshold");
+
+Rules:
+  - Do not announce layout events (mode change, resize). The
+    shell owns layout announcements.
+  - Announce only user-visible state changes triggered by user
+    action.
+  - Debounce at 150 ms if the same action can fire rapidly.
+  - Copy is imperative and terse: noun-phrase + verb. No
+    punctuation at end.
+
+
+§I  TYPESCRIPT CONSUMERS
+========================
+
+A component inside an experience uses the hook:
+
+  import { useExperienceHost } from "@/components/shell/experience-context";
+
+  export function OntologyExplorer() {
+    const { mode, reducedMotion } = useExperienceHost();
+    if (mode === "narrow") return <OntologyExplorerNarrow />;
+    return <OntologyExplorerWide reducedMotion={reducedMotion} />;
+  }
+
+This is the pattern every per-panel prompt (M04–M07) assumes.
+The context is the ONLY source of mode. No component should
+call matchMedia directly for layout decisions; the host is
+the single measurement point.
+
+
+ACCEPTANCE FOR M03
+------------------
+[ ] src/components/shell/ExperienceHost.tsx exists and exports
+    a default React component with the signature above.
+[ ] src/components/shell/experience-context.ts exists and
+    exports ExperienceContext, useExperienceHost,
+    ExperienceHostValue type.
+[ ] Panel.tsx wraps children with ExperienceHost surface="panel".
+[ ] Each route page (/about, /hivemind, /purposeless-efficiency,
+    /theseus, /resume) wraps its content with ExperienceHost
+    surface="route".
+[ ] On a 320 px viewport, host.mode is "narrow" inside every
+    panel body (verified via a data-mode attribute inspection
+    in Playwright).
+[ ] On a 768 px viewport, host.mode is "compact" inside an
+    expanded panel body (expanded panel's contentRect is 640–960 px
+    range depending on collapsed-panel widths).
+[ ] On a 1440 px viewport, host.mode is "wide" inside an expanded
+    panel body IF the expanded panel is ≥1280 px wide;
+    otherwise "standard".
+[ ] ResizeObserver updates host.mode without a full remount when
+    the window resizes across a threshold.
+[ ] reducedMotion is `true` when (pointer: coarse) regardless of
+    prefers-reduced-motion setting.
+[ ] announce() pushed text is read by VoiceOver (manual check) and
+    by TalkBack (manual check) within 1 second.
+[ ] No component outside the shell layer calls window.matchMedia
+    for layout decisions. Grep gate: matchMedia invocations
+    outside src/components/shell/ and src/lib/hotkeys/ must be
+    zero. (See M09.)
+[ ] No touch-only surface implements a long-press shortcut
+    without a visible tap-equivalent. Grep gate: TBD in M09.

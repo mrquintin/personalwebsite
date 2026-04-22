@@ -1,0 +1,1049 @@
+P06 — MODE 5, FIXED-POINT AUDITOR
+===================================
+
+ROLE: You are implementing MODE 5 — the capstone — of the
+Theseus Deep experience. The Fixed-Point Auditor is the one
+mode the whole suite is arranged to build toward. It answers
+the 00_INDEX's Q5: "does the meta-method require a meta-meta-
+method, ad infinitum?" The answer the source gives — the
+deepest epistemic claim the firm makes — is no: the meta-
+method is self-applying, and the regress terminates at a
+fixed point. This mode demonstrates that by walking the user
+through the self-application, criterion by criterion, each
+step rendered with the TH2 §4 source excerpt verbatim and
+each step arriving at the same verdict (PASS) that the source
+itself arrives at.
+
+The mode is also the single surface that carries the Candid
+Frontier — three TH2 §6 anchors rendered verbatim that name
+what the meta-method is NOT. These anchors exist to prevent
+the mode's triumphal structure (five criteria, five passes,
+fixed point) from reading as a closing victory lap. The
+Candid Frontier holds the mode's honest posture by literally
+surfacing the source's own limits.
+
+Read P01 through P05 first. This prompt
+assumes the chassis, all four prior slices, and sources.ts
+keys from P01-P05 are in place.
+
+---
+
+GROUNDING
+
+All content in this mode is grounded in:
+
+  TH2 §3     — the unifying principle ("a method is reliable
+               to the extent that it would detect its own
+               failure") and the five-to-one reduction. The
+               mode's opening screen cites this directly.
+  TH2 §4     — the fixed-point argument: the self-application
+               of the meta-method against its own five
+               criteria, producing five PASS verdicts and
+               terminating the regress.
+  TH2 §6     — "What the meta-method is not": the three
+               anchors (certainty; neutrality; NFL
+               guarantees the opposite) that hold the
+               Candid Frontier sidebar.
+
+TH2 §4 VERBATIM EXCERPTS. Each must be stored byte-identically
+in sources.ts. Citation trailer for every TH2 §4 excerpt is
+"— II. The Meta-Method, §4".
+
+  TH2_SEC_4_PROGRESSIVE:
+    "Progressive? Yes. The meta-method predicts that
+    methodologically rigorous firms will outperform
+    methodologically sloppy ones on any problem class where
+    truth matters, over any long enough horizon. This
+    prediction is novel (no prior firm has been explicit
+    about it at this level) and testable (the calibration
+    scoreboard and external corpus battery test it
+    monthly)."
+
+  TH2_SEC_4_SEVERE:
+    "Severe? Yes. If methodologically rigorous firms
+    consistently underperform on the problem classes the
+    firm engages with, the meta-method fails its own
+    severity test. The firm has declared the exact
+    conditions under which it would abandon the meta-method
+    — sustained calibration regression plus sustained
+    external-battery failure on matched problem classes."
+
+  TH2_SEC_4_COHERENT:
+    "Coherent with aims? Yes. The aim is to identify
+    reliable methods. The five criteria (progressivity,
+    severity, coherence, compressibility, domain
+    sensitivity) are each independently validated by a
+    separate intellectual tradition (Lakatos, Mayo, Laudan,
+    Solomonoff, NFL). They triangulate."
+
+  TH2_SEC_4_COMPRESSIBLE:
+    "Compressible? Yes. Five criteria, each formally
+    defined, derivable from a single principle. One slogan
+    — 'a method is reliable to the extent that it would
+    detect its own failure' — encodes the entire
+    specification."
+
+  TH2_SEC_4_DOMAIN_SENSITIVE:
+    "Domain-sensitive? Yes. The meta-method explicitly
+    acknowledges (via NFL) that no method is universal, and
+    its primary output is the mapping from problem class to
+    reliable method. The meta-method therefore treats itself
+    as subject to the same domain-relativity it imposes on
+    its objects."
+
+  TH2_SEC_4_FIXED_POINT_STATEMENT:
+    "The meta-method evaluates itself against its own
+    criteria and passes all five. This is the fixed point.
+    It does not eliminate the abstract possibility of a
+    still-deeper meta-meta-method, but it does eliminate
+    the necessity of one: the meta-method's authority is
+    self-sustaining in the same way that a self-verifying
+    proof is, or the way Tarski's undefinability theorem is
+    self-referentially consistent when restricted to its
+    own metalanguage."
+
+  TH2_SEC_4_DEEPEST_CLAIM:
+    "The deepest thing Theseus can claim is not that it has
+    a good method, but that it has a method that can
+    evaluate itself and survive the evaluation."
+
+TH2 §6 VERBATIM EXCERPTS — the three Candid Frontier anchors.
+Each is stored separately, under its own key, because P07's
+assertCandidFrontier searches for each first-sentence anchor
+individually:
+
+  TH2_SEC_6_NOT_CERTAINTY:
+    "The meta-method is not certainty. Nothing in the five
+    criteria guarantees that a method applied to a new
+    problem will succeed. NFL guarantees the opposite: no
+    method succeeds universally. What the meta-method
+    guarantees is that when a method fails, the failure is
+    visible and informative, and that the firm's stake in
+    any single method is appropriately sized to the
+    method's historical calibration."
+
+  TH2_SEC_6_NOT_NEUTRALITY:
+    "The meta-method is not neutrality. Meta-methodology
+    is not 'we have no views.' The firm has strong
+    methodological views: that severity beats
+    confirmation, that progressivity beats retrofitting,
+    that compressibility beats ad-hoc accommodation, that
+    domain sensitivity beats universalist overreach. These
+    are themselves substantive positions. The meta-method
+    is neutral only with respect to first-order claims
+    about the world; it is emphatically partisan with
+    respect to second-order claims about how belief should
+    be produced."
+
+  TH2_SEC_6_NFL_GUARANTEES_OPPOSITE:
+    "Nothing in the five criteria guarantees that a method
+    applied to a new problem will succeed. NFL guarantees
+    the opposite: no method succeeds universally. What the
+    meta-method guarantees is that when a method fails,
+    the failure is visible and informative, and that the
+    firm's stake in any single method is appropriately
+    sized to the method's historical calibration."
+
+NOTE on anchor (c3): the TH2 §6 "not certainty" paragraph
+contains the sentence used as c3's first-sentence anchor
+("Nothing in the five criteria guarantees…"). That sentence
+is rendered — and only rendered — inside the
+TH2_SEC_6_NFL_GUARANTEES_OPPOSITE block, as a separate card
+in the Candid Frontier. The rendered text for c1
+(TH2_SEC_6_NOT_CERTAINTY) and for c3
+(TH2_SEC_6_NFL_GUARANTEES_OPPOSITE) therefore contain
+overlapping prose. THIS IS INTENTIONAL: the 00_INDEX's
+assertCandidFrontier searches for each first-sentence anchor
+exactly once across all rendered fixture strings, and the
+rendered text for c1 and c3 each begins with a distinct
+first-sentence anchor. Only the first sentence of each is
+the integrity-check target; the overlap after the anchor is
+permitted and expected.
+
+The unifying principle (TH2 §3, already stored from earlier
+prompts):
+
+  TH2_SEC_3_UNIFYING_PRINCIPLE (already in sources.ts from
+  P01's DOSSIER block). This is re-used as the opening screen
+  of the Fixed-Point Auditor walk.
+
+---
+
+§A — FILE LAYOUT
+
+Create under src/components/panels/theseus/Experience/
+FixedPointAuditor/ :
+
+    FixedPointAuditor/
+        index.tsx                    — mode root; composes
+                                       the walk + sidebar.
+        CriterionStep.tsx            — renders one of the 5
+                                       criterion steps; one
+                                       instance per step.
+        FixedPointStatement.tsx      — renders the post-5
+                                       summation tile with
+                                       TH2 §4 fixed-point
+                                       verbatim.
+        DeepestClaimTile.tsx         — renders the closing
+                                       tile with TH2 §4
+                                       deepest-claim
+                                       verbatim.
+        CandidFrontier.tsx           — the sidebar; three
+                                       anchor cards.
+
+Augment:
+
+    src/lib/theseus/criteriaOnSelf.ts
+        - 5 authored CriterionStep objects.
+    src/lib/theseus/candidFrontier.ts
+        - 3 authored CandidAnchor objects.
+    src/lib/theseus/sources.ts
+        - 8 new keys (5 TH2 §4 + 3 TH2 §6) as enumerated
+          above.
+    src/lib/theseus/typeGuards.ts
+        - assertCriterionStep, assertCriteriaOnSelfArray
+        - assertCandidAnchor, assertCandidFrontierArray
+    src/stores/theseusExperience.ts
+        - FixedPointSlice (see §B)
+
+---
+
+§B — STORE SLICE
+
+Augment the store with FixedPointSlice:
+
+    type CriterionId =
+      | "progressivity"
+      | "severity"
+      | "coherence"
+      | "compressibility"
+      | "domain_sensitivity";
+
+    interface FixedPointSliceState {
+      cursor: number;               // 0 = opening screen;
+                                    //   1..5 = criterion
+                                    //   step n; 6 = fixed-
+                                    //   point statement;
+                                    //   7 = deepest claim
+      autoAdvance: boolean;         // default false — this
+                                    //   mode is stepped by
+                                    //   the user to give
+                                    //   the content time
+                                    //   to register
+      candidFrontierOpen: boolean;  // the sidebar state on
+                                    //   NARROW where it is
+                                    //   a bottom drawer
+      acknowledgedCandid:
+        Record<string, boolean>;    // candid anchor ids ->
+                                    //   "user has read"
+                                    //   flag (used ONLY for
+                                    //   aria-live
+                                    //   deduplication; no
+                                    //   gameplay
+                                    //   consequence)
+    }
+
+    interface FixedPointSliceActions {
+      advanceFixedPoint(): void;    // cursor++ up to 7
+      retreatFixedPoint(): void;    // cursor-- down to 0
+      resetFixedPoint(): void;      // cursor -> 0
+      setFixedPointAutoAdvance(v: boolean): void;
+      setCandidFrontierOpen(v: boolean): void;
+      acknowledgeCandid(id: string): void;
+    }
+
+Initial state:
+    { cursor: 0, autoAdvance: false, candidFrontierOpen: true,
+      acknowledgedCandid: {} }
+
+The acknowledgedCandid map is NOT surfaced in the UI as a
+checklist and does NOT gate any other affordance. Its sole
+purpose is to prevent the aria-live channel from re-
+announcing an anchor if the user returns to Mode 5 and the
+same anchor is re-focused within the same session. This is
+a deliberate UX choice: the anchors are substantive content,
+not achievements; no progress bar, no "X of 3 read" meter,
+no completion badge.
+
+---
+
+§C — CRITERION-ON-SELF FIXTURE SHAPE + CONTENT
+
+Declare in src/lib/theseus/criteriaOnSelf.ts :
+
+    export interface CriterionStep {
+      id: CriterionId;
+      ordinal: 1 | 2 | 3 | 4 | 5;
+      criterionName: string;             // e.g. "Progressivity"
+      provenance: string;                // e.g. "Lakatos"
+      framingQuestion: string;           // the one-line
+                                          //   question posed
+                                          //   to the meta-
+                                          //   method about
+                                          //   itself, e.g.
+                                          //   "Is the meta-
+                                          //   method
+                                          //   progressive?"
+      sourceExcerpt: string;             // THE VERBATIM TH2
+                                          //   §4 EXCERPT for
+                                          //   this criterion
+      sourceKey: string;                 // key into
+                                          //   sources.ts,
+                                          //   e.g.
+                                          //   TH2_SEC_4_
+                                          //   PROGRESSIVE
+      verdict: "PASS";                   // all five pass;
+                                          //   this is TH2
+                                          //   §4's claim
+      falsificationNote: string | null;  // non-null only on
+                                          //   severity: the
+                                          //   declared
+                                          //   abandonment
+                                          //   condition
+      productionApparatus: string;       // which Noosphere
+                                          //   module
+                                          //   implements the
+                                          //   apparatus
+                                          //   cited in the
+                                          //   excerpt (e.g.
+                                          //   scoring.py +
+                                          //   external_
+                                          //   battery/ for
+                                          //   progressivity)
+    }
+
+The five authored CriterionStep objects. VERBATIM:
+
+-----------------------------------------------------------
+
+STEP 1 — PROGRESSIVITY (Lakatos)
+  id: "progressivity"
+  ordinal: 1
+  criterionName: "Progressivity"
+  provenance: "Lakatos"
+  framingQuestion:
+    "Does the meta-method generate novel, testable predictions
+    that would be surprising if true?"
+  sourceExcerpt: (= TH2_SEC_4_PROGRESSIVE verbatim; see
+    GROUNDING block above)
+  sourceKey: "TH2_SEC_4_PROGRESSIVE"
+  verdict: "PASS"
+  falsificationNote: null
+  productionApparatus:
+    "The calibration scoreboard
+    (noosphere/noosphere/scoring.py) and the external corpus
+    battery (noosphere/noosphere/external_battery/) test the
+    prediction monthly by comparing methodologically rigorous
+    methods' Brier scores against less rigorous alternatives
+    on matched problem classes. TH2 §2.1 and TH6 §4 describe
+    the apparatus; TH2 §4 cites it directly as the operational
+    test for progressivity-on-self."
+
+-----------------------------------------------------------
+
+STEP 2 — SEVERITY (Mayo)
+  id: "severity"
+  ordinal: 2
+  criterionName: "Severity"
+  provenance: "Mayo"
+  framingQuestion:
+    "What would cause the meta-method to have been refuted?
+    Has that condition been declared in advance?"
+  sourceExcerpt: (= TH2_SEC_4_SEVERE verbatim)
+  sourceKey: "TH2_SEC_4_SEVERE"
+  verdict: "PASS"
+  falsificationNote:
+    "Declared abandonment condition (TH2 §4): 'sustained
+    calibration regression plus sustained external-battery
+    failure on matched problem classes.' This is the only
+    criterion among the five whose TH2 §4 paragraph names a
+    specific falsification condition in-line; the mode
+    surfaces it in a dedicated sub-tile, titled
+    'Declared falsification condition', beneath the verdict
+    PASS tile. The falsification condition is pre-registered,
+    not post-hoc."
+  productionApparatus:
+    "Severity on the meta-method is made operational by the
+    same apparatus as progressivity: scoring.py's calibration
+    history and external_battery/'s independent corpora. The
+    falsification condition is conjunctive (calibration
+    regression AND external-battery failure) to prevent
+    single-corpus fluctuations from forcing abandonment; both
+    must sustain to trigger it."
+
+-----------------------------------------------------------
+
+STEP 3 — COHERENCE (Laudan)
+  id: "coherence"
+  ordinal: 3
+  criterionName: "Coherence"
+  provenance: "Laudan"
+  framingQuestion:
+    "Is the meta-method's specification coherent with its
+    stated aim of identifying reliable methods? Do the five
+    criteria triangulate?"
+  sourceExcerpt: (= TH2_SEC_4_COHERENT verbatim)
+  sourceKey: "TH2_SEC_4_COHERENT"
+  verdict: "PASS"
+  falsificationNote: null
+  productionApparatus:
+    "Coherence is here a meta-level property of the
+    specification rather than a runtime apparatus. Its
+    operational face at the CLAIM level is the six-layer
+    coherence engine (TH4 §2.3); its operational face at the
+    PROCESS level is the Epistemic Process Auditor (TH6 §7).
+    Neither module 'scores' the meta-method itself at
+    runtime — that is the point: the fixed-point argument
+    settles the meta-method's coherence once, via the
+    convergent-traditions argument that the TH2 §4
+    paragraph makes."
+
+-----------------------------------------------------------
+
+STEP 4 — COMPRESSIBILITY (Solomonoff / Kolmogorov)
+  id: "compressibility"
+  ordinal: 4
+  criterionName: "Compressibility"
+  provenance: "Solomonoff / Kolmogorov"
+  framingQuestion:
+    "Can the meta-method's specification be reduced to a
+    smaller number of general principles without loss?"
+  sourceExcerpt: (= TH2_SEC_4_COMPRESSIBLE verbatim)
+  sourceKey: "TH2_SEC_4_COMPRESSIBLE"
+  verdict: "PASS"
+  falsificationNote: null
+  productionApparatus:
+    "The information-theoretic layer of the six-layer
+    coherence engine (coherence/information.py; TH2 §2.4)
+    measures claim-set compressibility at runtime on
+    substantive claims. The meta-method's own
+    compressibility is demonstrated by derivation rather
+    than measurement: five criteria → one unifying principle
+    (TH2 §3) → one slogan. The ratio is 5-to-1, and each
+    criterion is derivable from the principle (see the five
+    reductions in TH2 §3)."
+
+-----------------------------------------------------------
+
+STEP 5 — DOMAIN SENSITIVITY (No Free Lunch)
+  id: "domain_sensitivity"
+  ordinal: 5
+  criterionName: "Domain Sensitivity"
+  provenance: "No Free Lunch (Wolpert & Macready)"
+  framingQuestion:
+    "Does the meta-method acknowledge its own boundary? Does
+    it name — rather than hide — the domains where it is
+    not guaranteed to succeed?"
+  sourceExcerpt: (= TH2_SEC_4_DOMAIN_SENSITIVE verbatim)
+  sourceKey: "TH2_SEC_4_DOMAIN_SENSITIVE"
+  verdict: "PASS"
+  falsificationNote: null
+  productionApparatus:
+    "The meta-method's primary output is the mapping from
+    problem class to reliable method (TH2 §2.5). The
+    external corpus battery
+    (noosphere/noosphere/external_battery/) is the
+    apparatus that populates this mapping empirically, with
+    per-corpus calibration metrics and a five-way failure
+    taxonomy. The mapping is the NFL concession — and its
+    public-facing form is theseus-public/methodology/rigor/
+    and theseus-public/methodology/overrides/ (TH6 §12)."
+
+-----------------------------------------------------------
+
+END CRITERION STEPS. Freeze the array. Required order is
+ordinal 1 through 5; assertCriteriaOnSelfArray enforces
+this (see §J).
+
+---
+
+§D — CANDID FRONTIER FIXTURE SHAPE + CONTENT
+
+Declare in src/lib/theseus/candidFrontier.ts :
+
+    export interface CandidAnchor {
+      id: "not_certainty" | "not_neutrality"
+        | "nfl_opposite";
+      ordinal: 1 | 2 | 3;
+      firstSentenceAnchor: string;       // THIS is the
+                                         //   integrity-check
+                                         //   target; P07's
+                                         //   assertCandid
+                                         //   Frontier
+                                         //   searches for
+                                         //   this exact
+                                         //   string
+      fullExcerpt: string;               // the full TH2 §6
+                                         //   paragraph
+      sourceKey: string;                 // TH2_SEC_6_...
+      whyItMatters: string;              // an authored 2-4
+                                         //   sentence
+                                         //   framing
+                                         //   rendered
+                                         //   beneath the
+                                         //   full excerpt;
+                                         //   explains why
+                                         //   this anchor is
+                                         //   load-bearing
+                                         //   for the mode's
+                                         //   honest posture
+    }
+
+The three authored CandidAnchor objects. VERBATIM firstSentence
+Anchor and fullExcerpt fields. The whyItMatters field is
+authored in the prose below; no verbatim constraint on it
+beyond the P07 prose lint.
+
+-----------------------------------------------------------
+
+c1 — NOT CERTAINTY
+  id: "not_certainty"
+  ordinal: 1
+  firstSentenceAnchor:
+    "The meta-method is not certainty."
+  fullExcerpt: (= TH2_SEC_6_NOT_CERTAINTY verbatim, including
+    the first-sentence anchor)
+  sourceKey: "TH2_SEC_6_NOT_CERTAINTY"
+  whyItMatters:
+    "The fixed-point argument walked the user through five
+    PASS verdicts. It is natural to read that as a claim
+    that the meta-method is certain to succeed on any
+    problem it is applied to. It is not. What the meta-
+    method guarantees is visibility of failure, not absence
+    of failure. The source names this directly and the mode
+    surfaces it at equal weight to the fixed-point
+    statement."
+
+-----------------------------------------------------------
+
+c2 — NOT NEUTRALITY
+  id: "not_neutrality"
+  ordinal: 2
+  firstSentenceAnchor:
+    "The meta-method is not neutrality."
+  fullExcerpt: (= TH2_SEC_6_NOT_NEUTRALITY verbatim)
+  sourceKey: "TH2_SEC_6_NOT_NEUTRALITY"
+  whyItMatters:
+    "A meta-methodological stance can appear neutral — 'we
+    just care about rigor' — and therefore immune to
+    substantive criticism. It is not. The firm names four
+    substantive methodological preferences (severity over
+    confirmation; progressivity over retrofitting;
+    compressibility over accommodation; domain sensitivity
+    over universalism). Each can be argued with. The mode
+    surfaces this so that the firm's views are
+    argumentable, not opaque."
+
+-----------------------------------------------------------
+
+c3 — NFL GUARANTEES THE OPPOSITE
+  id: "nfl_opposite"
+  ordinal: 3
+  firstSentenceAnchor:
+    "Nothing in the five criteria guarantees that a method
+    applied to a new problem will succeed."
+  fullExcerpt: (= TH2_SEC_6_NFL_GUARANTEES_OPPOSITE verbatim)
+  sourceKey: "TH2_SEC_6_NFL_GUARANTEES_OPPOSITE"
+  whyItMatters:
+    "The domain-sensitivity step in the walk (CriterionStep
+    5) cites NFL as the foundation of the domain mapping.
+    This anchor names the counterpart: NFL does not
+    guarantee that the mapping will produce success in any
+    specific case; it guarantees that success in the
+    general case is impossible. The mode's honest posture
+    requires this to be rendered at full strength, not as
+    a footnote to the fixed-point walk."
+
+-----------------------------------------------------------
+
+END CANDID FRONTIER. Freeze the array. Required order is
+ordinal 1, 2, 3. assertCandidFrontierArray enforces the
+first-sentence anchors are unique strings and each appears
+in its fullExcerpt as a substring (so the P07 verbatim-drift
+test has a stable invariant to compare against).
+
+The three first-sentence anchors — "The meta-method is not
+certainty." / "The meta-method is not neutrality." /
+"Nothing in the five criteria guarantees that a method
+applied to a new problem will succeed." — MUST appear VERBATIM
+IN EXACTLY ONE USER-REACHABLE SURFACE in the entire Theseus
+suite: the Candid Frontier sidebar rendered by this mode.
+00_INDEX §ACCEPTANCE governs. P07's assertCandidFrontier
+runs a single-match search across the concatenated rendered
+string of every fixture file and confirms each anchor has
+exactly one hit.
+
+---
+
+§E — COMPONENT CONTRACTS
+
+index.tsx:
+
+    export default function FixedPointAuditor(): JSX.Element;
+
+    Layout:
+      - Main column (left at WIDE+, full-width at STANDARD
+        and NARROW):
+          Opening screen (cursor = 0): the unifying
+            principle (TH2 §3 excerpt already in sources.ts)
+            is rendered as a large <blockquote>; beneath
+            it, a single "Begin the fixed-point walk"
+            button advances cursor to 1.
+          Walk steps (cursor = 1..5): exactly one
+            CriterionStep rendered at a time, for the
+            criterion at ordinal = cursor.
+          Fixed-point statement (cursor = 6): the
+            FixedPointStatement tile.
+          Deepest claim (cursor = 7): the DeepestClaimTile.
+          Navigation controls: "Previous" (disabled at
+            cursor = 0) and "Next" buttons; at cursor = 7,
+            the "Next" label changes to "Restart walk"
+            which calls resetFixedPoint.
+      - Sidebar (right at WIDE+, bottom drawer at NARROW):
+          CandidFrontier — always present, always visible
+          at WIDE+ (not hidden behind a toggle), at NARROW
+          it is a drawer with a persistent "Candid
+          Frontier ▾" handle.
+
+CriterionStep.tsx:
+
+    interface Props {
+      step: CriterionStep;
+      isActive: boolean;
+    }
+
+    export default function CriterionStep(p: Props): JSX.Element;
+
+    Renders:
+      - Header row: "<ordinal>. <criterionName> · provenance"
+      - The framingQuestion rendered as a small subtitle.
+      - The sourceExcerpt rendered in a <blockquote> with
+        citation trailer "— II. The Meta-Method, §4".
+      - Verdict tile: "PASS" (every criterion on self
+        passes; this is the TH2 §4 claim).
+      - For ordinal === 2 only: a "Declared falsification
+        condition" sub-tile rendering the falsificationNote
+        prose.
+      - productionApparatus text in a compact "Production
+        apparatus" footer within the component; neutral
+        styling, not visually competing with the verdict
+        tile.
+
+FixedPointStatement.tsx:
+
+    interface Props {
+      visible: boolean;
+    }
+
+    export default function FixedPointStatement(p: Props):
+      JSX.Element;
+
+    When visible is false, render null. When true, render:
+      - A centered tile with the label "Fixed point
+        (TH2 §4)".
+      - The TH2_SEC_4_FIXED_POINT_STATEMENT excerpt in a
+        <blockquote>, citation trailer
+        "— II. The Meta-Method, §4".
+      - A compact explanatory line: "Five criteria, five
+        PASS verdicts. The regress does not continue ad
+        infinitum; it terminates at this self-application."
+        (authored; passes prose lint.)
+
+DeepestClaimTile.tsx:
+
+    interface Props {
+      visible: boolean;
+    }
+
+    When visible, renders:
+      - The TH2_SEC_4_DEEPEST_CLAIM excerpt, as its own
+        tile, typographically weighted equally to
+        FixedPointStatement (the mode does NOT escalate the
+        visual emphasis here — the source's own emphasis is
+        load-bearing; design should not double it).
+      - Citation trailer "— II. The Meta-Method, §4".
+      - A compact footer linking back to the opening screen
+        via a "Re-read the unifying principle" button
+        that sets cursor to 0.
+
+CandidFrontier.tsx:
+
+    interface Props {
+      anchors: readonly CandidAnchor[];
+      acknowledged: Record<string, boolean>;
+      onAcknowledge(id: string): void;
+      open: boolean;                     // NARROW only
+      onToggleOpen(): void;              // NARROW only
+    }
+
+    export default function CandidFrontier(p: Props):
+      JSX.Element;
+
+    Sidebar layout (WIDE+): persistent. Header: "Candid
+    Frontier · from II. The Meta-Method, §6". Three stacked
+    cards, ordered by ordinal (1, 2, 3). Each card:
+      - The firstSentenceAnchor rendered as the card's
+        H4-weight heading (this is the P07 integrity target).
+      - The full fullExcerpt rendered as a <blockquote>.
+        IMPORTANT: the fullExcerpt INCLUDES the
+        firstSentenceAnchor as its first sentence; the
+        blockquote renders the full excerpt (including the
+        anchor). The anchor therefore appears TWICE inside
+        a single card — once as the heading, once as the
+        blockquote's first sentence. This is deliberate: the
+        heading is the integrity target; the blockquote is
+        the full-context render. The P07 assertCandid
+        Frontier is tolerant of this (it searches for the
+        anchor as a substring across the concatenated render
+        of all fixture files; multiple occurrences INSIDE
+        this single mode's render are expected, but the
+        anchor MUST NOT appear in any OTHER mode's rendered
+        content).
+      - The whyItMatters prose beneath the blockquote.
+      - Citation trailer "— II. The Meta-Method, §6".
+
+    The CandidFrontier does NOT have a "Mark as read"
+    checkbox, a progress badge, or a completion chip. It
+    does expose an aria-live acknowledgement on first
+    focus (see §I) and the store records the focus event to
+    prevent re-announcing on refocus. This is the full
+    extent of its user-state tracking.
+
+    NARROW: the sidebar collapses to a bottom drawer with
+    a persistent "Candid Frontier ▾" handle. The drawer is
+    OPEN by default on first mount of the mode (the source
+    places §6 immediately after §4; the mode mirrors that
+    proximity). The user can collapse the drawer; the
+    store persists the open/closed state across the
+    session but re-opens it on first entry in any new
+    session.
+
+---
+
+§F — UI STATE MACHINE
+
+    cursor = 0  ── advanceFixedPoint ──►  cursor = 1
+    cursor = n  ── advanceFixedPoint ──►  cursor = n+1
+                                          (up to 7)
+    cursor = n  ── retreatFixedPoint ──►  cursor = n-1
+                                          (down to 0)
+    cursor = 7  ── advanceFixedPoint (labeled "Restart") ──►
+                                          cursor = 0
+
+setMode(other) preserves cursor; returning via
+setMode("fixedpoint") rehydrates cursor.
+
+The Candid Frontier is independent of cursor: it is present
+at every cursor value ≥ 0 and remains on-screen when the
+main column advances.
+
+Cross-mode entry: openInMode("fixedpoint", refId) is
+supported. When refId is one of "progressivity", "severity",
+"coherence", "compressibility", "domain_sensitivity", the
+store sets cursor to the matching ordinal (1..5). Any other
+refId value sets cursor to 0.
+
+---
+
+§G — RESPONSIVE BREAKPOINTS
+
+    NARROW   <640   — main column full-width; Candid
+                      Frontier is a bottom drawer with handle
+                      "Candid Frontier ▾"; drawer defaults
+                      open on first mount.
+    STANDARD 640-960 — main column full-width; Candid
+                       Frontier slides in from the right as
+                       an overlay when invoked; defaults
+                       closed at this breakpoint (screen
+                       real estate trade-off).
+    WIDE     960-1280 — two-column: main walk left (65%),
+                        Candid Frontier right (35%),
+                        persistently visible.
+    XWIDE    ≥1280  — two-column: main walk left, Candid
+                      Frontier right; CandidFrontier card
+                      width grows to show the full excerpt
+                      without wrapping the first-sentence
+                      anchor.
+
+The Candid Frontier's presence is NOT hidden at WIDE+ by
+default; the source treats §6 as load-bearing, and the UI
+must honor that by showing §6 alongside §4 whenever screen
+real estate allows.
+
+At STANDARD, the drawer-open default is a design concession
+to room-for-the-main-walk, not a de-emphasis of §6. A
+"Candid Frontier" link in the fixed-point-statement tile's
+footer (cursor = 6) auto-opens the drawer on click so the
+visitor reaches the anchors before the closing Deepest
+Claim tile.
+
+---
+
+§H — reducedMotion
+
+  - Step transitions (cursor change) are opacity-only
+    crossfades over 1 frame at reducedMotion; at normal
+    motion they are 200ms crossfades with a subtle 4px
+    translate.
+  - No auto-advance at any motion setting: this mode is
+    always stepped by the user, to give the content time
+    to register. (autoAdvance flag exists in the slice
+    but its default is false; if set to true it still
+    forces a minimum 2000ms per step, dropping to 0ms at
+    reducedMotion in which case the step changes are
+    manual regardless.)
+  - The CandidFrontier cards do not animate on open; the
+    drawer expands with a height swap at normal motion,
+    instant at reducedMotion.
+
+---
+
+§I — A11Y CONTRACT
+
+  - The main walk is a <section> with role="region" and
+    aria-label="Fixed-point walk".
+  - Each CriterionStep is a <section> with aria-label of
+    the form "Step <ordinal>: <criterionName>".
+  - aria-live region (polite) announces:
+      "Step <ordinal> of 5: <criterionName>. Verdict:
+       PASS." on cursor advance into a criterion step
+      "Fixed point stated." on cursor = 6
+      "Deepest claim: the meta-method survives the
+       evaluation." on cursor = 7
+      "Candid Frontier anchor: <firstSentenceAnchor>"
+        on first focus of each anchor card (fired ONCE per
+        anchor per session via the acknowledgedCandid map)
+  - Keyboard:
+      SPACE or ENTER advances when focus is on "Next".
+      LEFT / RIGHT arrows also advance/retreat when focus
+      is on any navigation control.
+      ESC retreats one step, or closes the CandidFrontier
+      drawer at NARROW.
+      Tab order: main walk first, CandidFrontier second.
+  - CandidFrontier cards are tabbable; each card is a
+    <section role="article"> with aria-labelledby pointing
+    to the heading (the firstSentenceAnchor).
+  - The FixedPointStatement and DeepestClaimTile have
+    role="article" with aria-labelledby pointing to the
+    label ("Fixed point" / "Deepest claim") so that screen
+    readers announce the tile's purpose before reading the
+    excerpt.
+  - The "Re-read the unifying principle" button sets
+    cursor = 0 and announces "Returned to opening:
+    unifying principle."
+
+---
+
+§J — typeGuards.ts ADDITIONS
+
+    export function assertCriterionStep(
+      o: unknown
+    ): asserts o is CriterionStep {
+      invariant(typeof o === "object" && o !== null, ...);
+      const s = o as Record<string, unknown>;
+      invariant(
+        ["progressivity","severity","coherence",
+         "compressibility","domain_sensitivity"]
+          .includes(s.id as string),
+        "CriterionStep.id must be one of the 5 CriterionId " +
+        "literals");
+      invariant(
+        [1,2,3,4,5].includes(s.ordinal as number),
+        "CriterionStep.ordinal must be 1..5");
+      invariant(typeof s.criterionName === "string"
+        && (s.criterionName as string).length > 0,
+        "criterionName required");
+      invariant(typeof s.sourceExcerpt === "string"
+        && (s.sourceExcerpt as string).length > 0,
+        "sourceExcerpt required (verbatim TH2 §4)");
+      invariant(typeof s.sourceKey === "string"
+        && (s.sourceKey as string).startsWith("TH2_SEC_4_"),
+        "sourceKey must be a TH2 §4 key");
+      invariant(s.verdict === "PASS",
+        "Every criterion-on-self verdict is PASS; TH2 §4 " +
+        "enumerates five PASS verdicts and this is the " +
+        "fixed-point claim");
+      // Only the severity step carries a non-null
+      // falsificationNote; the source declares the
+      // abandonment condition in-line for severity only.
+      if (s.id === "severity") {
+        invariant(typeof s.falsificationNote === "string"
+          && (s.falsificationNote as string).length > 0,
+          "Severity step MUST carry a non-null " +
+          "falsificationNote");
+      } else {
+        invariant(s.falsificationNote === null,
+          "Non-severity steps must have null " +
+          "falsificationNote");
+      }
+    }
+
+    export function assertCriteriaOnSelfArray(
+      arr: unknown
+    ): asserts arr is readonly CriterionStep[] {
+      invariant(Array.isArray(arr), "must be array");
+      invariant(arr.length === 5,
+        "Fixed-Point Auditor requires exactly 5 " +
+        "CriterionStep objects; TH2 §4 enumerates five " +
+        "criteria.");
+      const ordinals = (arr as any[]).map(s => s.ordinal);
+      invariant(
+        JSON.stringify(ordinals) === JSON.stringify([1,2,3,4,5]),
+        "CriterionStep ordinals must be [1,2,3,4,5] in " +
+        "order");
+      const ids = new Set((arr as any[]).map(s => s.id));
+      invariant(ids.size === 5
+        && ids.has("progressivity")
+        && ids.has("severity")
+        && ids.has("coherence")
+        && ids.has("compressibility")
+        && ids.has("domain_sensitivity"),
+        "All five CriterionId literals must be present " +
+        "exactly once");
+      for (const s of arr) assertCriterionStep(s);
+    }
+
+    export function assertCandidAnchor(
+      o: unknown
+    ): asserts o is CandidAnchor {
+      invariant(typeof o === "object" && o !== null, ...);
+      const a = o as Record<string, unknown>;
+      invariant(
+        ["not_certainty","not_neutrality","nfl_opposite"]
+          .includes(a.id as string),
+        "CandidAnchor.id must be one of the 3 literals");
+      invariant([1,2,3].includes(a.ordinal as number),
+        "CandidAnchor.ordinal must be 1..3");
+      invariant(typeof a.firstSentenceAnchor === "string"
+        && (a.firstSentenceAnchor as string).length > 0,
+        "firstSentenceAnchor required");
+      invariant(typeof a.fullExcerpt === "string"
+        && (a.fullExcerpt as string).startsWith(
+          a.firstSentenceAnchor as string),
+        "fullExcerpt must begin with the " +
+        "firstSentenceAnchor (P07 verbatim-drift " +
+        "invariant).");
+      invariant(typeof a.sourceKey === "string"
+        && (a.sourceKey as string).startsWith("TH2_SEC_6_"),
+        "sourceKey must be a TH2 §6 key");
+      invariant(typeof a.whyItMatters === "string"
+        && (a.whyItMatters as string).length > 0,
+        "whyItMatters required");
+    }
+
+    export function assertCandidFrontierArray(
+      arr: unknown
+    ): asserts arr is readonly CandidAnchor[] {
+      invariant(Array.isArray(arr), "must be array");
+      invariant(arr.length === 3,
+        "Candid Frontier requires exactly 3 anchors " +
+        "(00_INDEX ACCEPTANCE).");
+      const anchors = (arr as any[]).map(
+        a => a.firstSentenceAnchor
+      );
+      const uniq = new Set(anchors);
+      invariant(uniq.size === 3,
+        "firstSentenceAnchor strings must be unique across " +
+        "the three anchors");
+      invariant(uniq.has("The meta-method is not certainty."),
+        "Anchor c1 first-sentence text required verbatim");
+      invariant(uniq.has("The meta-method is not neutrality."),
+        "Anchor c2 first-sentence text required verbatim");
+      invariant(uniq.has(
+        "Nothing in the five criteria guarantees that a " +
+        "method applied to a new problem will succeed."),
+        "Anchor c3 first-sentence text required verbatim");
+      for (const a of arr) assertCandidAnchor(a);
+    }
+
+Run both array-level guards at module init (development) and
+once at first import (production).
+
+---
+
+§K — ACCEPTANCE CRITERIA
+
+The Fixed-Point Auditor mode ships when:
+
+  [ ] The "fixedpoint" tab renders FixedPointAuditor/
+      index.tsx at hostWidthPx ≥ 360 without clipping.
+  [ ] Opening screen (cursor = 0) renders the TH2 §3
+      unifying-principle excerpt (sourced from the same key
+      used by P01's DOSSIER block).
+  [ ] Five CriterionStep instances render at ordinals 1
+      through 5, each with its TH2 §4 excerpt VERBATIM
+      against the sources.ts value under the P07
+      verbatim-drift check.
+  [ ] Every CriterionStep renders verdict PASS. The
+      severity step (ordinal 2) renders the
+      falsificationNote in a distinct sub-tile titled
+      "Declared falsification condition".
+  [ ] FixedPointStatement renders at cursor = 6 with
+      TH2_SEC_4_FIXED_POINT_STATEMENT verbatim.
+  [ ] DeepestClaimTile renders at cursor = 7 with
+      TH2_SEC_4_DEEPEST_CLAIM verbatim.
+  [ ] CandidFrontier renders three anchor cards persistently
+      at WIDE+, as a drawer at NARROW / STANDARD. Each
+      card's heading is the firstSentenceAnchor verbatim
+      and its blockquote renders the fullExcerpt verbatim.
+  [ ] The three first-sentence anchors appear verbatim in
+      EXACTLY ONE user-reachable surface — the Candid
+      Frontier. P07's assertCandidFrontier confirms each
+      anchor has exactly one distinct first-sentence match
+      across the concatenated render of every Theseus
+      fixture file. (Intra-CandidFrontier repetition of an
+      anchor as heading + first-sentence-of-blockquote is
+      expected and tolerated.)
+  [ ] No progress badge, checklist, completion chip, or
+      "X of 3 read" surface exists on the Candid Frontier.
+      The acknowledgedCandid map is aria-live-dedup only.
+  [ ] No progress badge, quiz score, or completion percent
+      exists on the main walk either. The mode is a
+      teaching walk, not a quiz.
+  [ ] Keyboard: Tab order covers main walk + Candid
+      Frontier; SPACE / ENTER / LEFT / RIGHT advance and
+      retreat; ESC retreats one step or closes the Candid
+      Frontier drawer when focused.
+  [ ] aria-live announcements match §I exactly.
+  [ ] reducedMotion: opacity-only transitions on step
+      changes; no translate / scale; no auto-advance.
+  [ ] Bundle: the fixed-point mode's contribution to the
+      theseus experience bundle is ≤14KB gzip (mode-level
+      budget partition declared in P07).
+  [ ] All TH2 §4 and TH2 §6 excerpts added in §H are
+      byte-identical to the corresponding substrings in
+      /outputs/ths02_meta_method.txt under the P07
+      verbatim-drift check.
+  [ ] No 05 / 06 suite vocabulary appears in any fixture
+      string. (Cross-suite isolation; governed by 00_INDEX
+      RELATIONSHIP TO PRIOR SUITES.)
+  [ ] No runtime ML inference; all content is authored.
+
+---
+
+§L — CROSS-SUITE ISOLATION REMINDER
+
+Fixed-Point Auditor is the mode most likely to attract
+generic "meta-epistemology" language. The prose in
+CriterionStep's framingQuestion fields and the
+whyItMatters fields in CandidAnchor is AUTHORED — not
+generated — and must not borrow vocabulary from 05
+(Purposeless Efficiency frameworks: Nash-GT, Porter-5F,
+Christensen-DI, Drucker-MBO, Kahneman-BE) or 06 (Coherence
+Engine's five layers: contradiction, argumentation,
+embedding, compression, structural; its CSreq formula; its
+42-dim axis; or its CE1 §8 Quintin Hypothesis).
+
+Theseus's own six-layer engine (nli, argumentation,
+probabilistic, geometry, information, judge — TH4 §2.3) may
+be referenced BY NAME in productionApparatus fields; the
+mode's prose must keep the six-layer engine clearly named
+and must not use the string "five layers" except where
+quoting TH2 §3's "five criteria" reduction.
+
+P07's prose lint enforces these via the banned-token list.
+
+---
+
+END P06. Mode 5 ships. The capstone is in place. Proceed to
+P07 — copy + fixture integrity + verification + ship-gate.

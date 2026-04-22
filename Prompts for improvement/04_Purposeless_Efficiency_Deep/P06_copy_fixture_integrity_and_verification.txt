@@ -455,13 +455,30 @@ ships with EXPERIENCE as default:
         Firefox desktop; iOS Safari and Chrome Android mobile.
     [ ] EXPERIENCE/DOSSIER toggle verified preserving Prompts
         07-09 dossier content.
+    [ ] src/styles/prp-prose.css (P01 §A4) exists; grep for the
+        strings ".prp-prose" and ".prp-prose--drop-cap" returns
+        ONLY matches under src/components/projects/purposeless-efficiency/
+        and src/styles/prp-prose.css. Any hit outside that scope
+        fails the gate (non-leak rule from P01 §A4).
+    [ ] grep for "Source Serif" across the repo returns hits ONLY
+        in prp-prose.css and in the PRP experience directory. No
+        serif typeface anywhere else.
+    [ ] ObjectionResponse (P04 §B2 TILE B) renders .prp-prose and
+        .prp-prose--drop-cap as specified; ClaimCard (P01), Quadrant
+        reasoning (P02), Diamond reveals (P03), ThinkerCard body
+        (P05) render .prp-prose without the drop-cap modifier,
+        consistent with the enumeration in P01 §A4.
     [ ] ModeTabBar's "coming in next prompt" hover hints from
         P01 Part E are REMOVED (they were build-state
         affordances and must not ship).
-    [ ] I03 (Galley) prompt file has a header note added:
-        "SUPERSEDED BY 04_Purposeless_Efficiency_Deep. Do not
-         implement." — this is a prompt-file edit, not a code
-        change.
+    [ ] I03 (Galley) prompt file at
+        03_Interactive_Experiences/I03_purposeless_efficiency_galley.txt
+        has been converted to a full retirement tombstone (done
+        2026-04-21). This ship-gate checkbox is a historical
+        reference; it remains listed so a future reader who
+        finds this checklist before the tombstone commit will
+        still recognize the action as required. If the tombstone
+        is not present, restore it; do not ship 04 without it.
 
 
 ----------------------------------------------------------------------

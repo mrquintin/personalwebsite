@@ -1,0 +1,378 @@
+M07 — THS PANEL (narrow)
+================================================
+
+PURPOSE
+-------
+Narrow-mode rendering for the Theseus panel (04, /theseus).
+THS is the panel most dependent on visualisation — a
+Householder reflection across a 42-of-768-dimensional
+contradiction axis, with a five-mode frame (READ / TRACE /
+REFLECT / COMPARE / CITE per the 07 suite). On narrow, the
+visualisation priorities shift hard toward legibility and
+motion frugality.
+
+The full spec lives in 07_Theseus_Deep (P01–P06). This
+prompt adds the narrow branch.
+
+
+SCOPE
+-----
+Touches (new files):
+  src/content/projects/theseus/narrow/
+    - ModeTabBarNarrow.tsx
+    - ReadModeNarrow.tsx
+    - TraceModeNarrow.tsx
+    - ReflectModeNarrow.tsx
+    - CompareModeNarrow.tsx
+    - CiteModeNarrow.tsx
+    - ReflectionVizNarrow.tsx
+    - ContradictionAxisNarrow.tsx
+
+Touches (edits):
+  src/components/panels/TheseusTeaser.tsx (branch on mode +
+    current-view-mode)
+
+Does NOT touch:
+  07_Theseus_Deep suite (spec authority).
+
+
+§A  MODE TAB BAR ON NARROW
+==========================
+
+Desktop behavior: the five view-mode tabs (READ / TRACE /
+REFLECT / COMPARE / CITE) render as a horizontal pill row
+with the active tab highlighted.
+
+Narrow behavior: preserve the pill row but make it
+horizontally scrollable with edge fades and a snap-to-tab
+scroll. Five tabs at 72 px each = 360 px, which at 320 px
+viewport overflows by 40 px — just enough that horizontal
+scroll is required.
+
+  Render:
+    <nav className="mode-tabs-narrow" role="tablist"
+         aria-label="Theseus view mode">
+      <button role="tab" data-mode="read"    aria-selected={...}>READ</button>
+      <button role="tab" data-mode="trace"   aria-selected={...}>TRACE</button>
+      <button role="tab" data-mode="reflect" aria-selected={...}>REFLECT</button>
+      <button role="tab" data-mode="compare" aria-selected={...}>COMPARE</button>
+      <button role="tab" data-mode="cite"    aria-selected={...}>CITE</button>
+    </nav>
+
+  CSS:
+    .mode-tabs-narrow {
+      display: flex; gap: var(--s-2);
+      overflow-x: auto;
+      touch-action: pan-x;
+      scrollbar-width: none;
+      scroll-snap-type: x mandatory;
+      padding: var(--s-3) var(--mobile-gutter);
+      -webkit-mask-image: linear-gradient(90deg,
+        transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+              mask-image: linear-gradient(90deg,
+        transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+    }
+    .mode-tabs-narrow button {
+      flex: 0 0 auto;
+      min-width: 72px; min-height: 44px;
+      padding: 0 var(--s-4);
+      scroll-snap-align: center;
+      font-family: var(--font-mono);
+      font-size: var(--t-xs-size);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: var(--border-hair);
+      background: var(--bg-1);
+      color: var(--fg-mute);
+      touch-action: manipulation;
+    }
+    .mode-tabs-narrow button[aria-selected="true"] {
+      background: var(--accent); color: var(--bg-0);
+      border-color: var(--accent);
+    }
+
+  On tab change: the newly-selected tab scrolls into center
+  via `scrollIntoView({ inline: "center", behavior: ... })`.
+  Behavior is "auto" under reducedMotion (the default on touch
+  per M03 §E).
+
+  Keyboard: arrow-left/right moves between tabs (standard
+  role="tab" behavior). On narrow, rare but supported.
+
+
+§B  MODE-SPECIFIC NARROW RENDERINGS
+===================================
+
+B1 — READ MODE (07/P01 §READ or equivalent)
+-------------------------------------------
+Desktop: a scholarly prose reading of the Theseus corpus
+excerpt with interlinear annotations.
+
+Narrow: reading-mode layout, annotations as inline footnote
+numbers (mirroring M06 B5 AuditArtifact pattern).
+
+  Use `.reading-mode` (from M04 §F) for the text.
+  Inline ¹ ² ³ markers; footnotes at the bottom; tap to
+  scroll.
+
+  ACCEPTANCE:
+    [ ] ReadModeNarrow.tsx exists.
+    [ ] Uses .reading-mode class.
+    [ ] No margin notes.
+
+B2 — TRACE MODE (07/P02)
+------------------------
+Desktop: a timeline / sequence of propositional transformations
+showing the reflection chain across the contradiction axis.
+
+Narrow: vertical timeline with one step per row.
+
+  Each step:
+    - step number (01, 02, ...) in small mono uppercase
+    - the proposition as it reads at this step, in
+      .reading-mode serif
+    - a transformation pill "HOUSEHOLDER(α=${value})" in mono
+      --t-xs-size
+    - a left-edge connecting bar
+
+  Tapping a step opens a details drawer with the full
+  transformation math (the reflection formula:
+  p_out = p_in − 2 (p_in · v / v · v) v, where v is the
+  contradiction axis). The math is LaTeX-rendered via KaTeX
+  (per 07 suite's existing choice).
+
+  ACCEPTANCE:
+    [ ] TraceModeNarrow.tsx exists.
+    [ ] Vertical stack; one step per row.
+    [ ] Math formula renders correctly on narrow without
+        horizontal overflow (the KaTeX mathml + CSS needs
+        `max-width: 100%; overflow-x: auto; touch-action:
+        pan-x;` on the formula container).
+
+B3 — REFLECT MODE (07/P03)
+--------------------------
+Desktop: the interactive reflection tool — enter a
+proposition (restricted to corpus fixtures), watch it reflect
+across the contradiction axis, read the resulting
+counterposition.
+
+Narrow: the SAME interactive tool, but laid out vertically:
+
+  [native <select> of corpus propositions]
+  [INPUT box showing the selected proposition]
+  ↓
+  [the ReflectionVizNarrow — see §C below]
+  ↓
+  [OUTPUT box showing the reflected proposition]
+  [α stepper: −2, −1, default, +1, +2]
+  [button: "Reflect" — triggers the transform if not
+    already auto-triggered]
+
+  The α-slider from desktop becomes a stepper with 5 discrete
+  values (the 07 suite's "no continuous α" architectural
+  constraint simplifies this — no continuous control was
+  planned anyway). Each step is a 44 px pill.
+
+  Motion: the reflection transform animates — a vector in
+  space pivots to its mirror image. On narrow + reducedMotion
+  (default), the animation is replaced by a crossfade from
+  input to output.
+
+  ACCEPTANCE:
+    [ ] ReflectModeNarrow.tsx exists.
+    [ ] α stepper has 5 values, each ≥44 px.
+    [ ] Under reducedMotion, no vector animation; crossfade
+        only.
+
+B4 — COMPARE MODE (07/P04)
+--------------------------
+Desktop: two propositions side-by-side, each reflected, with
+a similarity metric between the reflected pair shown as a
+live number.
+
+Narrow: vertically stacked. Prop A block, then Prop B block,
+then the similarity metric in a highlighted card at the
+bottom.
+
+  This is the mode where "no side-by-side" bites hardest —
+  the compare pedagogy assumes you see both simultaneously.
+  Mitigation: on narrow, render each prop's reflection COMPACTLY
+  (the current proposition text + a terse reflection
+  summary, not the full ReflectionViz). The similarity metric
+  is the load-bearing output, and it's clearly labelled and
+  rendered large.
+
+  Optional: a "split screen" gesture where tapping a small
+  icon toggles a 50-50 split along the viewport's long axis.
+  REJECTED because (a) rare on mobile, (b) requires
+  landscape, (c) hostile to the single-scroll page model.
+
+  ACCEPTANCE:
+    [ ] CompareModeNarrow.tsx exists.
+    [ ] Two props stack; similarity metric is visible without
+        horizontal scroll.
+
+B5 — CITE MODE (07/P05)
+-----------------------
+Desktop: a citation view showing the corpus-grounded sources
+for a selected proposition — bibliographic entries, inline
+anchors back to the exact line in the PDF or text file.
+
+Narrow: a scrollable list of citations, each in a card:
+  - source title (--t-base-size weight 500)
+  - page / paragraph reference (mono --t-xs-size)
+  - a ≤2-line excerpt in .reading-mode
+  - "open" affordance — opens the PDF viewer or tab to the
+    source (see M08 on external links)
+
+  ACCEPTANCE:
+    [ ] CiteModeNarrow.tsx exists.
+    [ ] Citations stack vertically; tap opens source in a
+        new tab OR in an in-app PDF viewer (per existing
+        07 decision).
+
+
+§C  REFLECTION VIZ — THE HARDEST NARROW PROBLEM
+===============================================
+
+Desktop renders a 2D or 3D visualization of the reflection
+operation — a vector pivoting across the axis. On narrow, 3D
+is DEAD (per 07 suite's no-runtime-ML architectural constraint
+and per mobile motion frugality).
+
+Narrow: a static 2D SVG showing the reflection, with an
+explicit "tap to animate" affordance.
+
+  Layout:
+    - 100% width, aspect-ratio: 4/3 (so on 288 px effective
+      width, 216 px tall = legible).
+    - SVG viewBox: 0 0 400 300.
+    - Three elements:
+      1. the axis vector v (drawn as a dashed line through
+         the origin, with a small chevron at its tip,
+         labelled "v" in --font-mono --t-xs-size).
+      2. the input proposition vector p_in (solid arrow from
+         origin, labelled p_in).
+      3. the reflected vector p_out (solid arrow from origin,
+         lighter color --fg-dim, labelled p_out).
+    - Small arc above the origin indicating the reflection
+      symmetry.
+
+  Interaction:
+    - By default, renders in the FINAL state (p_out shown,
+      not animated).
+    - A "↻ Reflect again" button below the viz re-runs the
+      animation IF user opts in.
+    - reducedMotion default: no animation ever. The button
+      just flashes p_out dim→bright at 200 ms to acknowledge
+      the tap.
+
+  NOT rendered on narrow:
+    - The 42-dim contradiction axis signature bar (07 P02
+      or whichever prompt). That's a richer-than-narrow viz;
+      it's replaced by ContradictionAxisNarrow (§D).
+    - 3D orbit controls.
+    - Continuous angular sliders.
+
+  ACCEPTANCE:
+    [ ] ReflectionVizNarrow.tsx exists.
+    [ ] SVG renders at 100% width with labels legible (≥10px).
+    [ ] Static by default; animation only on explicit user
+        action AND only when reducedMotion is false.
+    [ ] Axis vector v is rendered dashed; arrows have visible
+        chevron tips.
+
+
+§D  CONTRADICTION AXIS — 42-DIM SIGNATURE
+=========================================
+
+Desktop spec (07 suite): a horizontal bar strip showing the
+42 dimensions with greatest loading on the contradiction
+axis, each bar sized by its loading.
+
+Narrow: a condensed horizontal micro-histogram.
+
+  Render:
+    - A container 100% width × 40 px tall.
+    - 42 vertical bars, each (100%/42 − 1 px) wide, with
+      height proportional to the absolute loading on the
+      contradiction axis. Positive loadings in --accent;
+      negative in --danger.
+    - Below the strip, a two-line legend: "42 of 768 dims;
+      positive in {accent}, negative in {danger}."
+    - Tap the strip → opens a drawer listing the top-12
+      dimensions by loading, with dim index and loading
+      magnitude.
+
+  No 3D scatter on narrow.
+
+  ACCEPTANCE:
+    [ ] ContradictionAxisNarrow.tsx exists.
+    [ ] 42 bars render without overflow at 320 px viewport.
+    [ ] Tap opens drawer with top-12 dim list.
+
+
+§E  TEASER VS ROUTE
+===================
+
+Inside TheseusTeaser.tsx (panel surface):
+
+  const { mode } = useExperienceHost();
+  const [viewMode, setViewMode] = useState<"read" | "trace" |
+    "reflect" | "compare" | "cite">("read");
+  if (mode === "narrow") {
+    return (
+      <>
+        <ModeTabBarNarrow mode={viewMode} onChange={setViewMode} />
+        {viewMode === "read"    && <ReadModeNarrow />}
+        {viewMode === "trace"   && <TraceModeNarrow />}
+        {viewMode === "reflect" && <ReflectModeNarrow />}
+        {viewMode === "compare" && <CompareModeNarrow />}
+        {viewMode === "cite"    && <CiteModeNarrow />}
+      </>
+    );
+  }
+  return <TheseusStandard viewMode={viewMode} onChange={setViewMode} />;
+
+The route /theseus uses the same branch logic.
+
+viewMode persists in sessionStorage["ths.view"] so a user who
+opens /theseus → READ, navigates away, and returns, lands on
+READ again.
+
+
+§F  PERFORMANCE
+===============
+
+THS on narrow must not require more than the 80 KB gzip
+budget. Specifically:
+
+  - KaTeX (used for formula rendering in TRACE mode) is
+    loaded lazily only when the TRACE tab is first
+    activated.
+  - The contradiction-axis dim loading data (42 numbers per
+    axis, rendered as SVG bars) is ~300 bytes — trivial.
+  - The corpus prop fixtures (the list shown in REFLECT
+    <select>) are ~2 KB — already in 07's fixture bundle.
+  - No Three.js, no WebGL. Confirmed by 07's existing
+    no-runtime-ML / architectural-coherence constraints.
+
+
+ACCEPTANCE FOR M07
+------------------
+[ ] All narrow components under
+    src/content/projects/theseus/narrow/ exist.
+[ ] TheseusTeaser.tsx branches on mode === "narrow".
+[ ] Mode tab bar is horizontally scrollable with edge fades;
+    all five modes reachable.
+[ ] Active mode persists in sessionStorage across navigation.
+[ ] At 320×568, every mode is operable without horizontal
+    overflow outside the deliberate scroll strips (mode tabs,
+    KaTeX formulas, axis drawer).
+[ ] ReflectionViz renders static by default under reducedMotion;
+    no autoplay animation.
+[ ] ContradictionAxisNarrow renders 42 bars within viewport.
+[ ] No Three.js, no WebGL, no runtime-ML artifact added
+    (regression against 07's architectural constraint).
+[ ] KaTeX loads lazily; first-paint TRACE tab renders within
+    2s on 3G simulation.

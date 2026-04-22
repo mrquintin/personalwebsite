@@ -1,0 +1,536 @@
+P01 — CHASSIS + THS PANEL HOST
+================================
+
+ROLE: You are a senior TypeScript/React engineer implementing the
+Theseus Deep experience suite. This prompt establishes (A) the
+THS panel host, (B) the TheseusExperience wrapper, (C) the
+ModeTabBar chassis, and (D) the zustand store used across
+MODES 1–5. It does NOT implement any mode yet; modes land in
+P02–P06.
+
+Read I01_integration_and_accordion_wiring.txt
+for the ExperienceHost / ExperienceScaffold / mode / hostWidthPx /
+reducedMotion / announce conventions. This prompt depends on I01
+and assumes I01 has shipped.
+
+---
+
+GROUNDING
+
+All content in this chassis is structural. No Theseus-specific
+fixture copy is authored in this prompt; fixtures belong to the
+individual mode prompts (P02–P06). This prompt is responsible
+only for:
+
+  (i)   opening a THS panel host file that the accordion can
+        mount;
+  (ii)  rendering the ExperienceScaffold with the five-mode
+        TabBar;
+  (iii) defining the shared zustand store with a slot for each
+        mode's slice;
+  (iv)  authoring the DOSSIER paragraph for THS from TH1, TH2,
+        TH6.
+
+Where this prompt names a fact from source, the source citation
+(TH<n> §<section>) is included inline, and the byte-identical
+excerpt MUST later land in src/lib/theseus/sources.ts when P02
+is first to create that file (or, at chassis time, an empty
+sources.ts with a placeholder comment is acceptable — but the
+DOSSIER paragraph's verbatim quotations, if any, must either be
+in sources.ts or be inlined in the DOSSIER file with a source
+comment, never floating).
+
+
+---
+
+A) FILE LAYOUT
+
+    src/components/panels/theseus/
+        Panel.tsx                                   — NEW panel host
+        Experience/
+            TheseusExperience.tsx                   — top-level
+            ModeTabBar.tsx                          — 5 tabs
+            Dossier.tsx                             — authored paragraph
+        (ThreeOrdersSorter, ReflectionLab,
+         SeverityGauntlet, RefusalPanel,
+         FixedPointAuditor all land in P02-P06)
+
+    src/stores/theseusExperience.ts                 — zustand store
+
+    src/lib/theseus/
+        sources.ts                                  — placeholder (filled by P02+)
+        typeGuards.ts                               — placeholder (filled by P02+)
+
+    One modification:
+    src/components/panels/TheseusTeaser.tsx        (existing; not mutated
+        here — remains the collapsed-state summary)
+
+    One hook:
+    src/app/<accordion-parent>/ThesesAccordionItem  (existing; already
+        wired per I01 to open the THS panel — this prompt changes the
+        panel's default open body from null/placeholder to
+        <TheseusPanel /> from the new src/components/panels/theseus/
+        Panel.tsx)
+
+
+B) STORE SHAPE (authoritative for the whole suite)
+
+    // src/stores/theseusExperience.ts
+    import { create } from "zustand";
+
+    export type Mode =
+      | "orders"
+      | "reflection"
+      | "severity"
+      | "refusal"
+      | "fixedpoint";
+
+    // Each mode slice is filled authoritatively by its owning
+    // prompt. The chassis defines the top-level shape only.
+    export interface OrdersSlice     { /* owned by P02 */ }
+    export interface ReflectionSlice { /* owned by P03 */ }
+    export interface SeveritySlice   { /* owned by P04 */ }
+    export interface RefusalSlice    { /* owned by P05 */ }
+    export interface FixedPointSlice { /* owned by P06 */ }
+
+    export interface TheseusExperienceState {
+      mode: Mode;
+      dossierOpen: boolean;
+      orders:     OrdersSlice;
+      reflection: ReflectionSlice;
+      severity:   SeveritySlice;
+      refusal:    RefusalSlice;
+      fixedpoint: FixedPointSlice;
+
+      setMode(m: Mode): void;
+      toggleDossier(): void;
+      // Cross-mode navigation (used by P05 -> P03 deep-links,
+      // per the Refusal Panel's F3 fixture which refers back
+      // to a reflected antithesis from P03).
+      openInMode(target: Mode, refId: string): void;
+    }
+
+    export const useTheseusStore = create<TheseusExperienceState>(
+      (set, get) => ({
+        mode: "orders",
+        dossierOpen: false,
+        // Mode slices initialize as empty objects at chassis
+        // time; P02-P06 each augment their slice's initializer.
+        orders:     {} as OrdersSlice,
+        reflection: {} as ReflectionSlice,
+        severity:   {} as SeveritySlice,
+        refusal:    {} as RefusalSlice,
+        fixedpoint: {} as FixedPointSlice,
+        setMode(m) {
+          set({ mode: m });
+          // announce() is invoked by TheseusExperience on
+          // subscription; see C3.
+        },
+        toggleDossier() { set((s) => ({ dossierOpen: !s.dossierOpen })); },
+        openInMode(target, refId) {
+          // Default behavior: setMode(target). Owning prompts
+          // may override to set mode-specific focus state (e.g.,
+          // P05 -> P03 sets the reflection.activeFixtureId).
+          set({ mode: target });
+          // refId is an opaque handle the owning mode's subscriber
+          // consumes; the chassis passes it through a transient
+          // "navigationHint" key — owning modes subscribe via
+          // middleware defined in their own prompts.
+        },
+      })
+    );
+
+    Default Mode is "orders" (the Three Orders Sorter is the
+    orientation mode).
+
+
+C) THESEUSEXPERIENCE.TSX
+
+C1. Signature
+
+    import { ExperienceScaffold } from "@/components/experience/ExperienceScaffold";
+    import { useTheseusStore } from "@/stores/theseusExperience";
+    import { ModeTabBar } from "./ModeTabBar";
+    import { Dossier } from "./Dossier";
+    // Mode components imported lazily in P02-P06
+
+    type Props = {
+      mode: "panel" | "route";
+      hostWidthPx: number;
+      reducedMotion: boolean;
+      announce: (msg: string) => void;
+    };
+
+    export function TheseusExperience(props: Props) {
+      const currentMode = useTheseusStore((s) => s.mode);
+      const dossierOpen = useTheseusStore((s) => s.dossierOpen);
+
+      return (
+        <ExperienceScaffold {...props} projectId="theseus">
+          <ModeTabBar />
+          {dossierOpen
+            ? <Dossier />
+            : <ModeHost mode={currentMode} {...props} />}
+        </ExperienceScaffold>
+      );
+    }
+
+C2. ModeHost
+
+    ModeHost is a thin dispatcher that renders the mode component
+    matching `mode`. At chassis time, every mode renders a
+    placeholder <ModePlaceholder modeName={...} />. P02-P06 each
+    replace the placeholder for their mode with a real import.
+    The placeholder MUST render the text "Mode under construction."
+    and an aria-label "Mode placeholder: <modeName>". P07's final
+    build MUST fail if any placeholder is still present in
+    production.
+
+    export function ModeHost({ mode, ...props }: { mode: Mode } & Props) {
+      switch (mode) {
+        case "orders":     return <ThreeOrdersSorter {...props} />;     // P02
+        case "reflection": return <ReflectionLab {...props} />;         // P03
+        case "severity":   return <SeverityGauntlet {...props} />;      // P04
+        case "refusal":    return <RefusalPanel {...props} />;          // P05
+        case "fixedpoint": return <FixedPointAuditor {...props} />;     // P06
+      }
+    }
+
+C3. Announce subscription
+
+    Inside TheseusExperience, subscribe to `mode` changes and call
+    `props.announce(labelForMode(m))` on change. The label function:
+
+      const labelForMode = (m: Mode) => ({
+        orders:     "Mode: Three Orders Sorter",
+        reflection: "Mode: Reflection Lab",
+        severity:   "Mode: Severity Gauntlet",
+        refusal:    "Mode: Refusal Panel",
+        fixedpoint: "Mode: Fixed-Point Auditor",
+      }[m]);
+
+    The announcement is polite aria-live; the ExperienceScaffold
+    owns the live region per I01.
+
+
+D) MODETABBAR.TSX
+
+D1. Tabs in fixed order
+
+    ORDERS | REFLECT | SEVERE | REFUSE | FIXED-PT
+
+    Each tab is a <button role="tab"> with aria-selected. The
+    active tab gets a 1px underline in the active terminal color.
+    Tabs are keyboard-reachable with Tab; LEFT/RIGHT move between
+    tabs; ENTER activates. On activation, setMode fires.
+
+D2. Full labels (XWIDE / WIDE):
+
+        1. ORDERS
+        2. REFLECT
+        3. SEVERE
+        4. REFUSE
+        5. FIXED-PT
+
+D3. Truncated labels (STANDARD):
+
+        ORD | REF | SEV | RFU | FXP
+
+D4. NARROW: a native <select> with the five full labels, for
+    thumb-reachability. Selecting calls setMode.
+
+D5. Tab descriptions (aria-describedby, screen-reader only):
+        ORDERS    — "Three Orders Sorter. First, second, and
+                    third-order claims — Theseus's foundational
+                    distinction."
+        REFLECT   — "Reflection Lab. The Householder
+                    reflection mechanism for generating the
+                    strongest structural counter-argument."
+        SEVERE    — "Severity Gauntlet. Mayo's severity:
+                    whether a test would have caught the
+                    claim's falsity under plausible
+                    alternatives."
+        REFUSE    — "Refusal Panel. The nine-check rigor
+                    gate, founder overrides, and unresolved
+                    as a first-class output."
+        FIXED-PT  — "Fixed-Point Auditor. The meta-method
+                    applied to itself — the fixed point that
+                    terminates the regress."
+
+
+E) DOSSIER.TSX
+
+E1. Purpose
+
+    The DOSSIER is a pre-authored paragraph rendered when
+    dossierOpen is true. It is the panel's "written summary"
+    alternative to the interactive experience — a user who
+    prefers to read rather than click gets a dense 240-320
+    word summary. The toggle is the EXPERIENCE <-> DOSSIER
+    control defined by I01 and reused unchanged here.
+
+E2. Authored paragraph (FINAL COPY; land verbatim in Dossier.tsx;
+    280 words)
+
+      Theseus is an intellectual capital firm whose product is
+      truth-finding methodology, not truth claims. It sells,
+      operates, and publishes the instruments by which
+      disciplined groups of people converge on better beliefs —
+      not the beliefs themselves [TH1 §1]. The distinction is
+      load-bearing: a firm that sells truth claims is only as
+      good as its last claim, while a firm that sells truth-
+      finding methods is insured against the failure of any
+      individual claim. When a claim fails, the method is either
+      vindicated (it caught the failure) or critiqued (it did
+      not); the firm's product remains intact and becomes more
+      credible by the failure.
+
+      Theseus operates at the boundary of the second and third
+      orders [TH1 §2]. Second order: we have a method for
+      determining whether X is true. Third order: we have a
+      theory of what makes a method reliable, and we can
+      evaluate competing methods by that theory. The existing
+      engineering (Noosphere, Dialectic, the Theseus Codex) is
+      the second-order product; the active research roadmap —
+      Aletheia, the Dialectical Crucible, the Calibration
+      Engine, the Axiom Excavator, the Verisimilitude Engine,
+      the Epistemic Process Auditor, the Belief Revision
+      System [TH6 §1] — is third order.
+
+      The firm's methodological commitments reduce to a single
+      principle: a method is reliable to the extent that it
+      would detect its own failure [TH2 §3]. Five criteria are
+      derivable from this principle — Progressivity (Lakatos),
+      Severity (Mayo), Coherence across Aims/Methods/Theories
+      (Laudan), Compressibility (Solomonoff/Kolmogorov), and
+      Domain Sensitivity (No Free Lunch) [TH2 §2]. The meta-
+      method is self-applying: evaluate it against its own
+      five criteria and it passes all five. This is the fixed
+      point that terminates the meta-methodological regress
+      [TH2 §4]. The deepest claim Theseus makes is not that it
+      has a good method, but that it has a method that can
+      evaluate itself and survive the evaluation.
+
+E3. Formatting
+
+    - Rendered as three paragraphs, preserving the [TH<n> §<x>]
+      citation markers. Markers are small inline superscript-
+      style text, not links, not footnotes; they are purely
+      visible provenance anchors.
+    - No bullet points; continuous prose.
+    - <=320 words total. The paragraph above is ~280 words.
+
+E4. Layout
+
+    - NARROW:   full-width column, 16px horizontal padding.
+    - STANDARD: max-width 60ch, centered.
+    - WIDE+:    max-width 72ch, centered; lead font one size up.
+
+E5. Accessibility
+
+    - Rendered inside a <section aria-labelledby="theseus-dossier-h" />
+    - Hidden h2 for "Theseus — written summary".
+    - Focus trap is NOT applied (Dossier and Experience share the
+      same keyboard space; Tab flows naturally).
+
+E6. Sources registration (chassis-owned verbatim excerpt)
+
+    The DOSSIER paragraph prints one sentence that IS a
+    byte-identical excerpt from TH2 §3 — the unifying
+    principle — and the P07 verbatim-drift script will
+    compare it against /outputs/ths02_meta_method.txt. Because
+    this sentence lands at chassis time (before any mode
+    prompt runs), the chassis is responsible for seeding
+    src/lib/theseus/sources.ts with this key.
+
+    Add to src/lib/theseus/sources.ts the key:
+
+        TH2_SEC_3_UNIFYING_PRINCIPLE
+          // verbatim TH2 §3 sentence:
+          // "a method is reliable to the extent that it
+          //  would detect its own failure"
+
+    The exact sentence MUST be the one extracted from
+    /outputs/ths02_meta_method.txt with leading "A " or "a "
+    and terminal punctuation preserved as in the source
+    (P07's verbatim-drift normalizer handles case and
+    whitespace, but not deletions or paraphrase).
+
+    The DOSSIER.tsx file then RENDERS this key's value in
+    the relevant clause rather than inlining the sentence as
+    an authored string. This guarantees that a future edit
+    to TH2 §3 triggers a verbatim-drift failure on the
+    DOSSIER, not just on Mode 5.
+
+    Other DOSSIER citations ([TH1 §1], [TH1 §2], [TH2 §4],
+    [TH6 §1], [TH2 §2]) are provenance markers rather than
+    verbatim excerpts — the DOSSIER text around them is
+    authored paraphrase. They do NOT seed sources.ts keys
+    from the chassis. The keys those sections eventually
+    back (TH1_SEC_2_*, TH2_SEC_4_*, etc.) are seeded by the
+    mode prompts that actually render verbatim from them
+    (P02 for TH1 §2; P06 for TH2 §4).
+
+
+F) PANEL.TSX
+
+F1. Signature
+
+    // src/components/panels/theseus/Panel.tsx
+    import { TheseusExperience } from "./Experience/TheseusExperience";
+
+    type Props = {
+      hostWidthPx: number;
+      reducedMotion: boolean;
+      announce: (msg: string) => void;
+    };
+
+    export default function TheseusPanel(props: Props) {
+      return (
+        <TheseusExperience
+          mode="panel"
+          hostWidthPx={props.hostWidthPx}
+          reducedMotion={props.reducedMotion}
+          announce={props.announce}
+        />
+      );
+    }
+
+F2. Panel host wiring
+
+    The THS accordion item in the page-level component (existing
+    per I01; typically src/components/sections/LandingAccordion/
+    items.tsx or equivalent) already has a hook that renders
+    children on open. Wire its THS item's expanded body to
+    <TheseusPanel .../> passing through the hostWidthPx and
+    reducedMotion from the accordion's layout observer and the
+    announce function from the shared aria-live region.
+
+    The TheseusTeaser remains the collapsed-state summary;
+    TheseusPanel is the expanded-state body. They are siblings,
+    not a replacement pair.
+
+F3. Bundle hygiene
+
+    Panel.tsx is a one-line wrapper; the real work is in
+    TheseusExperience. Do NOT import mode components directly
+    from Panel.tsx. Mode components are lazy-imported INSIDE
+    TheseusExperience's ModeHost switch (use React.lazy +
+    Suspense, or Next.js dynamic() with ssr: false for
+    components that touch window).
+
+
+G) RESPONSIVE BEHAVIOR (inherited from I01)
+
+    hostWidthPx ranges:
+        NARROW    < 640       — single column, stacked
+        STANDARD  640-960     — single column, wider
+        WIDE      960-1280    — two-column where modes permit
+        XWIDE     >= 1280     — two-column; sidebars at full size
+
+    ModeTabBar:
+        WIDE+    — horizontal, full label text
+        STANDARD — horizontal, truncated labels (per D3)
+        NARROW   — <select> (per D4)
+
+    Dossier:
+        Per E4.
+
+    Mode hosts: each mode prompt (P02-P06) specifies its own
+    internal breakpoints. The chassis provides the width; modes
+    consume it.
+
+
+H) REDUCED MOTION
+
+H1. When props.reducedMotion is true, the chassis:
+    - replaces the ModeTabBar's underline slide-animation with
+      an instant swap (no transition);
+    - replaces the Dossier's open/close slide with a 120ms
+      opacity crossfade;
+    - disables the ModeHost's mode-swap transition entirely
+      (instant swap).
+
+H2. framer-motion imports:
+    - ModeTabBar imports `motion.div` and wraps the underline
+      in a motion component. When reducedMotion, the motion
+      component renders as plain div.
+    - Dossier uses AnimatePresence; when reducedMotion, the
+      animation variants collapse to { initial: { opacity: 0 },
+      animate: { opacity: 1 }, exit: { opacity: 0 } } with
+      duration 0.12s.
+
+
+I) TYPING DISCIPLINE
+
+I1. All mode components receive the same Props type (mode,
+    hostWidthPx, reducedMotion, announce). This is the
+    ExperienceHost prop contract from I01; do not deviate.
+
+I2. The store's slice types are placeholders in chassis. Each
+    mode prompt MUST:
+    (a) fill in its slice's interface;
+    (b) provide a slice-initial object;
+    (c) augment useTheseusStore's initializer to merge the
+        real slice object.
+    Cross-slice references (e.g., P05 deep-linking to P03) MUST
+    go through `openInMode(target, refId)` — NOT direct slice
+    mutation.
+
+
+J) ACCEPTANCE (chassis only)
+
+  [ ] src/components/panels/theseus/Panel.tsx exports default
+      TheseusPanel.
+  [ ] Clicking the THS accordion item in the live site opens the
+      panel and renders the ModeTabBar with five tabs.
+  [ ] Default mode is "orders"; the ModeHost renders a
+      placeholder (until P02 lands).
+  [ ] The four other modes also render placeholders when
+      selected. Each placeholder surfaces the mode name via
+      aria-label.
+  [ ] EXPERIENCE <-> DOSSIER toggle from I01 renders the
+      authored Dossier paragraph (E2) verbatim.
+  [ ] src/lib/theseus/sources.ts exists and contains the
+      TH2_SEC_3_UNIFYING_PRINCIPLE key (E6) with the byte-
+      identical TH2 §3 unifying-principle sentence. The
+      DOSSIER renders that key's value in the relevant
+      clause rather than inlining the sentence, so a
+      source edit will trip P07's verbatim-drift gate.
+  [ ] announce() fires on every mode change with the correct
+      label (C3).
+  [ ] Keyboard: Tab reaches the first tab; LEFT/RIGHT cycle
+      tabs; ENTER activates; ESC closes the Dossier.
+  [ ] Bundle impact of chassis alone: <=16KB gzip (target; P07
+      enforces the total-suite ceiling of 80KB).
+  [ ] TheseusTeaser (collapsed-state) is not touched.
+
+
+K) NOTES FOR P02-P06
+
+K1. Every mode prompt must land its own fixtures into
+    src/lib/theseus/ (ordersDeck.ts, thesisAxes.ts,
+    severityFixtures.ts, publicationCandidates.ts,
+    criteriaOnSelf.ts) — NOT inline in components. The P07 lint
+    enforces this.
+
+K2. Every mode prompt must append its mode slice to
+    useTheseusStore via in-place augmentation (add properties
+    to the store initializer; do not replace the store).
+
+K3. Every mode's fixture file must export a
+    typeGuardFor<Fixture>() from src/lib/theseus/typeGuards.ts
+    that validates at module-load time. A fixture file with a
+    shape drift MUST throw at import.
+
+K4. Every mode prompt must register its verbatim source
+    excerpts in src/lib/theseus/sources.ts (one-string-per-
+    excerpt with a citation key like "TH2_SEC_2_2"). P07's
+    source-drift check reads the ths0<n>_*.txt extractions and
+    asserts byte-identical equality against sources.ts for
+    every key.
+
+
+---
+
+END P01. Chassis ships. Proceed to P02 — THREE ORDERS SORTER.

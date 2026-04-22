@@ -1,0 +1,130 @@
+/* I01 — ExperienceScaffold styles. Imported once via globals.css. */
+
+.exp-scaffold {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  border: var(--border-hair);
+  background: var(--bg-1);
+  color: var(--fg);
+  position: relative;
+  animation: exp-scaffold-in 120ms var(--ease-accordion) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .exp-scaffold { animation: none; }
+}
+@keyframes exp-scaffold-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.exp-meta {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--border-hair);
+  font-family: var(--font-mono);
+  font-size: var(--t-xs-size);
+  color: var(--fg-mute);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.exp-meta .exp-meta-name { color: var(--fg); }
+.exp-meta .exp-meta-synopsis { color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; }
+.exp-meta .exp-meta-mode {
+  color: var(--accent-dim); text-transform: uppercase; letter-spacing: 0.12em;
+}
+
+.exp-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+}
+
+/* Each surface (experience or dossier) is allowed to set its own padding;
+   the scaffold itself doesn't pad — gives the experience full bleed. */
+
+.exp-postroll {
+  border-top: var(--border-hair);
+  padding: var(--s-2) var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-xxs-size);
+  color: var(--fg-mute);
+  display: flex; gap: var(--s-3); align-items: center;
+}
+
+/* EXPERIENCE / DOSSIER toggle */
+.exp-toggle {
+  display: inline-flex;
+  border: var(--border-hair);
+  font-family: var(--font-mono);
+  font-size: var(--t-xxs-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+.exp-toggle button {
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--fg-mute);
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease), background var(--d-fast) var(--ease);
+}
+.exp-toggle button + button { border-left: 1px solid var(--rule); }
+.exp-toggle button[aria-pressed="true"] { background: var(--bg-3); color: var(--accent); }
+.exp-toggle button:hover { color: var(--fg); }
+
+/* skip link inside the scaffold */
+.exp-skip {
+  position: absolute; top: -1000px; left: 8px;
+  background: var(--bg-2); color: var(--fg);
+  padding: 4px 8px; font-family: var(--font-mono); font-size: var(--t-xxs-size);
+  border: var(--border-hair); z-index: 5;
+}
+.exp-skip:focus-visible { top: 8px; }
+
+/* placeholder while the experience bundle is loading */
+.exp-loading {
+  font-family: var(--font-mono);
+  font-size: var(--t-sm-size);
+  color: var(--fg-mute);
+  padding: var(--s-6);
+}
+
+/* fixture picker (dev only) */
+.fixture-picker {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0, 0, 0, 0.65);
+  display: grid; place-items: center;
+  padding: var(--s-6);
+}
+.fixture-picker .panel {
+  width: min(520px, 100%);
+  background: var(--bg-1);
+  border: var(--border-hair);
+  font-family: var(--font-mono);
+  font-size: var(--t-sm-size);
+}
+.fixture-picker header {
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--border-hair);
+  color: var(--fg-mute);
+  display: flex; justify-content: space-between;
+}
+.fixture-picker ul { max-height: 320px; overflow: auto; }
+.fixture-picker li button {
+  width: 100%; text-align: left; padding: 6px var(--s-4);
+  background: transparent; color: var(--fg);
+  cursor: pointer;
+}
+.fixture-picker li button:hover { background: var(--bg-3); }
+.fixture-picker footer {
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--border-hair);
+  display: flex; gap: var(--s-2);
+}
+.fixture-picker footer button {
+  font-family: var(--font-mono); font-size: var(--t-xxs-size);
+  color: var(--fg-mute); border: var(--border-hair);
+  padding: 4px 8px; cursor: pointer;
+}

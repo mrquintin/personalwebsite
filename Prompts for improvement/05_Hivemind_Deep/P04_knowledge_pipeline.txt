@@ -1,0 +1,609 @@
+P04 — KNOWLEDGE PIPELINE
+=========================
+
+Prerequisites: P01 (chassis); P02 and P03 not strictly
+required but assumed complete when shipping in order. This prompt
+delivers MODE 4 — KNOWLEDGE PIPELINE.
+
+The Pipeline mode teaches the substrate: how a peer-reviewed
+document becomes a retrievable slice becomes part of a theory
+agent's knowledge context. It is grounded in Guide III §2 —
+specifically 2.1 (upload flow, end to end), 2.2 (retrieval at query
+time), 2.3 (why MiniLM, why local), and 2.4 (why Qdrant).
+
+This mode is the only place in the HVM experience where the RAG
+substrate is visible. It is important because the density knob in
+P02 and the theory network's behavior in P01 both rest on what
+the pipeline does; without seeing the pipeline, a user would be
+forgiven for thinking "knowledge base" is abstract rather than
+concrete.
+
+
+----------------------------------------------------------------------
+PART A — WHY THIS MODE EXISTS
+----------------------------------------------------------------------
+
+A1. Hivemind is not a model choice. Guide III §1.2 makes the
+    port/adapter architecture explicit: LLMInterface,
+    VectorStoreInterface, StorageInterface. The chassis is
+    substitutable; the RAG pipeline choices (MiniLM, Qdrant,
+    cosine, 384-dim, 800-token chunks, 80-token overlap) are the
+    load-bearing engineering decisions. A pipeline mode is the
+    only way to show those decisions as CONCRETE rather than
+    "we use an embedding model".
+
+A2. The pipeline is legible in a way that the full agent engine
+    is not. Guide III §3 describes debate.py as ~2089 lines with
+    a state machine that would not compress into a panel. The
+    pipeline, by contrast, is a linear six-stage flow: upload ->
+    extract -> optimize -> chunk -> embed -> upsert, with one
+    retrieval stage at query time. This fits the panel.
+
+A3. The pipeline exposes WHY the density knob in P02 behaves the
+    way it does. Density sets the token budget per agent's slice,
+    and the slice is packed with COMPLETE documents from the
+    chunk-indexed store. Seeing the chunking step makes the
+    "slices cannot cut documents mid-document" constraint
+    tangible (Guide II §3 Component 1).
+
+
+----------------------------------------------------------------------
+PART B — THE PIPELINE STAGES (FROM GUIDE III §2)
+----------------------------------------------------------------------
+
+Seven stages total: six ingest-time, one query-time. Each stage has
+a card; the card shows stage name, inputs, outputs, the single
+relevant engineering decision with its source file path from Guide
+III, and (where applicable) the configuration constants.
+
+B1. STAGE 1 — UPLOAD.
+    File (Guide III): cloud/app/routers/knowledge_bases.py
+    Inputs: a file (pdf, docx, html, txt). Max 50MB.
+    Outputs: raw bytes + document_type.
+    Key decision: the ENDPOINT sets document_type, not the LLM.
+        /upload              -> "framework"
+        /upload-practicality -> "practicality"
+        /upload-simulation   -> "simulation_description"
+        /upload-smart        -> auto-classified by LLM
+    Why it matters: document_type is the filter that scopes
+    retrieval. A theory agent carrying a Porter-framework slice
+    should not retrieve regulatory chunks; document_type makes
+    that filter cheap.
+
+B2. STAGE 2 — TEXT EXTRACTION.
+    File: cloud/app/rag/extraction.py
+    Inputs: raw bytes + format.
+    Outputs: raw text string.
+    Key decision: format-specific extractors.
+        PDF   -> PyMuPDF
+        DOCX  -> python-docx
+        HTML  -> tag-strip
+        TXT   -> UTF-8 decode with errors="ignore"
+    Why it matters: a single extractor (e.g., Apache Tika) would
+    be simpler but slower and less predictable. Format-specific
+    means failure modes are specific.
+
+B3. STAGE 3 — LLM OPTIMIZATION.
+    File: cloud/app/services/document_optimizer.py
+    Inputs: raw text + document_type.
+    Outputs: optimized text (or raw, on fallback).
+    Key decision: send to Claude Sonnet with a document-type-
+    specific prompt that says, essentially, "clean this up for
+    RAG: remove filler, restructure for clarity, prioritize
+    factual claims." There are three variants: framework /
+    simulation / practicality.
+    Gates:
+        - Documents >40,000 chars SKIP this step (too expensive
+          and timeout-prone).
+        - If the API key is missing or the call fails, the system
+          falls back to raw text and indexes anyway.
+    Why it matters: this is the single stage that is not
+    deterministic. Guide III is explicit that the document gets
+    indexed either way; optimization is best-effort, not gating.
+
+B4. STAGE 4 — CHUNKING.
+    File: cloud/app/rag/chunking.py
+    Inputs: optimized (or raw) text.
+    Outputs: a list of token-bounded text chunks with overlap.
+    Algorithm: split on \n\n; accumulate paragraphs until the
+    chunk reaches RAG_CHUNK_MAX_TOKENS (default 800); save; carry
+    over the last RAG_CHUNK_OVERLAP tokens (default 80) into the
+    next chunk. Token counting via tiktoken with cl100k_base.
+    Short-doc rule: documents below RAG_CHUNK_MIN_TOKENS (500)
+    still produce exactly one chunk.
+    Config constants (visible in panel):
+        RAG_CHUNK_MAX_TOKENS = 800
+        RAG_CHUNK_OVERLAP    = 80
+        RAG_CHUNK_MIN_TOKENS = 500
+    Why it matters: chunk size is the knob that decides retrieval
+    granularity. 800 tokens is about one page of dense text — the
+    minimum unit at which a theoretical claim has its own context.
+
+B5. STAGE 5 — EMBEDDING.
+    File: cloud/app/rag/embeddings.py
+    Model: all-MiniLM-L6-v2, 22M parameters, 384-dim output.
+    Runs locally; loaded into memory; not an API call.
+    Inputs: list of chunk strings.
+    Outputs: list of 384-dim float32 vectors.
+    Batched at 64.
+    Normalization: embeddings are L2-normalized so cosine
+    similarity is a dot product.
+    Why MiniLM (Guide III §2.3):
+        - No per-query cost. Eight agents × five rounds = 40+
+          embedding calls per analysis.
+        - Works offline. The Admin app runs local Postgres,
+          Qdrant, and the API server on one machine.
+    Trade-off: slightly lower retrieval quality than text-
+    embedding-3-small. Acceptable for curated KBs.
+
+B6. STAGE 6 — VECTOR UPSERT.
+    File: cloud/app/rag/vector_store.py
+    Backend: Qdrant.
+    Collection naming: kb_{knowledge_base_id}, auto-created with
+    cosine distance if absent.
+    Payload stored with each vector:
+        knowledge_base_id
+        document_id
+        document_type
+        chunk_index
+        content
+        document_name
+        source_page
+    Duplication: chunks are also stored in PostgreSQL
+    (text_chunks table) for bookkeeping. Guide III §4: Qdrant is
+    not a reliable source of truth for relational data; if Qdrant
+    is corrupted, chunks can be re-embedded from Postgres.
+    Why Qdrant (Guide III §2.4): pgvector's ANN degrades at
+    scale; Qdrant uses HNSW, runs in Docker alongside the app, is
+    open source, has a clean Python client. Pinecone was rejected
+    for cloud dependency + per-query cost.
+
+B7. STAGE 7 — RETRIEVAL (QUERY TIME).
+    File: cloud/app/rag/retrieval.py
+    Flow:
+        1. Embed the query with the same MiniLM model.
+        2. Search Qdrant for each KB in the agent's
+           knowledge_base_ids.
+        3. Filter by similarity threshold (default 0.0), document
+           IDs, document types.
+        4. Sort by score descending; return top K (default 8).
+    Over-fetch optimization: when filtering by document_types,
+    retrieval fetches 5× the requested top_k from Qdrant and
+    filters in Python, because document-type filtering is post-
+    query.
+    Output format (into agent's prompt):
+        [EXCERPT 1] porters-five-forces.pdf (p. 7)
+        The five forces framework identifies five competitive...
+        [EXCERPT 2] market-analysis-2024.pdf (p. 3)
+        Revenue in the target market grew 23% year over year...
+
+B8. NON-STAGE (FIRM POSTURE): the pipeline is what the STRATEGIC
+    RESEARCH TEAM (P03 Failure II firm artifact) feeds into. The
+    pipeline is not the firm's product; the product is the
+    adversarial deliberation (P01). But without the pipeline,
+    there is no substrate. A small labelled tie-in in the mode's
+    footer notes this linkage and offers a cross-link to Failure
+    II's ResponsePanel.
+
+
+----------------------------------------------------------------------
+PART C — WHAT THE USER SEES
+----------------------------------------------------------------------
+
+C1. Layout.
+
+    WIDE (hostWidthPx >= 960):
+        Horizontal pipeline: seven stage cards laid out left-to-
+        right with connecting arrows. Stage 7 (Retrieval) is
+        visually separated (a vertical divider + a "QUERY TIME"
+        label) from stages 1-6 (INGEST TIME).
+
+        Beneath the horizontal flow, a selected-stage DETAIL
+        PANEL expands, taking the full width of the mode body.
+
+    STANDARD (640-960):
+        Two-row pipeline: stages 1-4 on top row, 5-6 on second,
+        stage 7 below a "QUERY TIME" divider on a third row. Same
+        stage-click-opens-detail behavior.
+
+    NARROW (<640):
+        Vertical list of seven cards in order; clicking a card
+        expands inline; no arrow connectors.
+
+    A DocumentCassette widget sits at the left end of the flow
+    (WIDE) or above it (STANDARD/NARROW): a small fixed card
+    representing the sample document being pushed through the
+    pipeline. The cassette shows:
+        - Filename (sample): "porters-five-forces.pdf"
+        - Size (sample): "2.3MB"
+        - Document type (after stage 1): "framework"
+    The cassette DOES NOT animate the document moving through
+    stages (that would be cosmetic and costly). Instead, each
+    stage card shows its own "INPUT" and "OUTPUT" preview for
+    the sample.
+
+C2. PipelineStage card (collapsed).
+
+    - Stage number (mono, large): "1" through "7".
+    - Stage name (serif, emphatic).
+    - One-line summary.
+    - Source file path (mono 11px, e.g., "cloud/app/rag/
+      chunking.py").
+    - Expand chevron.
+
+    The active stage (click-selected) has a 1px underline in
+    --accent and a left-border in --accent at NARROW.
+
+C3. PipelineStage card (expanded / DETAIL PANEL).
+
+    Sections, in order:
+
+    (a) INPUT: short label describing what flows in, plus a
+        small preview of the sample data at this stage. E.g., at
+        stage 4, the preview shows ~20 lines of the optimized
+        text. At stage 5, the preview shows a 10×10 truncation
+        of a 384-dim vector (readout style, mono, hex or float).
+
+    (b) OUTPUT: the sample data after this stage's transform.
+
+    (c) THE ONE DECISION: a single paragraph describing the
+        engineering choice at this stage (e.g., "why 800 tokens;
+        why 80-token overlap"). Grounded in Guide III §2.
+
+    (d) CONFIG CONSTANTS (only on stages 3-7 where they exist):
+        a mono key-value list of the constants — RAG_CHUNK_
+        MAX_TOKENS, RAG_CHUNK_OVERLAP, similarity threshold,
+        top_k, etc.
+
+    (e) WHERE IT SURFACES IN THE PRODUCT: one-liner cross-
+        reference into another mode via openInMode. For example:
+            Stage 4 (Chunking) -> openInMode("knobs", "density")
+              with hint "density sets the target per-agent slice
+              size; packing respects these chunks".
+            Stage 6 (Upsert) -> openInMode("failures", "analysis")
+              with hint "this is where the peer-reviewed KB
+              actually lives".
+            Stage 7 (Retrieval) -> openInMode("theater",
+              "<event-id-of-first-proposal>") with hint "this is
+              what the theory agent saw before proposing".
+
+C4. Stage-5 embedding visualization.
+
+    The embedding stage gets one extra element: an EmbeddingCloud
+    component showing a 2-D t-SNE-or-UMAP-style projection of
+    ~30 sample chunk vectors from the authored pipeline fixture.
+    The projection is PRECOMPUTED; the panel does not run an
+    embedding or dim-reduction algorithm.
+    Points are coloured by document_type:
+        framework       -> --accent
+        practicality    -> --warn
+        simulation_description -> --ok
+    One point is highlighted to indicate "the current sample
+    chunk"; clicking another point switches the cassette's active
+    sample without running anything. This is illustrative only;
+    the caption below the cloud reads (verbatim in D4):
+        "Precomputed projection of 30 sample chunk embeddings.
+         Panel does not run MiniLM or dimensionality reduction."
+
+C5. What the user controls.
+
+    - Click any stage card to expand its detail panel. Only one
+      expanded at a time.
+    - Inside the detail panel, click "WHERE IT SURFACES" link to
+      jump to another mode.
+    - In stage 5, click a point in the EmbeddingCloud to change
+      the active sample chunk. Other stages' previews update
+      accordingly.
+    - A small toggle above the pipeline lets the user pick among
+      three sample document archetypes to push through the
+      pipeline: "framework (Porter)", "practicality (EU MDR
+      regulation)", "simulation (quarterly sales ledger)". Each
+      archetype is fully authored in the fixture.
+
+C6. What the user CANNOT do.
+
+    - Upload a real file. The pipeline is illustrative; live
+      pipeline execution would require MiniLM in-browser (large)
+      plus a server-side Qdrant (network call; banned by the
+      INDEX).
+    - Edit config constants. They are displayed read-only. This
+      is consistent with the P03 "FIRM-SET CALIBRATIONS" posture.
+    - Change which embedding model is shown. MiniLM is the choice
+      Guide III documents; alternatives are discussed in Stage 5's
+      THE ONE DECISION prose but not selectable.
+
+
+----------------------------------------------------------------------
+PART D — FILES, COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+D1. src/components/projects/hivemind/Experience/KnowledgePipeline/
+
+    PipelineStage.tsx
+        Props:
+            stage: PipelineStageEntry;
+            active: boolean;
+            onActivate(): void;
+            viewport: "narrow" | "standard" | "wide";
+        Render: collapsed card + expanded DETAIL PANEL contents
+        when active. Renders its own INPUT/OUTPUT/DECISION/
+        CONFIG/CROSS-REF sections from the entry data.
+
+    DocumentCassette.tsx
+        Props:
+            sample: SamplePipelineDoc;
+            onChangeSample(id: string): void;
+            archetypes: SamplePipelineDoc[];
+        Render: a compact card showing filename / size / type.
+        A small dropdown lets user pick among archetypes.
+
+    EmbeddingCloud.tsx
+        Props:
+            points: Array<{ id: string; x: number; y: number;
+                            docType: string; label: string; }>;
+            activeId: string;
+            onSelect(id: string): void;
+        Render: a single <svg> 320×200 (WIDE), 220×140 (NARROW).
+        No external plotting library; points drawn as
+        <circle>s. Keyboard: Tab into the svg focuses the active
+        point; Left/Right arrow moves focus to the nearest point
+        on that axis; Enter selects.
+
+    (optional) ConnectorArrows.tsx — renders SVG arrows between
+    stage cards at WIDE. Pure presentational.
+
+D2. src/lib/hivemind/pipeline.ts
+
+    export interface PipelineStageEntry {
+      id: 1|2|3|4|5|6|7;
+      name: string;                         // "UPLOAD", "TEXT EXTRACTION", etc.
+      oneLiner: string;                     // one-sentence summary
+      sourceFilePath: string;               // "cloud/app/rag/chunking.py"
+      phase: "ingest" | "query";
+      inputLabel: string;                   // "raw bytes + format"
+      outputLabel: string;                  // "chunk list"
+      theOneDecision: string;               // authored paragraph
+      configConstants?: Array<{ key: string; value: string }>;
+      crossRef?: {
+        mode: Mode;
+        refId: string;
+        hint: string;
+      };
+    }
+
+    export interface SamplePipelineDoc {
+      id: "porter" | "eu-mdr" | "quarterly-ledger";
+      filename: string;
+      sizeLabel: string;                    // "2.3MB"
+      documentType: "framework" | "practicality" | "simulation_description";
+      stageSamples: Record<1|2|3|4|5|6|7, StageSample>;
+      embeddingPointIds: string[];           // which cloud points belong to this doc
+    }
+
+    export interface StageSample {
+      input: string | Array<string>;        // display preview
+      output: string | Array<string> | Array<number>;
+    }
+
+    export interface EmbeddingCloudPoint {
+      id: string;
+      x: number;                            // precomputed 2D coord
+      y: number;
+      docType: "framework" | "practicality" | "simulation_description";
+      label: string;                        // brief descriptor
+      chunkIndex: number;
+      chunkText: string;                    // short excerpt
+    }
+
+    export const PIPELINE_STAGES: PipelineStageEntry[];   // exactly 7
+    export const SAMPLE_DOCS: SamplePipelineDoc[];        // exactly 3
+    export const EMBEDDING_CLOUD_POINTS: EmbeddingCloudPoint[]; // ~30
+
+D3. State slice.
+
+    interface PipelineState {
+      activeStageId: 1|2|3|4|5|6|7;
+      activeSampleId: SamplePipelineDoc["id"];
+      activePointId: string;                // within the cloud
+    }
+
+    interface HivemindExperienceState {
+      // ...
+      pipeline: PipelineState;
+      activatePipelineStage(id: 1|2|3|4|5|6|7): void;
+      setPipelineSample(id: SamplePipelineDoc["id"]): void;
+      setPipelinePoint(id: string): void;
+    }
+
+D4. openInMode from P01.
+
+    openInMode("pipeline", refId):
+        - If refId matches a stage number ("1".."7"), sets
+          activeStageId.
+        - If refId is "embedding-cloud", activates stage 5 and
+          sets focus into the EmbeddingCloud.
+        - If refId is a sample-doc id, sets activeSampleId.
+
+
+----------------------------------------------------------------------
+PART E — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+E1. Stage names (VERBATIM uppercase, mono).
+
+    1. UPLOAD
+    2. TEXT EXTRACTION
+    3. LLM OPTIMIZATION
+    4. CHUNKING
+    5. EMBEDDING
+    6. VECTOR UPSERT
+    7. RETRIEVAL
+
+E2. Phase labels.
+
+    Stages 1-6 grouped under: "INGEST TIME (once per document)"
+    Stage 7 grouped under:    "QUERY TIME (every analysis)"
+
+    (Phrasing from Guide III §2 opening paragraph, verbatim.)
+
+E3. Stage-5 EmbeddingCloud caption (VERBATIM):
+
+    "Precomputed projection of 30 sample chunk embeddings.
+     Panel does not run MiniLM or dimensionality reduction."
+
+E4. Stage 3 gate microcopy (VERBATIM, from Guide III §2.1):
+
+    ">40,000 characters: skip (too expensive and timeout-prone)."
+    "API key missing or call fails: fall back to raw text and
+     index anyway."
+
+E5. Stage 5 rationale microcopy (PARAPHRASE-TIGHT, from Guide
+    III §2.3, must remain recognizable):
+
+    "all-MiniLM-L6-v2: 22M parameters, 384-dim output. Chosen for
+     two reasons that travel together: no per-query cost (≈40
+     embedding calls per analysis); works offline (Admin app runs
+     local Postgres, Qdrant, API on one machine)."
+
+E6. Stage 6 rationale microcopy (PARAPHRASE-TIGHT, from Guide
+    III §2.4):
+
+    "Qdrant over pgvector: HNSW indexing; better ANN at scale;
+     Docker alongside the app; open source; clean Python client.
+     Pinecone rejected for cloud dependency and per-query cost."
+
+E7. Stage 7 excerpt-format block (VERBATIM, from Guide III §2.2):
+
+    "[EXCERPT 1] porters-five-forces.pdf (p. 7)
+     The five forces framework identifies five competitive
+     forces...
+
+     [EXCERPT 2] market-analysis-2024.pdf (p. 3)
+     Revenue in the target market grew 23% year over year..."
+
+E8. What the mode must not say.
+
+    - "State-of-the-art embeddings", "best-in-class vector DB",
+      "blazing fast". All three are marketing tonality the firm
+      rejects.
+    - "Our proprietary pipeline". The pipeline uses well-known
+      open-source components (MiniLM, Qdrant, tiktoken). The
+      firm's IP is the KB contents and the debate engine, not
+      the pipeline stack.
+    - "AI-powered retrieval". Retrieval is MiniLM embedding +
+      cosine + HNSW. Calling it "AI-powered" is either
+      tautological or mystifying.
+    - "Pick your embedding model". MiniLM is the choice; the
+      mode may describe alternatives in prose (Stage 5 THE ONE
+      DECISION) but does not present them as a user-selectable
+      knob. Guide III §1.2's port/adapter pattern is an
+      engineering concern, not a client-facing one.
+
+
+----------------------------------------------------------------------
+PART F — ACCEPTANCE FOR P04
+----------------------------------------------------------------------
+
+  [ ] ModeTabBar tab 4 (PIPELINE) enabled and mounts Knowledge
+      Pipeline.
+  [ ] Seven stage cards render in order 1..7 with correct phase
+      grouping (INGEST TIME for 1-6, QUERY TIME for 7).
+  [ ] Clicking any stage sets active state; exactly one stage is
+      expanded at a time; default is stage 1.
+  [ ] Each stage's detail panel shows INPUT, OUTPUT, THE ONE
+      DECISION, CONFIG CONSTANTS (where applicable), and WHERE
+      IT SURFACES cross-reference.
+  [ ] RAG_CHUNK_MAX_TOKENS=800, RAG_CHUNK_OVERLAP=80,
+      RAG_CHUNK_MIN_TOKENS=500 appear verbatim on stage 4.
+  [ ] Stage 5 shows EmbeddingCloud with ~30 precomputed points
+      coloured by document_type; active point highlighted;
+      clicking a point updates cassette and relevant stage
+      samples.
+  [ ] Caption "Precomputed projection of 30 sample chunk
+      embeddings. Panel does not run MiniLM or dimensionality
+      reduction." appears VERBATIM.
+  [ ] Three sample archetypes (framework / practicality /
+      simulation) are selectable via DocumentCassette dropdown;
+      each has fully-authored stage samples.
+  [ ] openInMode("pipeline", "<stage-id>") activates that stage.
+      openInMode("pipeline", "embedding-cloud") activates stage 5
+      with focus on cloud.
+  [ ] Cross-references from P02 (density -> stage 4) and P03
+      (Failure II artifact -> stage 6) land correctly.
+  [ ] No network calls; no MiniLM in the bundle; no Qdrant client
+      in the bundle.
+  [ ] Keyboard: Tab cycles stage cards; Enter activates; arrow
+      keys move within EmbeddingCloud; ESC collapses expanded
+      stage (returns default to stage 1).
+  [ ] aria-live announces on stage change ("Stage 4 Chunking
+      expanded. Input: optimized text. Output: chunk list of
+      length 12.") and on sample change ("Sample: framework,
+      porters-five-forces.pdf.").
+  [ ] reducedMotion: no flowing-arrow animations between stages;
+      connector arrows still render statically; no cloud-point
+      entry animations.
+  [ ] Prose lint (P06) passes; VERBATIM strings in E1-E7
+      compared byte-exact against Guide III source in P06
+      integrity test.
+  [ ] Bundle gzip: KnowledgePipeline code <=7KB; sample data
+      <=6KB (three archetypes × seven stages each); embedding
+      cloud coords <=1KB.
+
+
+----------------------------------------------------------------------
+PART G — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+G1. DO NOT embed a live MiniLM model in the bundle. The model is
+    22M parameters; even quantized it is multiple MB; it would
+    blow the 80KB budget by 100× and break the "no network / no
+    local ML" posture of the panel. The EmbeddingCloud shows
+    precomputed coords, and that is correct.
+
+G2. DO NOT draw the pipeline as a 3D or flashy animation. The
+    pipeline is a declarative diagram of seven stages. Cards
+    with arrows between them is the correct fidelity; anything
+    more would cross into the theatrics Guide I §2 Failure IV
+    critiques.
+
+G3. DO NOT invent stages. Seven stages is what Guide III §2
+    describes. There is no "deduplication" stage, no "re-ranking"
+    stage, no "caching" stage, no "semantic-compression" stage.
+    Adding any of these would be fiction. The over-fetch
+    optimization on Stage 7 is mentioned in-prose only, not as
+    its own stage.
+
+G4. DO NOT allow the user to think the EmbeddingCloud is a
+    retrieval visualizer. It shows static chunk distribution.
+    Retrieval is described textually in Stage 7's detail panel.
+    Mixing the two (e.g., highlighting the top-K nearest
+    neighbours to the sample query) would be better pedagogy
+    but requires either (a) running embedding at panel time —
+    banned — or (b) additional authored data that is expensive
+    to maintain. A future P04.5 could add it; v1 does not.
+
+G5. DO NOT surface Tauri, AWS, Fernet, RDS, ALB, or ACM in this
+    mode. Those are Guide III §5 deployment topics and belong
+    either in the DOSSIER side of the HVM panel or in a future
+    deployment-specific mode. This mode is about RAG only.
+
+G6. The sample archetypes must be THREE (not two, not five). One
+    per document_type that Stage 1's endpoint dispatch sets.
+    This mirrors Guide III §2.1's four endpoint types but drops
+    /upload-smart because "auto-classified by LLM" is not a
+    type, it is a dispatch strategy. Three concrete archetypes
+    map to the three concrete types.
+
+G7. The DocumentCassette is the ONE element that persists across
+    stage clicks. It is the thread the user holds onto while
+    moving through the pipeline. Do not rebuild it on every
+    stage expansion; it lives at the top of the mode body.
+
+G8. Configuration constants (RAG_CHUNK_MAX_TOKENS etc.) are
+    displayed with their actual default values from Guide III.
+    If Hivemind's production config changes these values, the
+    panel's prose becomes wrong; P06 flags this as a source-
+    drift check when the Guides are re-imported.
+
+
+End of P04.

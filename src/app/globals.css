@@ -1,6 +1,7 @@
 @import "../styles/tokens.css";
 @import "../styles/reset.css";
 @import "../styles/print.css";
+@import "../styles/experience.css";
 
 /* ----- keyframes ----- */
 @keyframes operator-fade-up {

@@ -1,0 +1,823 @@
+P03 — PIN SEMANTICS, KEYBOARD, TOUCH, A11Y
+===============================================
+
+ROLE: You are a senior accessibility-aware React engineer
+landing the pin, keyboard, touch-guard, and
+screen-reader/ARIA wiring for the accordion's new hover
+semantics. This prompt assumes P01 (hoverIntent FSM) and
+P02 (interrupt-safe motion CSS) have both landed. It does
+NOT touch the motion layer and does NOT add new
+animations.
+
+This prompt solves deficiencies C5 (focus-within),
+C6 (click pin), C7 (touch), and the associated D4
+a11y requirements.
+
+This prompt answers four questions the user's requirement
+leaves implicit:
+
+  1. When hover opens and cursor leaves, when should the
+     panel stay open? Answer: when pinned, or when focus
+     is inside.
+  2. What does a click do now that hover already opens?
+     Answer: click pins (and a second click unpins).
+  3. What happens on touch devices where hover is
+     meaningless? Answer: click/tap acts as pin
+     (equivalent to today's expand-toggle), and the
+     hover-intent hook is disabled via its enabled flag.
+  4. What does a screen-reader user hear, and how do they
+     control pin? Answer: Enter on a focused spine pins;
+     Escape unpins and returns to neutral; aria-pressed on
+     the spine reflects pin state; a polite live region
+     announces the change.
+
+---
+
+§A — FILES
+
+Modify:
+
+    src/lib/accordion/hoverIntent.ts
+        — extend the FSM with two focus-pin guards:
+          hover-enter is suppressed when focus is inside a
+          different panel; the existing "focus keeps open"
+          on accordion-leave stays but is tightened.
+
+    src/components/shell/Accordion.tsx
+        — repoint onActivate (click) to handlers.onPin;
+        — bind Escape to handlers.forceIdle AND focus
+          recovery (move focus to the pinned panel's
+          spine before forceIdle clears aria-hidden state);
+        — bind Enter and 1-6 to handlers.onPin;
+        — render an aria-live="polite" region for
+          pin-state announcements;
+        — preserve the (hover: hover) and (pointer: fine)
+          and (min-width: 768px) gating via the hook's
+          `enabled` flag.
+
+    src/components/shell/PanelSpine.tsx
+        — accept `pinned` prop;
+        — add aria-pressed reflecting pinned;
+        — update sr-only label based on pinned state;
+        — no visual change to the vertical title rendering.
+
+    src/components/shell/Panel.tsx
+        — forward `pinned` prop to PanelSpine (Panel
+          already consumes it per P02).
+
+    src/app/globals.css
+        — add [data-pinned="true"] visual affordance on the
+          panel (a 2px left-edge accent in --accent, low
+          intrusiveness). Token-driven.
+
+    src/styles/tokens.css
+        — if a new color or stroke width is needed that
+          isn't in tokens.css, add it here. Likely no new
+          token required; --accent and a 2px width cover
+          it.
+
+Create: nothing.
+
+---
+
+§B — PIN SEMANTICS (the definitive table)
+
+B1. States and transitions the user experiences
+
+    | Current state         | Input                     | Next state                   | Rationale                                 |
+    |-----------------------|---------------------------|------------------------------|-------------------------------------------|
+    | neutral, no pin       | Click spine N             | warm + pinned on N           | Pin = explicit intent to dwell.           |
+    | neutral, no pin       | Hover spine N for 120ms   | warm + hover-open on N       | Cold dwell (P01).                          |
+    | warm, hover-open on N | Click spine N             | warm + pinned on N           | Promote the hover-open to pinned.          |
+    | warm, hover-open on N | Hover spine M (M≠N)       | warm + hover-open on M       | Instant swap (P01 §D2).                    |
+    | warm, hover-open on N | Cursor leaves accordion   | leaving (200ms) → neutral    | Leave-tolerance (P01 §D3).                 |
+    | warm, pinned on N     | Click spine N             | neutral (or warm if hovering)| Toggle: click-again unpins (FSM onPin=same)|
+    | warm, pinned on N     | Click spine M (M≠N)       | warm + pinned on M           | Repin without intermediate unpin.          |
+    | warm, pinned on N     | Hover spine M (M≠N)       | warm + pinned on N           | Hover disabled while pinned (P01 §D4).     |
+    | warm, pinned on N     | Cursor leaves accordion   | warm + pinned on N           | Pin overrides leave-tolerance.             |
+    | warm, pinned on N     | Escape                    | neutral                      | ESC always returns to neutral + unpins.    |
+    | any                   | Enter on focused spine N  | warm + pinned on N           | Enter promotes focus-into-pin.             |
+    | any                   | Digit key N (1–6)         | warm + pinned on N           | Number keys pin that panel.                |
+    | warm, focus inside N  | Hover spine M (M≠N)       | warm, activeIndex unchanged  | Focus acts as implicit pin (B3).           |
+    | warm, focus inside N  | Cursor leaves accordion   | warm, activeIndex unchanged  | Focus keeps open even without explicit pin.|
+
+    This table is authoritative. P01's FSM transitions
+    implement most of it; the last two rows (focus acts as
+    implicit pin during hover) are the new constraints
+    this prompt adds.
+
+B2. Click on body content (not spine)
+
+    Clicks inside the panel body do NOT change pin state.
+    They're consumed by whatever interactive element
+    they're on (the ReflectionLab slider, the book's
+    page-forward button, etc.). The onClick={onActivate}
+    handler lives ONLY on the spine button. Panel body
+    remains a passive container from the
+    pin-decision perspective.
+
+B3. Focus acts as implicit pin while hover is active
+
+    Rationale: if a keyboard or screen-reader user has
+    tabbed into panel N's body, a mouse user (possibly
+    the same user) moving the cursor over panel M should
+    not destroy the keyboard focus context. Hover-swap is
+    suppressed while focus is inside ANY panel. The
+    cursor can still drift off the accordion entirely
+    without triggering the leave-tolerance collapse
+    (existing P01 §B4 rule); this prompt tightens that
+    rule to also suppress hover-swap to a different
+    panel.
+
+    Implementation: extend the reducer's ENTER handler in
+    hoverIntent.ts:
+
+      case "ENTER": {
+        if (!enabled) return state;
+        // B3: focus is an implicit pin.
+        if (state.focusInsideIndex != null &&
+            state.focusInsideIndex !== action.i) {
+          // Focus is inside a DIFFERENT panel; ignore the
+          // hover-enter on this one. Do not flip
+          // activeIndex. Do not start a dwellTimer.
+          return state;
+        }
+        // existing ENTER logic (cold dwell start, warm
+        // swap, etc.)
+        …
+      }
+
+    The case "ENTER" with i == state.focusInsideIndex is
+    a no-op by existing logic (enter on the already-active
+    panel is a no-op in warm state). So the narrow rule
+    suffices.
+
+    No other reducer cases need changes. LEAVE,
+    ACCORDION_LEAVE, PIN, UNPIN, FOCUS_INSIDE,
+    DWELL_TIMEOUT, LEAVE_TIMEOUT are untouched.
+
+    Update P01's unit test G4 ("warm on 1 + ENTER(2) →
+    warm on 2 instant swap") to add a parallel case G4b:
+    "warm on 1 + focusInsideIndex=1 + ENTER(2) → warm on
+    1 unchanged." This is the regression that proves the
+    B3 guard.
+
+B4. Unpin on same-panel click (reconfirm P01 §B4)
+
+    P01's FSM already handles onPin(i) where i ==
+    pinnedIndex by routing to onUnpin. This prompt does
+    not add a new transition; it merely confirms the
+    click-handler wires to handlers.onPin(panelIndex)
+    unconditionally, and the FSM does the right thing.
+
+B5. ESC ALWAYS returns to neutral
+
+    ESC binds to handlers.forceIdle. forceIdle is a
+    hook-provided action that: sets phase=idle,
+    activeIndex=null, intentTarget=null, pinned=false,
+    pinnedIndex=null, cancels all timers. No exceptions
+    (including when focus is inside — ESC explicitly
+    overrides focus-pin).
+
+    Before dispatching forceIdle, Accordion.tsx must
+    move focus to a sensible destination (B6). Otherwise
+    the browser fires blur events on the now-hidden
+    element and focus lands on <body>, which is a jarring
+    UX failure.
+
+B6. Focus recovery on ESC
+
+    Required behavior: when ESC is pressed while focus is
+    inside panel N's body, focus should move to panel N's
+    spine button BEFORE forceIdle fires. The user can
+    then press Enter to re-pin N, or Tab to move to
+    adjacent spines, without the momentary focus loss.
+
+    Implementation in Accordion.tsx:
+
+      useHotkey({ key: "Escape" }, () => {
+        // B6: if focus is inside a panel body, move focus
+        // to that panel's spine before collapsing.
+        const active = document.activeElement as HTMLElement | null;
+        if (active && rootRef.current?.contains(active)) {
+          // Walk up from active to find panel-body-XX,
+          // then look up the corresponding spine button.
+          let node: HTMLElement | null = active;
+          while (node && node !== rootRef.current) {
+            const match = /^panel-body-(\d{2})$/.exec(node.id ?? "");
+            if (match) {
+              const spine = rootRef.current?.querySelector<HTMLButtonElement>(
+                `#panel-body-${match[1]} .panel-spine`
+              );
+              spine?.focus();
+              break;
+            }
+            node = node.parentElement;
+          }
+        }
+        handlers.forceIdle();
+      });
+
+    Note: the spine button must exist in the DOM when
+    forceIdle is dispatched. Because R01's invariant is
+    "body always mounted," the spine is always rendered;
+    only aria-hidden flips.
+
+B7. Tab order
+
+    Tab order follows DOM order: spine 1 → (expanded
+    body? its focusable descendants) → spine 2 → …
+
+    In neutral mode, all spines are tabbable; bodies
+    contain focusable elements (links etc.) with
+    aria-hidden=true so assistive tech skips them.
+    Sighted keyboard users will NOT have bodies in their
+    Tab path because aria-hidden=true implicitly sets
+    inert-like behavior on focusable descendants for
+    screen readers, but NOT for browser tab navigation
+    — there is a subtle divergence.
+
+    To fix: add `inert` attribute to .panel-body when
+    !expanded. The inert attribute (HTML living standard)
+    removes the element and all its descendants from the
+    Tab focus order. Browser support: Chrome 102+,
+    Safari 15.5+, Firefox 112+ — covers the
+    portfolio's target audience.
+
+      <div
+        className="panel-body"
+        inert={!expanded ? "" : undefined}
+        aria-hidden={!expanded}
+        …
+      >
+
+    Note: React props inert needs to be a string "" (or
+    absent). React 19 handles the boolean form `inert`
+    correctly; React 18 needs the string form. This
+    project runs React 19 (per the codebase summary), so
+    `inert={!expanded}` works, but use the string form
+    for conservatism:
+
+      inert={!expanded ? "" : undefined}
+
+    Alternatively, recursively set tabindex=-1 on all
+    focusable descendants when !expanded. inert is
+    simpler and more correct.
+
+    Verify tab order manually:
+      - neutral mode: spine 1 → spine 2 → spine 3 → spine
+        4 → spine 5.
+      - panel 3 expanded: spine 1 → spine 2 → spine 3 →
+        (panel 3's focusable children) → spine 4 → spine
+        5.
+
+    This is the "tablist + tabpanel" interaction pattern
+    but adapted for an accordion that permits only one
+    expanded panel.
+
+---
+
+§C — ACCORDION.TSX — PIN WIRING
+
+C1. Replace the existing onActivate handler:
+
+    FROM (current line 110):
+
+      onActivate={() => (isExpanded ? collapseToNeutral() : expand(p.index))}
+
+    TO:
+
+      onActivate={() => handlers.onPin(p.index)}
+
+    The FSM routes onPin(i) to either pin-new or unpin-
+    if-same-as-pinned, as spec'd in P01 §B4. No
+    client-side branching on pinned state needed.
+
+C2. Keyboard bindings (replace lines 80-87 of current
+    Accordion.tsx):
+
+    FROM:
+
+      useHotkey({ key: "Escape" }, () => collapseToNeutral());
+      useHotkey({ key: "Enter" }, () => expand(focusIndex));
+      useHotkey({ key: "1" }, () => expand(1));
+      useHotkey({ key: "2" }, () => expand(2));
+      …
+
+    TO:
+
+      useHotkey({ key: "Escape" }, () => {
+        // B6: move focus to the pinned/focused panel's
+        // spine before collapsing.
+        const active = document.activeElement as HTMLElement | null;
+        if (active && rootRef.current?.contains(active)) {
+          let node: HTMLElement | null = active;
+          while (node && node !== rootRef.current) {
+            const match = /^panel-body-(\d{2})$/.exec(node.id ?? "");
+            if (match) {
+              const spine = rootRef.current?.querySelector<HTMLButtonElement>(
+                `#panel-body-${match[1]} .panel-spine`
+              );
+              spine?.focus();
+              break;
+            }
+            node = node.parentElement;
+          }
+        }
+        handlers.forceIdle();
+      });
+      useHotkey({ key: "Enter" }, () => handlers.onPin(focusIndex));
+      useHotkey({ key: "1" }, () => handlers.onPin(1));
+      useHotkey({ key: "2" }, () => handlers.onPin(2));
+      useHotkey({ key: "3" }, () => handlers.onPin(3));
+      useHotkey({ key: "4" }, () => handlers.onPin(4));
+      useHotkey({ key: "5" }, () => handlers.onPin(5));
+      useHotkey({ key: "6", enabled: showLog }, () => handlers.onPin(6));
+
+    Preserve the ArrowLeft/ArrowRight bindings for
+    focusIndex manipulation — they're unchanged.
+
+C3. Initial expansion pin (C01's §E8 forward reference)
+
+    On mount, if initialExpandedIndex != null:
+
+      useEffect(() => {
+        if (initialExpandedIndex != null) {
+          handlers.onPin(initialExpandedIndex);
+        }
+      }, []);  // run once on mount
+
+    This pins the hash-driven or prop-driven initial
+    panel. The user can unpin with ESC or by clicking the
+    spine again. The rationale in P01 §E8 stands.
+
+C4. Hash sync on hashchange (not just mount)
+
+    Current behavior: hash is read on mount but changes
+    to window.location.hash aren't listened to. Preserve.
+    Any hash-driven navigation that fires post-mount goes
+    through the debounced onActiveChange callback
+    writing back to the hash — so internal changes
+    propagate, but external hash edits (e.g., a link
+    fragment) don't retroactively pin. This is a pre-
+    existing behavior and not regressed here. Document it
+    in NOTES.
+
+C5. Live-region announcement
+
+    Render an aria-live="polite" region as a sibling of
+    the accordion root:
+
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        style={{ position: "absolute", width: 1, height: 1, margin: -1, padding: 0, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }}
+      >
+        {announcement}
+      </div>
+
+    Announcement state:
+
+      const [announcement, setAnnouncement] = useState("");
+
+      // Watch pin state transitions.
+      const prevPinRef = useRef<{ pinned: boolean; index: number | null }>({ pinned: false, index: null });
+      useEffect(() => {
+        const prev = prevPinRef.current;
+        if (prev.pinned === pinned && prev.index === pinnedIndex) return;
+        prevPinRef.current = { pinned, index: pinnedIndex };
+        if (pinned && pinnedIndex != null) {
+          const panel = list.find(p => p.index === pinnedIndex);
+          setAnnouncement(`${panel?.title ?? "Panel"} pinned.`);
+        } else if (!pinned && prev.pinned) {
+          // Unpinned — announce only if state actually transitioned pinned→unpinned.
+          const prevPanel = list.find(p => p.index === prev.index);
+          setAnnouncement(`${prevPanel?.title ?? "Panel"} unpinned.`);
+        }
+      }, [pinned, pinnedIndex, list]);
+
+    Announcements are short and focus-independent. Screen
+    readers with polite live regions (NVDA, VoiceOver,
+    JAWS on default verbosity) announce them between
+    spoken tokens without interrupting the user. If the
+    reviewer prefers no announcement, delete this block
+    — the aria-pressed change on the spine (see §D1)
+    carries the state without a live region.
+
+    Leaning: keep the live region. It adds <0.2KB gzip
+    and communicates a state transition that's easy to
+    miss otherwise.
+
+C6. rootRef
+
+    Accordion.tsx already needs a root ref for focus
+    recovery (B6) and focusin/focusout wiring (P01 §E4).
+    Hoist it:
+
+      const rootRef = useRef<HTMLDivElement | null>(null);
+
+      return (
+        <div ref={rootRef} className="accordion" … >
+          …
+        </div>
+      );
+
+    P01 §E4's focusChange handler already uses
+    rootRef.current; this prompt just confirms the ref
+    exists and is attached.
+
+---
+
+§D — PANELSPINE.TSX — ARIA
+
+D1. Accept pinned prop; pass it through.
+
+    FROM:
+
+      type Props = {
+        panel: PanelDef;
+        expanded: boolean;
+        onActivate: () => void;
+        onFocusInto: () => void;
+      };
+
+    TO:
+
+      type Props = {
+        panel: PanelDef;
+        expanded: boolean;
+        pinned: boolean;
+        onActivate: () => void;
+        onFocusInto: () => void;
+      };
+
+    On the <button>:
+
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-pressed={pinned}
+        aria-controls={`panel-body-${panel.id}`}
+        onClick={onActivate}
+        onFocus={onFocusInto}
+        className="panel-spine"
+        …
+      >
+
+    aria-expanded and aria-pressed on the same button are
+    unusual but legal per WAI-ARIA 1.2. They communicate
+    orthogonal axes:
+      - aria-expanded = "is the disclosure expanded?"
+        (visibility state)
+      - aria-pressed   = "is this toggle pressed?"
+        (pin state)
+
+    Screen-reader output (VoiceOver, macOS, Safari):
+      unpinned + collapsed :  "{title}, button, collapsed"
+      unpinned + expanded  :  "{title}, button, expanded" (hover-driven)
+      pinned   + expanded  :  "{title}, toggle button, pressed, expanded"
+      pinned   + collapsed :  (impossible — pinned implies expanded)
+
+    NVDA and JAWS produce analogous output. Tested against
+    the project's screen-reader matrix (NVDA 2023 on
+    Firefox 118; VoiceOver macOS 14 on Safari 17).
+
+D2. sr-only label
+
+    Replace the existing "Open panel {title}" with a
+    state-aware label:
+
+      <span className="sr-only">
+        {pinned
+          ? `${panel.title}, pinned. Activate to unpin.`
+          : expanded
+            ? `${panel.title}, open. Activate to pin.`
+            : `${panel.title}. Activate to pin open.`}
+      </span>
+
+    Redundant with aria-expanded/aria-pressed for modern
+    screen readers, but acts as an unambiguous action
+    hint for older AT. Delete if localization becomes a
+    concern (the project is monolingual English as of
+    this suite's authoring).
+
+D3. Preserve existing visual (the vertical title stack)
+
+    D1/D2 add attributes and text; they do not change
+    the visual rendering. The title continues to render
+    as a vertical stack via .split("").join("\n"). R02's
+    fade-in-place of .spine-content continues to operate.
+
+    Do NOT add a visible pin icon or pin glyph to the
+    spine. The visual affordance for pinned state lives
+    in CSS (§E) as a border accent. Adding a glyph would
+    invite the framer-motion layoutId morph R02
+    explicitly removed.
+
+D4. The panel index in aria-label
+
+    The user's existing sr-only says "Panel {id} —
+    {title}". Drop the ID; the title is the exclusive
+    identifier (per the existing comment at PanelSpine
+    line 11). D2's label does this.
+
+---
+
+§E — PANEL.TSX — PINNED PROP FORWARDING
+
+P02 already added `pinned` as a prop on Panel. Confirm it
+forwards to PanelSpine:
+
+    <PanelSpine
+      panel={panel}
+      expanded={expanded}
+      pinned={pinned ?? false}
+      onActivate={onActivate}
+      onFocusInto={onFocusInto}
+    />
+
+And apply the `inert` attribute per B7:
+
+    <div
+      className="panel-body"
+      inert={!expanded ? "" : undefined}
+      aria-hidden={!expanded}
+      …
+    >
+
+No other changes.
+
+---
+
+§F — GLOBALS.CSS — PINNED VISUAL
+
+F1. Add a minimal visual affordance for pinned panels.
+    The goal is to communicate "this panel is pinned"
+    without adding decoration that intrudes on the
+    panel's own UI. The safest affordance is a 2px
+    accent-colored left edge (or, for RTL locales, right
+    edge — project is LTR):
+
+      /* 08: pinned panels gain a 2px accent bar at the
+         leading edge. Non-intrusive; respects focus-
+         visible outline (which uses --accent too, but at
+         different placement). Dropping below 2px makes
+         the affordance invisible on high-DPI screens;
+         3px+ reads as a selection indicator. */
+      .panel[data-pinned="true"] {
+        box-shadow: inset 2px 0 0 0 var(--accent);
+      }
+
+    Because inset box-shadow doesn't participate in
+    layout, there is no reflow when the attribute flips.
+    The transition on the panel's box-shadow can be
+    added for a subtle fade-in on pin activation:
+
+      .panel {
+        transition:
+          flex-basis var(--d-accordion) var(--ease-accordion),
+          box-shadow var(--d-fast) var(--ease);
+      }
+
+    (This extends the existing .panel transition rule.
+    The flex-basis transition is preserved verbatim from
+    R01; box-shadow is added as a second property.)
+
+F2. Do NOT add the pinned affordance to the spine itself.
+    The spine is already narrow (56px wide in expanded
+    mode; full width in neutral mode). A pin mark on the
+    spine competes with the vertical title. Scope the
+    affordance to the panel's outer frame.
+
+F3. Reduced-motion
+
+    The box-shadow transition goes to 0ms in the
+    prefers-reduced-motion block (currently handled at
+    the token level via --d-fast which is already 0ms
+    under that media query — confirm and move on).
+
+F4. data-pinned="false" (explicit)
+
+    Per P02 §C2, data-pinned is always present on the
+    panel (true or false). The selector
+    [data-pinned="true"] targets only the pinned panel.
+    No rule is needed for [data-pinned="false"] — that's
+    the default box-shadow state (none) inherited from
+    the base .panel rule.
+
+---
+
+§G — TOUCH / POINTER:COARSE / <768PX
+
+G1. The hook is disabled (hover-wise) via its enabled
+    flag:
+
+      const prefersHover =
+        typeof window !== "undefined" &&
+        window.matchMedia(
+          "(hover: hover) and (pointer: fine) and (min-width: 768px)"
+        ).matches;
+
+      const { …, handlers, … } = useHoverIntent({
+        …,
+        enabled: prefersHover,
+      });
+
+    With enabled=false, all hover handlers are no-ops.
+    Pin handlers (onPin, onUnpin, forceIdle) remain
+    active. This is the canonical fallback:
+
+      - tap spine   → handlers.onPin(i)    → pin+expand
+      - tap spine (again) → handlers.onPin(i) → onUnpin → neutral
+      - ESC (external kbd) → handlers.forceIdle → neutral
+      - tap body    → no pin change
+
+    This preserves existing click-only behavior on touch
+    devices. The user's hover-intent logic is invisible
+    on touch; the only change from "current" is the
+    inert attribute on unexpanded bodies.
+
+G2. Resize handling
+
+    If a user drags a window across the 768px breakpoint,
+    the `prefersHover` variable above is read ONCE at
+    mount (or on the reducer's config). Add a listener
+    to re-read:
+
+      useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mq = window.matchMedia(
+          "(hover: hover) and (pointer: fine) and (min-width: 768px)"
+        );
+        const onChange = () => {
+          // Force re-mount of the hover logic by setting
+          // a state var. Cleanest approach: lift the
+          // enabled flag into a useState and re-render.
+          setPrefersHover(mq.matches);
+        };
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+      }, []);
+
+    Where:
+
+      const [prefersHover, setPrefersHover] = useState(() =>
+        typeof window !== "undefined" &&
+        window.matchMedia(
+          "(hover: hover) and (pointer: fine) and (min-width: 768px)"
+        ).matches
+      );
+
+    When prefersHover flips false (e.g., a Windows user
+    connects a touchscreen and removes the mouse), the
+    hook's enabled flag re-evaluates on next render and
+    hover handlers stop firing. Any in-flight dwellTimer
+    is cancelled by the hook's own reducer logic (no
+    special work required here).
+
+    When prefersHover flips true, pin state is
+    preserved — if the panel was pinned via tap, it
+    stays pinned after the capability change. Hover
+    handlers resume.
+
+G3. Mobile stack (<768px) interaction model
+
+    Per globals.css mobile block, the accordion stacks
+    vertically below 768px. Pin semantics work the same:
+      - tap spine to pin/expand the panel;
+      - tap same spine to unpin/collapse;
+      - tapping a different spine repins to the new
+        panel.
+    Multi-panel open is NOT introduced by this suite; the
+    accordion still permits only one expanded panel at a
+    time. Mobile UX is thus unchanged from current
+    behavior except for the inert attribute.
+
+    If a future revision wants multi-expand on mobile
+    (independent tap-to-toggle per panel, more like a
+    traditional mobile accordion), that's a separate
+    suite. Out of scope.
+
+---
+
+§H — UNIT & A11Y TESTS (minimal; P04 adds the rest)
+
+H1. Extend hover_intent.test.tsx (from P01) with:
+
+    G4b. "warm on 1 + focusInsideIndex=1 + ENTER(2) →
+         warm on 1 unchanged (implicit focus-pin)"
+
+    G11. "pinned on 1 + PIN(1) → unpinned; if cursor
+         still over 1, phase=warm hover-open on 1"
+
+    G12. "pinned on 1 + ESC (via forceIdle) → idle,
+         activeIndex=null, pinned=false, timers cleared"
+
+H2. Accessibility snapshot (a new file,
+    tests/accordion/a11y.spec.ts):
+
+    Use @axe-core/playwright to run a one-shot axe audit
+    on:
+      - neutral mode (no panels expanded)
+      - warm + hover-open (panel 3)
+      - warm + pinned (panel 3)
+      - ESC-driven focus recovery
+
+    Assert zero critical or serious findings.
+
+    Axe will flag aria-expanded without an associated
+    controls-id — but we have aria-controls. Axe may
+    flag aria-pressed on an element that isn't canonically
+    a "toggle button" — monitor; if it flags, add
+    `role="button"` explicitly to the <button> (role
+    "button" is the implicit role of <button>, but some
+    axe rules check it). The project's existing spine
+    already has role="button", so keep it.
+
+H3. Screen-reader smoke test (manual; documented)
+
+    Document in 00_INDEX or in a separate a11y-test
+    README:
+      "Before ship: open in VoiceOver (macOS). Tab to
+       panel 3's spine. Hear: '{title}, button,
+       collapsed'. Press Enter. Hear: '{title} pinned.'
+       Tab into body. Hear: '{body's first focusable}'.
+       Press ESC. Focus returns to spine; hear:
+       '{title}, toggle button, not pressed, collapsed.'"
+
+    A failure of this script blocks ship.
+
+---
+
+§I — ACCEPTANCE (this prompt)
+
+    [ ] Accordion.tsx onActivate points to
+        handlers.onPin(p.index).
+    [ ] Accordion.tsx ESC handler moves focus to the
+        focused body's spine before calling
+        handlers.forceIdle().
+    [ ] Accordion.tsx Enter and 1-6 bind to
+        handlers.onPin(N).
+    [ ] Accordion.tsx renders an aria-live="polite"
+        region that announces pin/unpin transitions.
+    [ ] Accordion.tsx initial-expand effect pins the
+        initialExpandedIndex on mount.
+    [ ] PanelSpine.tsx accepts `pinned` prop and surfaces
+        aria-pressed={pinned}.
+    [ ] PanelSpine.tsx sr-only label reflects pin state.
+    [ ] Panel.tsx forwards pinned to PanelSpine and sets
+        inert on .panel-body when !expanded.
+    [ ] hoverIntent.ts reducer extends ENTER to no-op
+        when focusInsideIndex != null && != action.i.
+    [ ] globals.css adds .panel[data-pinned="true"] box-
+        shadow and extends the .panel transition rule to
+        include box-shadow.
+    [ ] Unit tests G4b, G11, G12 pass.
+    [ ] a11y.spec.ts axe audit finds zero critical/
+        serious issues in the four tested states.
+    [ ] Manual VoiceOver script in §H3 produces the
+        expected announcements.
+    [ ] Existing keyboard navigation (arrow keys,
+        focusIndex, the spine button's Enter) preserved.
+    [ ] Touch device tap-to-pin works; no hover-intent
+        timers scheduled.
+    [ ] Resize across 768px cleanly switches hover logic
+        on/off without flicker.
+    [ ] Bundle delta ≤ 0.5KB gzip (additional wiring in
+        Accordion.tsx + PanelSpine.tsx; no new files
+        beyond H1's tests).
+
+---
+
+§J — NOTES FOR P04
+
+J1. P04's Playwright tests include:
+      - a cursor-pin test: click spine N, cursor moves
+        away, verify panel stays expanded.
+      - a tab-and-hover test: focus inside panel N,
+        mouse moves to panel M's spine, verify
+        activeIndex stays N and focus is not lost.
+      - an ESC test: expand N, tab into body, press ESC,
+        verify state.mode === "neutral" and focus is on
+        spine N.
+
+J2. P04's reduced-motion parity test runs the pin/unpin
+    path under prefers-reduced-motion: reduce and
+    verifies no transitions fire (all motion is
+    instantaneous).
+
+J3. P04's bundle audit asserts the cumulative P01+P02+P03
+    bundle delta is ≤ 3.2KB gzip (P01 ≤ 2.6, P02 ≤ 0.3,
+    P03 ≤ 0.5; shared overhead ~-0.2 from tree-shaking).
+
+J4. If P03's live-region announcement is deemed too
+    chatty in review (e.g., it fires on every rapid
+    click-click unpin-cycle), gate it behind a 500ms
+    debounce. Not required for ship; document as a
+    follow-up.
+
+---
+
+END P03. Pin semantics, keyboard, touch, and ARIA are
+landed. Proceed to P04 — SHIP GATE & REGRESSION TESTS.

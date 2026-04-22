@@ -1,0 +1,722 @@
+P06 — COPY, FIXTURE INTEGRITY, AND SHIP-GATE VERIFICATION
+===========================================================
+
+ROLE: Continuing as the senior TypeScript/React engineer on the
+Coherence Engine suite. This prompt closes the suite. It owns:
+
+    (A) the prose lint — a set of deterministic rules over
+        authored strings.
+    (B) fixture integrity — type guards and mathematical
+        consistency checks over all shipped fixtures.
+    (C) the verbatim-source drift guard — the five CE guides
+        have published numerics that this suite echoes; any
+        drift between the shipped fixtures and the source values
+        fails the build.
+    (D) the candid-limits and Quintin-hypothesis anchor checks.
+    (E) the "no runtime ML inference" architectural guard.
+    (F) bundle-budget enforcement across the suite.
+    (G) a11y enforcement.
+    (H) the SHIP-GATE itself: a single `npm run ship-gate:ce`
+        command that must exit 0 for the suite to ship.
+
+Read P01-P05 before starting. P06 adds no user-
+facing components; it adds tests, linters, and build-time
+checks only.
+
+---
+
+A) PROSE LINT
+
+    src/lib/coherenceEngine/__lint__/proseLint.ts
+
+    The lint operates over all authored strings in the
+    fixtures — that is, every .ts file under
+    src/lib/coherenceEngine/ whose string literals are intended
+    to surface in the UI. The build step collects these via a
+    simple declarative manifest:
+
+       export const LINT_SOURCES = [
+         "arguments.ts",
+         "cosineData.ts",
+         "pitches.ts",
+         "incumbents.ts",
+         "decisionInputs.ts",
+         "artifacts.ts",
+         "candidLimits.ts",
+       ] as const;
+
+    Plus every "authored microcopy" string declared inline in a
+    component file. These are harder to enumerate, so the lint
+    ALSO greps .tsx files under the CE Experience folder for
+    inline string literals that pass a length-and-wordcount
+    heuristic (>= 40 chars, >= 6 words) and treats them as
+    authored prose.
+
+    RULES (L01-L12). Each rule has a rule id, a severity, a
+    failing regex or check, a short name, and a source reason.
+
+    L01 — BANNED MARKETING (severity: error)
+        Match any of:
+            /\b(leverage|leveraging)\b/i
+            /\b(disrupt|disruption|disruptive)\b/i    // allowed only inside
+              // the Reverse-Marxism reference in CE3 §9, which this suite
+              // does not quote; so banned across the board
+            /\b(paradigm)\b/i
+            /\b(synergy|synergies)\b/i
+            /\b(unlock|unlocks|unlocked)\b/i
+            /\b(unleash|unleashes|unleashed)\b/i
+            /\b(next-gen|next generation)\b/i
+            /\b(cutting-edge)\b/i
+            /\b(revolutionary)\b/i
+            /\b(breakthrough)\b/i
+            /\b(best-in-class)\b/i
+            /\b(state-of-the-art)\b/i
+            /\b(battle-tested)\b/i
+            /\b(game-changing|game changer)\b/i
+            /\bworld-class\b/i
+
+    L02 — FIDUCIARY OVERCLAIM (severity: error)
+        Match:
+            /\b(guarantees?)\b/i           (the engine does not guarantee)
+            /\b(predicts?)\b/i with exception: "Guide 5 predicts"
+                                              and "the hypothesis
+                                              that coherence
+                                              predicts startup
+                                              success" are
+                                              permitted because
+                                              they are explicit
+                                              discussion of the
+                                              conjectural
+                                              hypothesis.
+            /\b(proves?|proven)\b/i with exception allowing "unproven"
+                                              and "we do not claim to
+                                              have proven".
+
+        The lint implements these exceptions as allow-lists of
+        exact substrings that override the regex match.
+
+    L03 — AI ANTHROPOMORPHISM (severity: error)
+        Match /\b(thinks?|believes?|wants?|knows?|decides?)\b/i
+        WHEN the subject of the verb is "the engine", "the
+        system", "the model", "the classifier", or "SBERT".
+        The lint uses a local dependency parser? — NO. Instead,
+        it uses a windowed regex: a match fires if any of those
+        subjects appear within the 5 tokens preceding one of the
+        banned verbs. False positives are rare in authored copy
+        of this size.
+
+        "the engine computes", "the system returns", "the
+        classifier reports" — all permitted.
+        "the engine thinks", "the engine believes", "the
+        engine knows" — banned.
+
+    L04 — POSSESSIVE FIRST PERSON (severity: warning)
+        Match /\b(our|we|us)\b/i
+        WHERE the speaker would be The Nash Lab or the CE team.
+        "Our experience" is a framing the panel should not
+        adopt; CE guides are in third person. An exception is
+        authored prose that explicitly introduces a quote: "The
+        author's own formulation: '...'" — permitted.
+
+    L05 — PROHIBITED PRODUCT NOUN (severity: warning)
+        Match the unqualified noun "product" when it refers to
+        the Coherence Engine. CE1-CE5 refer to CE as an "engine",
+        a "measurement instrument", a "tool", a "library". The
+        panel inherits that vocabulary.
+
+        Permitted contexts: "the fund's product" (referring to
+        investment decisions), "product engineering" (a team).
+
+    L06 — UNDEFINED CAPITALS (severity: warning)
+        Match any capitalised multi-word phrase that looks like a
+        brand ("Coherence Superiority", "Quintin Hypothesis")
+        that is not in the allow-list:
+
+        Allow-list: ["Coherence Engine", "Quintin Hypothesis",
+         "Cosine Paradox", "Householder reflection", "Argumentative
+         Ontology", "Reverse Marxism", "DeBERTa", "SBERT",
+         "all-mpnet-base-v2", "Dung", "FastAPI", "SQLAlchemy",
+         "Alembic", "Postgres", "SQLite", "HTMX", "Prometheus",
+         "Grafana", "Alertmanager", "PagerDuty", "OpsGenie",
+         "OpenAPI", "GitHub", "Cursor", "Kubernetes", "Helm",
+         "SHA-256"].
+
+    L07 — BARE NUMERICS UNCITED (severity: warning)
+        Match any floating-point or percentage in authored prose
+        (not in JSON fixture rows) not immediately preceded or
+        followed by a citation of the form "[CE{N} §{section}]"
+        within the next 80 characters. Exceptions: dates, years,
+        ISO timestamps, dollar amounts denominated with "$",
+        hex digests.
+
+    L08 — COMPETITOR NAMING (severity: error)
+        The suite does not name or compare to named VC firms,
+        coherence-adjacent SaaS tools, or rival products. Match:
+
+            /\b(Y Combinator|YC|Sequoia|a16z|Andreessen|Benchmark|Founders Fund|Accel)\b/
+            /\b(OpenAI|Anthropic|Cohere|Mistral)\b/      // product-level competitor mention
+            /\b(Pinecone|Chroma|Weaviate|Milvus)\b/      // vector-DB comparisons
+
+        Use exact allow-list to bypass (currently empty).
+
+    L09 — VERBATIM SOURCE BYTE-EXACT (severity: error)
+        When a fixture string is tagged as "verbatim from CE{N}",
+        it MUST byte-match the canonical source. The guard is
+        implemented via sources.ts (see C below).
+
+    L10 — UNPUBLISHED-WORK POSTURE (severity: error)
+        The CE is publicly undisclosed as a shipped product; the
+        Quintin Hypothesis is conjectural. The lint bans
+        marketing framings of unpublished findings. Match:
+
+            /\b(the first|the only|the world's first)\b/i
+            /\b(revolutionizes?|revolutionizing)\b/i
+            /\b(pioneering)\b/i
+            /\b(game-changing|game changer)\b/i
+
+        (Overlaps with L01 for some phrases; L10 is stricter
+        because the posture argument matters even when a phrase
+        squeaks past L01's list.)
+
+    L11 — LLM-ORIGIN STYLISTIC TELLS (severity: warning)
+        Match:
+            /\b(delve into|in today's world|it's important to note that|in the realm of|navigate the complexities)\b/i
+            /\bmoreover\b/i        // over-used connective
+            /—/g with count > 3 per authored block — too many em-dashes
+        The CE guides are formal but human; the panel should read
+        the same.
+
+    L12 — CROSS-SUITE LEAKAGE (severity: error)
+        The 06 suite MUST NOT mention:
+            - Nash-GT, Porter-5F, Christensen-DI, Drucker-MBO,
+              Kahneman-BE (the 05 theory-agent names)
+            - "adversarial theory network", "Monitor",
+              "practicality network" (05's deliberation protocol)
+            - "sufficiency", "feasibility", "density" as the 05
+              integer knobs (the CE has no such knobs)
+        The 05 suite symmetrically MUST NOT mention the CE's
+        five layers or six gates — already enforced in 05/P06.
+
+    A1. Lint runner
+
+    The runner reads a file, extracts authored strings, runs each
+    rule, and emits errors and warnings with file:line:column.
+    Exit code = non-zero on any `error` hit.
+
+
+---
+
+B) FIXTURE INTEGRITY
+
+    src/lib/coherenceEngine/__lint__/fixtureIntegrity.ts
+
+    B1. typeGuards.ts (already stubbed in P01 manifest) provides:
+
+        export function isLayerScores(v: unknown): v is LayerScores;
+        export function isFusionResult(v: unknown): v is FusionResult;
+        export function isAntiGamingResult(v: unknown): v is AntiGamingResult;
+        export function isPitchFixture(v: unknown): v is PitchFixture;
+        export function isDecisionInput(v: unknown): v is DecisionInput;
+        export function isDecisionArtifact(v: unknown): v is DecisionArtifact;
+        export function isNliPair(v: unknown): v is NliPair;
+        export function isCandidLimits(v: unknown): v is readonly CandidLimit[];
+
+    B2. assertFixtures() — a single function run at build time
+        (and in tests):
+
+        export async function assertFixtures(): Promise<void>;
+
+        It performs the following checks:
+
+          ARGUMENTS (P01)
+            - Each fixture's LayerScores.s_i.score is in [0, 1].
+            - weights are exactly [0.30, 0.20, 0.20, 0.15, 0.15].
+            - compositeBeforeFusion = Σ w_i · S_i before fusion
+              (within 1e-9).
+            - composite = (compositeBeforeFusion adjusted by fusion)
+              · (antiGaming.enabled ? antiGaming.score : 1)
+              (within 1e-9).
+            - S3 after fusion <= S3 before fusion for every
+              fixture (monotonicity of the fusion rule,
+              enforcing CE2 §4.1 "can only reduce, never inflate").
+            - Anti-gaming internal weights sum to 1.15 exactly
+              (floating-point safe comparison).
+            - For "a-coherent": a >= 0.90 and composite > 0.70.
+            - For "a-contradictory": a <= 0.80 and composite < 0.40.
+
+          COSINE (P02)
+            - Per-category cosine means within ±0.01 of
+              0.62 / 0.64 / 0.05.
+            - Per-category Hoyer means within ±0.015 of
+              0.445 / 0.212 / 0.087.
+            - For every contradiction-label pair,
+              projectionOnCHat > 0.30.
+            - For every entailment-label pair,
+              projectionOnCHat < 0.15.
+            - dimWeightsContradiction: top 42 entries carry
+              ≥ 0.70 of the cumulative magnitude (loose bound on
+              the "75%" claim allowing authoring latitude; the
+              knee must be clearly visible).
+            - dimWeightsEntailment: top 42 entries carry
+              ≤ 0.25 of the cumulative magnitude.
+            - ParadoxAggregates constants match a frozen
+              __fixtures__/paradox.snapshot.json byte-exact.
+
+          COMPARE (P03)
+            - For each pitch, Σ w_d = 1 (domain mix weights).
+            - csPoint equals Σ w_d · csPerDomain_d (within 1e-9).
+            - csCI95.lower <= csPoint <= csCI95.upper.
+            - csObserved == csCI95.lower (byte-exact).
+            - cohAbsolute equals Σ w_i · cohPerLayer[s_i]
+              (within 1e-3; the layer weights come from
+              DOMAIN_PARAMS-independent globals in arguments.ts).
+            - SOCIETAL_BASELINE.coh === 0.321 (exact).
+            - SOCIETAL_BASELINE.premiseCount === 47 (exact).
+            - SOCIETAL_BASELINE.documentedTensions === 12 (exact).
+
+          GATES (P04)
+            - DOMAIN_PARAMS values match CE4 §3.1: CSd0 ∈
+              {0.18, 0.20, 0.22}, gamma ∈ {2.0, 2.2, 2.4},
+              Sdmin === 50000. The stored alpha MUST equal
+              1/(2·gamma) within 1e-6 per domain (market_economics
+              0.25 exact; governance 0.2273; public_health 0.2083).
+            - For each DecisionInput, the gate order in the
+              GateRunResult.perGate array is exactly
+              [quality, compliance, anti_gaming, portfolio,
+               coherence, confidence].
+            - After the first non-pass verdict, any downstream
+              gate entry may have verdict "pending" and no
+              reasonCodes other than "pipeline_halted".
+            - csReq.domainBase + csReq.logScaleTerm +
+              csReq.rTotal equals csReq.csReq (within 1e-9).
+            - csReq.rBreakdown sums to csReq.rTotal
+              (pre-clamp; then clamp to [0, 0.35]).
+            - csReq.margin == csObserved − csReq.csReq (byte).
+            - For each reasonCode in perGate entries, the code is
+              in the authored reason-code vocabulary (see P04 B2).
+            - REGIME VARIANTS (per P04 §C8b):
+              For each DecisionInput and each regime R ∈ {normal,
+              defensive, stress}, the precomputed
+                  input.regimeVariants[R].gateRunResult
+                       .csReq.rBreakdown.r_regime
+              equals the CE4 §3.2 step-function value
+              (normal=0.000, defensive=0.010, stress=0.015) to
+              1e-9 tolerance. For R' ≠ R'' and for each fixture,
+              all GateRunResult fields other than those
+              functionally dependent on r_regime (namely
+              rBreakdown.r_regime, rTotal, csReq, margin, and
+              any gate verdict/reasonCodes downstream of a
+              flipped coherence_gate) MUST be byte-identical
+              across variants; the lint diffs the two variants
+              and fails if any extra field differs.
+            - The variant for the fixture's AUTHORED regime
+              (input.portfolio_state.regime) is a strict alias
+              of the top-level GateRunResult; the lint asserts
+              this alias via reference equality or deep-equal,
+              not re-serialized.
+
+          AUDIT (P05)
+            - For each artifact, canonicalJson(omit
+              artifact.artifact_hash and _meta) hashed via
+              SHA-256 equals artifact.artifact_hash byte-exact.
+            - Each artifact's shadow-mode alt hash, computed by
+              rewriting scoring_mode to "shadow", equals
+              _meta.shadowHash byte-exact.
+            - candidLimits.ts has exactly 3 entries, with the
+              specified anchor and id shape.
+            - CANDID_CLOSING.anchor byte-equals the source.
+
+
+---
+
+C) VERBATIM SOURCE DRIFT GUARD
+
+    src/lib/coherenceEngine/sources.ts
+
+    A module that exports, as frozen string constants, the
+    verbatim passages used in the suite. The build-time
+    assertSources() step reads the .txt extractions of the five
+    CE guides (committed to the repo at
+    src/lib/coherenceEngine/__sources__/ce0{1..5}.txt) and
+    compares each exported constant byte-exact.
+
+    Exports:
+        CE_COH_DEFINITION          (CE1 §2.1 block quote)
+        CE_QUINTIN_HYPOTHESIS      (CE1 §3.1 block quote)
+        CE_CANDID_LIMIT_1_BODY     (CE1 §8 item 1 body)
+        CE_CANDID_LIMIT_2_BODY     (CE1 §8 item 2 body)
+        CE_CANDID_LIMIT_3_BODY     (CE1 §8 item 3 body)
+        CE_CANDID_CLOSING          (CE1 §8 closing)
+        CE_DEFAULT_WEIGHTS_SENTENCE (CE2 §2 table prose)
+        CE_FUSION_RULE_SENTENCE    (CE2 §4.1)
+        CE_ANTI_GAMING_WEIGHTS_SENTENCE (CE2 §4.2)
+        CE_COSINE_PARADOX_FINDING  (CE3 §2 Finding 1)
+        CE_DIFFERENCE_HOYER_FINDING (CE3 §3 Finding 2)
+        CE_DIMENSIONAL_CONCENTRATION (CE3 §3 Finding 3)
+        CE_REFLECTION_RECOVERY      (CE3 §4 Finding 5)
+        CE_SIX_GATE_ORDER           (CE4 §4)
+        CE_CS_REQ_FORMULA_PROSE     (CE4 §3 intro)
+        CE_CLOSING_POSTURE          (CE5 §12 closing, optional)
+
+    assertSources() reads each CE guide .txt and asserts the
+    substring appears with exact character-for-character
+    equality (including punctuation and whitespace within a
+    sentence). Whitespace normalization on the source side is
+    applied BEFORE comparison, in this exact order:
+
+      1. Any sequence of "-\s*\n\s*" (hyphen followed by
+         optional whitespace, a newline, and optional
+         whitespace) is replaced with "-" — i.e., the
+         hyphen is kept and the surrounding whitespace/newline
+         is stripped. This preserves hyphenated compounds
+         that pdftotext split at a line break (e.g.,
+         "research-to-\nproduction" → "research-to-production").
+
+      2. Any remaining sequence of whitespace+newline+whitespace
+         ("\s*\n\s*") is replaced with a single space.
+
+      3. Multiple consecutive spaces are collapsed to one.
+
+    Rule 1 MUST precede rule 2, otherwise a hyphenated word
+    at an EOL gets a spurious space inserted inside it and
+    the byte-exact comparison fails against the authored
+    anchor string (which has no intra-word space). The
+    specific anchor this rule protects is CANDID_CLOSING,
+    whose source form is
+    "...research-to-\nproduction project stands..."
+    and whose authored form is
+    "...research-to-production project stands...".
+
+    A unit test in sources.test.ts exercises this normalizer
+    on a fixture containing the exact two-line form above and
+    asserts the normalized output equals the authored anchor.
+
+    The .txt extractions are regenerated by a script,
+    scripts/ce-extract-sources.sh, that runs pdftotext -layout
+    on the five PDFs. The script is committed; the outputs are
+    committed (<120KB total) so CI does not need Poppler
+    installed.
+
+
+---
+
+D) CANDID-LIMITS ANCHOR CHECK
+
+    src/lib/coherenceEngine/__lint__/anchors.ts
+
+    export async function assertCandidLimits(): Promise<void>;
+
+    Behavior:
+
+      1. For each anchor in [LIMIT1.anchor, LIMIT2.anchor,
+         LIMIT3.anchor, CANDID_CLOSING.anchor,
+         "Reality is fundamentally coherent.",
+         "This measures self-consistency, not truth. A coherent
+          argument can be false."]:
+
+         - collect every authored string in the suite (from
+           LINT_SOURCES plus the inline-string extractor used by
+           the prose lint)
+         - count the number of exact substring matches of the
+           anchor
+         - assert COUNT == 1; fail the build if != 1.
+
+      2. This is what enforces "each anchor renders exactly
+         once, in the canonical surface named by P05 / P01".
+
+
+---
+
+E) NO-RUNTIME-ML-INFERENCE GUARD
+
+    E1. Static-import forbidden-list
+
+        The bundle MUST NOT import any of the following:
+            onnxruntime-web
+            @xenova/transformers
+            sentence-transformers-js                       (hypothetical)
+            @huggingface/inference
+            tensorflow, @tensorflow/tfjs, @tensorflow/tfjs-node
+            ml5
+            compromise-ml
+            Any module named /transformer/i
+            Any module named /sbert/i
+            Any module named /deberta/i
+            Any module name containing "onnx" or "quantized"
+
+        A build-time check scans the import graph of the CE
+        bundle only (scoped to the CE experience folder plus
+        its transitive closure) and fails on any match.
+
+    E2. Network stub test
+
+        A jest test monkey-patches fetch, XMLHttpRequest, and
+        navigator.sendBeacon to throw. It then mounts each CE
+        mode at each viewport regime, exercises the keyboard
+        map, and asserts no exception is thrown. If the suite
+        tries to make a network call, it dies loud.
+
+    E3. Bundle-size secondary assertion
+
+        The CE experience bundle size must be <= 80KB gzip.
+        A build fails if any model weight file (.bin, .onnx,
+        .pt, .safetensors, .tflite) ends up in dist/ under
+        CE's route.
+
+    E4. Credential leak regex
+
+        The bundle is grepped at build time for:
+            /\b(AIza|sk_live|sk_test|Bearer [A-Za-z0-9_-]{20,})\b/
+            /[-]{5}BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY[-]{5}/
+        Non-zero exit on any hit.
+
+
+---
+
+F) BUNDLE-BUDGET ENFORCEMENT
+
+    F1. Per-mode code budgets (gzip, measured):
+
+        Chassis (CoherenceEngineExperience + ModeTabBar +
+        Panel wiring)                                  <= 5KB
+        Layer Scoring Lab                              <= 10KB
+        Cosine Paradox                                 <= 12KB
+        Domain-Relative Comparator                     <= 9KB
+        Decision Policy Gates                          <= 10KB
+        Decision Artifact & Honest Ledger              <= 10KB
+
+        Total code: <= 56KB gzip.
+
+    F2. Per-mode data budgets (gzip, measured):
+
+        arguments.ts                                   <= 4KB
+        cosineData.ts                                  <= 5KB
+        dimWeights arrays                              <= 1KB
+        pitches.ts                                     <= 6KB
+        incumbents.ts                                  <= 3KB
+        domainParameters.ts                            <= 0.3KB
+        decisionInputs.ts                              <= 8KB
+        regimeVariants.ts                              <= 3KB
+            (10 precomputed GateRunResult variants:
+             5 fixtures × 2 non-authored regimes per
+             P04 §C8b; authored-regime variants
+             re-alias the top-level result, not re-stored)
+        gateEval.ts                                    <= 1KB
+        artifacts.ts                                   <= 6KB
+        candidLimits.ts                                <= 3KB
+        hashStub.ts                                    <= 1KB
+
+        Total data: <= 38.3KB gzip.
+
+    F3. Grand total: <= 80KB gzip per-panel budget (chassis +
+        modes + data). Actual target <= 75KB to leave headroom
+        for a small amount of shared utility code.
+
+        Note on the arithmetic: the sum of the per-mode code
+        ceilings in F1 (56KB) plus the sum of the per-file data
+        ceilings in F2 (38.3KB) is 94.3KB, which exceeds the
+        80KB panel ceiling by 14.3KB. This is intentional and
+        not a contradiction:
+
+          (a) The per-mode and per-file numbers in F1/F2 are
+              INDIVIDUAL ceilings — upper bounds on what each
+              mode or fixture file is permitted to own, treated
+              as independent ownership budgets for review
+              purposes.
+
+          (b) The 80KB number in F3 is the BUNDLE-LEVEL
+              enforced ceiling, measured on the gzipped
+              transitive closure of the CE experience entry
+              point. It is binding; the individual ceilings
+              are advisory.
+
+          (c) The gap (14.3KB) is closed in practice by
+              code-splitting lazy-loaded modes, shared chassis
+              helpers deduplicated by rollup, Tailwind class
+              reuse across modes (gzip benefits), and shared
+              TypeScript types eliminated at emit time. The
+              measured bundle size is expected to land in the
+              66–75KB band; if it exceeds 80KB, the build
+              fails and the offender is either trimmed to fit
+              or a budget raise is proposed with justification.
+
+          (d) Under no circumstances does a passing per-mode
+              ceiling imply the panel ceiling is met. Both
+              checks run in the ship gate (F4) and both must
+              pass.
+
+    F4. The build reporter prints a table of per-mode, per-file
+        gzipped sizes PLUS the panel-level total. Exceeding any
+        individual ceiling OR the 80KB panel ceiling fails the
+        build.
+
+
+---
+
+G) A11Y ENFORCEMENT
+
+    G1. Automated checks
+
+        - axe-core runs against each mode at WIDE, STANDARD, and
+          NARROW viewports.
+        - Color contrast: all text and meaningful bars against
+          their backgrounds >= 4.5:1.
+        - role/aria attributes present on tabs, tabpanels,
+          drawers, live regions.
+        - Focus visible: a focus ring is present on all
+          interactive elements; CSS :focus-visible must not be
+          overridden to none.
+
+    G2. Manual checks (documented in a checklist the author
+        runs before shipping)
+
+        - Keyboard-only traversal of every mode exercises the
+          keyboard map documented in P01-P05.
+        - VoiceOver (macOS) and NVDA (Windows) smoke-tested:
+          mode-change announcements are audible and make sense.
+
+    G3. reducedMotion
+
+        Every transition that uses translate/scale/rotate/blur
+        is wrapped in a reducedMotion check; under reducedMotion,
+        the animation degrades to opacity-only. The build runs a
+        grep for `useReducedMotion()` and flags any framer-motion
+        component whose variants use transform props without a
+        paired reduced-motion branch.
+
+
+---
+
+H) SHIP-GATE
+
+    The single ship-gate for this suite is:
+
+        npm run ship-gate:ce
+
+    It executes, in order:
+
+        1.  npm run typecheck                  (tsc --noEmit)
+        2.  npm run lint                       (eslint over CE code)
+        3.  npm run lint:prose:ce              (A above)
+        4.  npm run check:fixtures:ce          (B above)
+        5.  npm run check:sources:ce           (C above)
+        6.  npm run check:anchors:ce           (D above)
+        7.  npm run check:no-ml:ce             (E1 + E3 + E4)
+        8.  npm run test:ce                    (unit + integration)
+        9.  npm run test:a11y:ce               (axe-core + E2 network stub)
+        10. npm run build                      (next build)
+        11. npm run check:budget:ce            (F above)
+        12. npm run check:e2e:ce               (Playwright on the CE
+                                                 panel: mode switches,
+                                                 replay hashes match)
+
+    Any non-zero exit fails the ship-gate. The ship-gate is wired
+    into CI as a required check on pull-request branches that
+    touch src/components/panels/hivemind/CoherenceEngine/** or
+    src/lib/coherenceEngine/**.
+
+    A local developer invokes it with:
+
+        npm run ship-gate:ce -- --fail-fast
+
+    (--fail-fast stops at the first failing step; default runs
+     all steps and accumulates failures.)
+
+
+---
+
+I) OPTIONAL MAINTENANCE HOOKS
+
+    I1. Regenerate sources
+
+        scripts/ce-extract-sources.sh: pdftotext -layout over the
+        five committed PDFs in Prompts for improvement/ or the
+        designated source location; outputs to
+        src/lib/coherenceEngine/__sources__/ce0{1..5}.txt.
+        Rerun after any source-of-truth PDF update. The next
+        ship-gate run will surface any resulting drift.
+
+    I2. Refresh hashes
+
+        scripts/ce-refresh-artifact-hashes.ts: for each artifact
+        fixture, recompute canonicalJson + sha256Hex, write
+        artifact_hash. Only used when the fixture authoring
+        intentionally changes (a field added, a number revised).
+        The ship-gate will fail until this script is run after
+        such a change.
+
+
+---
+
+J) ROLLBACK PLAN
+
+    If a post-ship bug surfaces in the CE face of the HVM panel
+    and rollback is needed before a new release can be cut, the
+    HVM Panel.tsx host supports a sessionStorage escape hatch:
+
+        window.sessionStorage.setItem("ce.disabled", "1")
+
+    reloads the landing with the CE experience replaced by its
+    pre-experience DOSSIER panel. The hatch is documented in
+    docs/ops/ce-runbook.md alongside the usual rollback steps
+    (revert, redeploy). This mirrors the 05 suite's
+    hvm.side.override sessionStorage hatch.
+
+
+---
+
+K) ACCEPTANCE CHECKLIST FOR P06
+
+  [ ] proseLint.ts implements rules L01-L12 and is wired into
+      `npm run lint:prose:ce`.
+  [ ] fixtureIntegrity.ts's assertFixtures() implements every
+      check under B, and is wired into `npm run check:fixtures:ce`.
+  [ ] sources.ts exports the expected verbatim constants and
+      assertSources() verifies them against
+      src/lib/coherenceEngine/__sources__/ce0{1..5}.txt.
+  [ ] anchors.ts's assertCandidLimits() verifies the six anchor
+      sentences each appear exactly once across authored strings.
+  [ ] The no-ML-inference guard refuses to ship if any
+      model-bearing import or weight file appears in the CE
+      bundle graph.
+  [ ] All per-mode code and data budgets hold; total <=80KB gzip.
+  [ ] axe-core, keyboard-only, and reducedMotion checks pass.
+  [ ] The ship-gate `npm run ship-gate:ce` exits 0 on a clean
+      build; the gate is wired into CI on PRs touching the CE
+      paths.
+  [ ] Rollback session-storage flag `ce.disabled` works: setting
+      it and reloading restores the pre-experience DOSSIER.
+
+
+---
+
+L) SUITE-LEVEL REMINDER
+
+This suite mounts INSIDE the HVM (Hivemind) accordion panel.
+Each of the personal site's five accordion tabs represents one
+project, and HVM represents Hivemind; the Coherence Engine is
+the technical substrate of Hivemind, and therefore lives in
+HVM's panel host alongside the 05 suite's strategic-operator
+face. The ship gate checks enforce this: any CE file outside
+src/components/panels/hivemind/CoherenceEngine/ or
+src/lib/coherenceEngine/ is rejected.
+
+Integration with 05 at implementation time: the HVM panel will
+compose both suites, using either a flat ten-tab bar or a
+two-face switch (Strategic / Technical) with each face owning
+its own five-tab bar — see 00_INDEX "PANEL DISPOSITION". Mode
+code in P01–P05 does not change between the two patterns.
+
+Bundle budget: the 80KB figure in this suite's F3 applies to
+the CE experience in isolation. When the combined HVM panel
+(05+06) ships together, the bundle ceiling is a separate,
+renegotiated number (proposed: 140KB gzip for the combined
+panel, or strict code-splitting to keep the initial chunk
+<=80KB regardless of total mode count). That gate is defined
+when 05 and 06 co-land.
+
+
+---
+
+END P06.
+End of 06 suite.

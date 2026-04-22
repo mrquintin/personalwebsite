@@ -1,0 +1,582 @@
+P02 — COSINE PARADOX
+======================
+
+ROLE: Continuing as the senior TypeScript/React engineer on the
+Coherence Engine experience suite. This prompt implements MODE 2,
+the Cosine Paradox — the mode that teaches the single most
+important empirical finding of the project's research program.
+
+Read P01 before starting. This prompt depends on
+the chassis, ModeTabBar, and store from P01.
+
+---
+
+WHAT THIS MODE HAS TO COMMUNICATE
+
+CE3 "The Geometry of Contradiction" reports seven findings. This
+mode has to make the user feel three of them in about 90 seconds:
+
+    Finding 1  (§2)  — In raw SBERT space, contradictions and
+                       entailments have statistically
+                       indistinguishable cosine similarity:
+                       cos(contradict) ≈ 0.62, cos(entail) ≈ 0.64,
+                       p = 0.73. Unrelated pairs cluster near 0.05.
+
+    Finding 2  (§3)  — On DIFFERENCE vectors d = e_B − e_A, Hoyer
+                       sparsity separates the categories:
+                       H(d_contradict) ≈ 0.445,
+                       H(d_entail)     ≈ 0.212,
+                       H(d_neutral)    ≈ 0.087.
+
+    Finding 3  (§3)  — The contradiction signal concentrates in
+                       approximately 42 of 768 dimensions (≈ 5.5%).
+                       A linear classifier on 20 PCs reaches
+                       F1 ≈ 0.50; on 50 PCs, F1 ≈ 0.54.
+
+The mode closes on Finding 5 (§4) — Householder reflection at α = 2
+recovers a contradictory sentence 84.3% of the time.
+
+The lesson: the contradiction signal is geometric, not scalar. The
+engine is built around this geometry.
+
+
+---
+
+GROUNDING NOTES
+
+CE3 values to preserve verbatim:
+
+    cos(contradiction) ≈ 0.62
+    cos(entailment)    ≈ 0.64
+    cos(neutral)       ≈ 0.05
+    p                  = 0.73
+
+    H(d_contradict) ≈ 0.445
+    H(d_entail)     ≈ 0.212
+    H(d_neutral)    ≈ 0.087
+
+    Dimensional concentration ≈ 42 / 768 ≈ 5.5%
+    F1 (20 PCs) ≈ 0.50
+    F1 (50 PCs) ≈ 0.54
+
+    Reflection recovery at α = 2  : 84.3%
+    Reflection recovery at α = 8  : up to ~86% (not as a peak
+                                    claim; as a ceiling on single-
+                                    sentence success)
+
+    Linear SVM on 2,308-dim feature vector:
+        in-domain F1      ≈ 0.882
+        general-domain F1 ≈ 0.777
+    Cross-domain without adaptation: 50-65% of in-domain.
+
+Householder reflection formula (CE3 Definition 2):
+
+    Refl_ĉ (v) = v − 2 (v · ĉ) ĉ
+
+Hoyer sparsity formula (CE2 Definition 6):
+
+    H(x) = (√n − ‖x‖_1 / ‖x‖_2) / (√n − 1)    ∈ [0, 1]
+
+Do not invent anchor terms, cluster counts, or dimension counts
+outside these ranges.
+
+
+---
+
+A) FILE LAYOUT (additions only)
+
+    src/components/panels/hivemind/CoherenceEngine/Experience/CosineParadox/
+        index.tsx                         — mode entry point
+        NaiveHypothesisPanel.tsx          — stage 1: the natural guess
+        EmpiricalFailurePanel.tsx         — stage 2: the refutation
+        DifferenceVectorPanel.tsx         — stage 3: the reframing
+        ReflectionPanel.tsx               — stage 4: Householder test
+        PairPicker.tsx                    — fixture selector
+        SparsityBars.tsx                  — H(d) visualisation
+        DimensionConcentrationChart.tsx   — 42/768 visualisation
+
+    src/lib/coherenceEngine/cosineData.ts
+
+    src/stores/coherenceEngineExperience.ts
+        — add CosineSlice to the store (see A2).
+
+A2. Store addition (authoritative)
+
+    export type ParadoxStage = "naive" | "empirical" | "difference" | "reflection";
+
+    export interface CosineSlice {
+      stage: ParadoxStage;              // default "naive"
+      activePairId: string;             // see B1
+      reflectionAlpha: number;          // default 2; allowed values 1,2,4,6,8
+    }
+
+    Store actions:
+
+      setStage(s: ParadoxStage): void;
+      setActivePair(id: string): void;
+      setReflectionAlpha(n: number): void;
+
+    setStage announces the new stage via announce() with the
+    label (see C1). Movement is bidirectional (forward and
+    backward), but the panel ENFORCES that "naive" precedes
+    "empirical" precedes "difference" precedes "reflection" on
+    first visit only: if the user has not seen a stage, its tab
+    is marked "not yet". After any stage is seen once,
+    constraints drop — the user can jump freely. This is
+    pedagogy, not a gate.
+
+
+---
+
+B) FIXTURES
+
+B1. NLI-PAIR FIXTURES
+
+    src/lib/coherenceEngine/cosineData.ts
+
+    Export 12 curated sentence pairs, 4 per label:
+
+      label ∈ { "contradiction", "entailment", "neutral" }
+      id like "ce-pair-01", "ce-pair-02", ...
+
+    For each pair:
+
+      export interface NliPair {
+        id: string;
+        a: string;
+        b: string;
+        label: "contradiction" | "entailment" | "neutral";
+        cosAB: number;                  // precomputed cos(e_A, e_B)
+        differenceHoyer: number;        // precomputed H(e_B - e_A)
+        projectionOnCHat: number;       // precomputed d · ĉ
+        perpMagnitude: number;          // precomputed ‖d - (d·ĉ)ĉ‖
+        nearestReflection: {
+          alpha2:   { text: string; cosToTruth: number; isTrueContradiction: boolean };
+          alpha4:   { text: string; cosToTruth: number; isTrueContradiction: boolean };
+          alpha8:   { text: string; cosToTruth: number; isTrueContradiction: boolean };
+        } | null;                       // only populated for label = "contradiction"
+      }
+
+    Value ranges MUST be consistent with CE3's means:
+
+      - For contradiction pairs, cosAB ∈ [0.55, 0.70],
+        differenceHoyer ∈ [0.40, 0.50], projectionOnCHat ∈
+        [0.5, 1.2] (positive, above threshold).
+      - For entailment pairs, cosAB ∈ [0.55, 0.72],
+        differenceHoyer ∈ [0.18, 0.25], projectionOnCHat ∈
+        [-0.3, 0.1] (near zero, slightly negative).
+      - For neutral pairs, cosAB ∈ [-0.05, 0.15],
+        differenceHoyer ∈ [0.05, 0.12], projectionOnCHat ∈
+        [-0.2, 0.2].
+
+    The per-category means of the 4 pairs MUST match the
+    published values within a tolerance of ±0.01 (cosine) and
+    ±0.015 (Hoyer). P06's fixture integrity check computes these
+    means and fails the build if drift exceeds tolerance.
+
+    Sentence content MUST be benign non-commercial. Suggested
+    topics: weather, cooking, public-transit, plants. Do NOT use
+    political, religious, or commercial sentences. A representative
+    row (the authored texts are authored afresh in cosineData.ts):
+
+      {
+        id: "ce-pair-03",
+        a: "The kettle is boiling.",
+        b: "The kettle is not boiling.",
+        label: "contradiction",
+        cosAB: 0.621,
+        differenceHoyer: 0.447,
+        projectionOnCHat: 0.83,
+        perpMagnitude: 0.42,
+        nearestReflection: { ... }
+      }
+
+B2. AGGREGATE FIXTURES
+
+    Also export:
+
+      export interface ParadoxAggregates {
+        means: {
+          cosine: { contradiction: 0.62; entailment: 0.64; neutral: 0.05 };
+          hoyer:  { contradiction: 0.445; entailment: 0.212; neutral: 0.087 };
+        };
+        pValue: 0.73;
+        dimensionalConcentration: {
+          contradictionDims: 42;
+          totalDims: 768;
+          f1At20PCs: 0.50;
+          f1At50PCs: 0.54;
+        };
+        reflection: {
+          alpha2RecoveryRate: 0.843;
+          alpha8RecoveryCeiling: 0.86;
+        };
+        linearSvm: {
+          featureDim: 2308;
+          inDomainF1: 0.882;
+          generalDomainF1: 0.777;
+          crossDomainWithoutAdaptationF1Range: [0.50, 0.65];
+        };
+      }
+
+    The numeric constants are VERBATIM from CE3 and are to be
+    treated as immutable. P06's assertCosine() check reads these
+    values back and asserts byte-equality against a frozen JSON
+    snapshot committed to the repo at
+    __fixtures__/paradox.snapshot.json.
+
+B3. DIMENSIONAL CONCENTRATION DATA
+
+    Precompute two 768-length float arrays for visualization:
+
+      dimWeightsContradiction: number[];  // magnitudes per dim, sorted desc
+      dimWeightsEntailment: number[];     // same, for comparison
+
+    The arrays are derived (offline) from labeled NLI data or
+    synthesized with the exact shape CE3 reports:
+
+      - in dimWeightsContradiction, the top 42 entries carry
+        ~75% of the cumulative magnitude; the remaining 726
+        entries share the rest with a long tail.
+      - in dimWeightsEntailment, magnitudes are more uniformly
+        spread; the top 42 entries carry closer to 15-20% of the
+        cumulative magnitude.
+
+    The arrays can be compressed to ~0.5KB each with a fixed-
+    point encoding (int16, divide by 10000) — see D.
+
+
+---
+
+C) UI
+
+C1. Stage flow
+
+    The panel is divided into four SECTIONS corresponding to the
+    four ParadoxStages. A narrow strip at top shows progress:
+
+        NAIVE  →  EMPIRICAL  →  DIFFERENCE  →  REFLECTION
+
+    with the current stage highlighted. The strip is keyboard-
+    navigable with LEFT/RIGHT, and ENTER sets the stage. A "skip
+    intro" button (visible on first load only) moves directly to
+    DIFFERENCE for returning users.
+
+    Announce strings:
+
+        stage=naive       — "Stage 1 of 4. The natural hypothesis."
+        stage=empirical   — "Stage 2 of 4. The empirical refutation."
+        stage=difference  — "Stage 3 of 4. Difference vectors and the contradiction axis."
+        stage=reflection  — "Stage 4 of 4. Householder reflection."
+
+C2. NaiveHypothesisPanel.tsx  (stage 1)
+
+    Content (authored prose, subject to P06 lint):
+
+        "A natural hypothesis when first confronting contradiction
+         detection with sentence embeddings: contradictory sentences
+         point in opposite directions in embedding space, so they
+         should have low cosine similarity. If that held, a
+         detector would be nearly trivial — compute pairwise cosine
+         within a text, flag the low-similarity pairs.
+
+         The hypothesis is wrong. The next stage shows how wrong,
+         and by how much."
+
+    Below the prose, the "Conjecture" is displayed in small type:
+
+        Conjecture 1 (Naïve opposition hypothesis).
+            If A and B are contradictory, then
+            cos(e_A, e_B) < cos(e_A, e_B') for B' drawn from
+            entailment and neutral pairs.
+            (CE3 §1)
+
+    A "continue" button, or the RIGHT arrow, moves to stage 2.
+
+C3. EmpiricalFailurePanel.tsx  (stage 2)
+
+    The layout is a horizontal three-zone bar:
+
+        ┌───────────────────────────────────────────────┐
+        │  cos distribution — three overlapping bells   │
+        │                                               │
+        │   contradiction:  μ = 0.62   ▓▓▓▓▓            │
+        │   entailment:     μ = 0.64   ▓▓▓▓▓            │
+        │   neutral:        μ = 0.05   ▓▓▓              │
+        │                                               │
+        │        p-value (contradict vs entail) = 0.73  │
+        └───────────────────────────────────────────────┘
+
+    The "bells" are stylised SVG kernel-density traces drawn
+    from the aggregate means. The horizontal axis is cos ∈
+    [-0.2, 1.0]. The overlap of contradiction and entailment is
+    the visual payload. The neutral bell sits far left and
+    serves as a reference that cosine DOES distinguish topically-
+    unrelated pairs — just not logically-opposed ones.
+
+    Below the chart:
+
+        "Contradictions and entailments are statistically
+         indistinguishable by cosine similarity at p = 0.73.
+         The cosine axis conflates topic with stance."
+
+    A small caption cites "Source: CE3 §2, Finding 1."
+
+    A PairPicker below lets the user step through the 12 fixture
+    pairs and see each pair's:
+
+        cos(e_A, e_B) = 0.xxx        (colored by label)
+        label: CONTRADICTION | ENTAILMENT | NEUTRAL
+
+    The pedagogical effect: the user sees entailment and
+    contradiction pairs with VERY SIMILAR cosine values, side by
+    side.
+
+C4. DifferenceVectorPanel.tsx  (stage 3)
+
+    Layout: top-half Hoyer bars; bottom-half dimensional
+    concentration.
+
+    Top half — SparsityBars.tsx
+
+        A three-row horizontal bar chart:
+
+            contradiction:  H(d) = 0.445   ▓▓▓▓▓▓▓▓▓░
+            entailment:     H(d) = 0.212   ▓▓▓▓░░░░░░
+            neutral:        H(d) = 0.087   ▓░░░░░░░░░
+
+        The bars fill proportional to Hoyer sparsity ∈ [0,1].
+        A tooltip on the formula pill "H(x)" shows the CE2
+        Definition 6 expression:
+
+            H(x) = (√n − ‖x‖_1/‖x‖_2) / (√n − 1)
+
+        A PairPicker below (reusing the same component from C3)
+        lets the user read a single pair's H(d_AB) alongside the
+        category mean.
+
+        Authored microcopy (passes lint):
+
+            "Cosine looks at the embedding. Hoyer sparsity looks
+             at the DIFFERENCE between the two embeddings. Where
+             cosine cannot separate contradiction from entailment,
+             the difference vector's sparsity can."
+
+    Bottom half — DimensionConcentrationChart.tsx
+
+        A sorted-by-magnitude lollipop chart with 768 stems, from
+        dimWeightsContradiction. The first 42 stems are rendered
+        in the active terminal color; stems 43-768 in a desaturated
+        grey. Under the chart, a small label:
+
+            "42 of 768 dimensions  ≈ 5.5%  of embedding space
+             carries the contradiction signal."
+
+        A toggle lets the user swap dimWeightsContradiction with
+        dimWeightsEntailment. The difference is visually
+        dramatic: contradiction has a sharp knee at dim 42;
+        entailment does not.
+
+        A second small panel shows two linear-classifier F1
+        numbers pulled from ParadoxAggregates:
+
+            F1 on top 20 PCs:  0.50
+            F1 on top 50 PCs:  0.54
+            (Linear SVM on 2,308-dim feature vector:  in-domain
+             0.882, general-domain 0.777.)
+
+        The 42-dim knee and the 0.50/0.54 F1 are the two
+        visually memorable anchors.
+
+    The projection scalar:
+
+        For the currently picked pair, display
+            d · ĉ  =  +0.xx   (projection onto contradiction axis)
+            ‖d − (d · ĉ) ĉ‖ = 0.xx   (perpendicular component)
+
+        These two scalars are the two features CE3 §6 Stage 3
+        appends to the feature vector.
+
+C5. ReflectionPanel.tsx  (stage 4)
+
+    Layout:
+        left  — a source sentence display
+        right — the nearest retrieved sentence after reflection
+
+    Controls:
+        α slider with allowed values {1, 2, 4, 6, 8}
+        a "run reflection" action (not a true run — reveals the
+        precomputed nearest)
+        pair picker restricted to label = "contradiction" (only
+        those pairs have nearestReflection populated)
+
+    Behavior:
+
+        Before reflection: the right pane shows
+            "(press RUN to compute the reflection)"
+
+        After RUN:
+            right pane shows nearestReflection[alphaN].text
+            below the right pane shows:
+                cos(Refl_ĉ(e_A), e_B*) = 0.xx
+                is-true-contradiction:  YES | NO
+            overall success-rate badge:
+                "α = 2 → 84.3% success on test set"
+                "α = 8 → up to 86% ceiling"
+
+    The formula pill:
+
+        Refl_ĉ (v) = v − 2 (v · ĉ) ĉ     (CE3 Definition 2)
+
+    At the bottom of the panel, a closing microcopy line:
+
+        "Reflection across the contradiction direction converts a
+         sentence into (approximately) its logical opposite,
+         using no generative model. The retrieval stage replaces
+         the generated vector with the nearest actual sentence
+         in the corpus."
+
+    Finding: CE3 §4, Finding 5.
+
+C6. Responsive behaviour
+
+    WIDE (>= 960):
+        Stages render as horizontal slides with a visible
+        progress bar. DifferenceVectorPanel uses the full width.
+
+    STANDARD (640-960):
+        Same structure; DimensionConcentrationChart condenses
+        to first 128 stems with a "..." break, then the tail
+        average. The 42-dim knee is preserved visually.
+
+    NARROW (<640):
+        Stages stack vertically; user scrolls. The
+        DimensionConcentrationChart falls back to a SPARKLINE
+        plus a single line "42 of 768 (5.5%)".
+
+
+---
+
+D) BUNDLE AND PERFORMANCE
+
+D1. Code budget:  Cosine Paradox mode <= 12KB gzip
+    (excluding chassis and the shared PairPicker sub-component.
+     PairPicker is considered part of this mode and counts
+     against the 12KB.)
+
+D2. Data budget:
+    cosineData.ts (12 pair rows + ParadoxAggregates)   <= 5KB gzip
+    dimWeights arrays (2 × 768 int16 encoded)           <= 1KB gzip
+    total data <= 6KB gzip.
+
+D3. Numerics
+    All stat/aggregate values are constants; no client-side
+    statistics. Do NOT import jstat, simple-statistics, or
+    similar. Do NOT import a cosine utility; all cosine values
+    are precomputed.
+
+
+---
+
+E) ACCESSIBILITY
+
+E1. reducedMotion
+    The stage transitions use opacity fades (80ms). No slide,
+    no parallax. The bell traces in EmpiricalFailurePanel
+    appear as flat static SVG under reducedMotion; they do not
+    animate.
+
+E2. Keyboard
+    LEFT/RIGHT arrows on the stage strip cycle stages.
+    ENTER activates the focused stage.
+    1/2/3/4 keys set stage directly.
+    a sets α = 2, b sets α = 4, c sets α = 6, d sets α = 8
+      (only active in stage 4).
+
+E3. aria-live
+    Stage change, pair selection, reflection run, α change.
+
+E4. Formula rendering
+    The three displayed formulas (Conjecture 1 text, Hoyer
+    formula, Householder formula) are server-rendered to SVG
+    at build time. No client-side MathJax or KaTeX.
+
+
+---
+
+F) PROSE LINT NOTES (enforced in P06)
+
+F1. The phrase "contradiction direction" is acceptable; "our
+    contradiction direction" is not. No possessive first-person
+    ("our", "we") in authored copy.
+
+F2. The phrase "the engine" may refer to the Coherence Engine.
+    "The system" may refer to the Coherence Engine. "The
+    product" MAY NOT — CE is referred to as an engine or a
+    measurement instrument, not a product, in CE1-CE5.
+
+F3. The word "breakthrough" is banned.
+
+F4. The word "AI" is banned except in the strict phrase "a
+    sentence-embedding model" or "an NLI model"; those are
+    the acceptable references to the ML components.
+
+F5. Every stated numeric constant MUST cite its source inline
+    (e.g., "cos ≈ 0.62 [CE3 §2]"). The P06 lint searches for
+    bare numerics in authored prose and fails on uncited ones.
+
+
+---
+
+G) CROSS-MODE INTERACTIONS
+
+G1. openInMode("cosine", refId)
+    The store's openInMode action routes to a pair id or a
+    stage. Valid refIds:
+
+        "stage:naive" | "stage:empirical" | "stage:difference" | "stage:reflection"
+        "pair:<pair-id>"  — jumps to DIFFERENCE and selects the pair
+        "axis"            — jumps to DIFFERENCE and scrolls the
+                            DimensionConcentrationChart into view
+
+    P03's IncumbentSparkline and P04's GateCard link into this
+    mode via openInMode("cosine", "stage:difference") when the
+    user clicks "how does the engine tell contradiction from
+    topic overlap?".
+
+G2. No mode-out links from this mode; COSINE is self-contained.
+
+
+---
+
+H) ACCEPTANCE CHECKLIST FOR P02
+
+  [ ] CosineSlice is added to the store; setStage, setActivePair,
+      setReflectionAlpha actions work and announce.
+  [ ] Cosine Paradox mode mounts at all four viewport regimes.
+  [ ] Stage flow: naive → empirical → difference → reflection
+      via the stage strip; 1/2/3/4 keys set stage; LEFT/RIGHT
+      cycle.
+  [ ] Empirical Failure panel shows three bells with
+      μ = 0.62 / 0.64 / 0.05 and p = 0.73 annotated.
+  [ ] Difference-Vector panel shows Hoyer means 0.445 / 0.212
+      / 0.087 and the 42/768 concentration knee.
+  [ ] The projection scalar d · ĉ and perpendicular magnitude
+      update on pair change.
+  [ ] Reflection panel shows a fixture-driven retrieval at α ∈
+      {1, 2, 4, 6, 8}. The α = 2 recovery rate 84.3% and the
+      α = 8 ceiling 86% are annotated.
+  [ ] openInMode targets "stage:difference", "pair:<id>", and
+      "axis" all work.
+  [ ] Fixture integrity: per-category cosine means within ±0.01
+      and Hoyer means within ±0.015 of published values.
+  [ ] No runtime ML inference. No jstat, no mathjs embedded.
+      All formulas as SVG.
+  [ ] Bundle: mode code <=12KB gzip; data <=6KB gzip.
+
+
+---
+
+END P02.
+Proceed to P03 (Domain-Relative Comparator) once P02 is
+approved.

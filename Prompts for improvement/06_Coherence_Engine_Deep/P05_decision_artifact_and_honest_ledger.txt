@@ -1,0 +1,613 @@
+P05 — DECISION ARTIFACT & HONEST LEDGER
+=========================================
+
+ROLE: Continuing as the senior TypeScript/React engineer on the
+Coherence Engine suite. This prompt implements MODE 5, the
+Decision Artifact & Honest Ledger — a mode that has two jobs:
+
+  (i)  Show the user, as a working thing, the reproducible
+       decision artifact that CE4 §5 describes. A REPLAY button
+       re-derives the artifact hash in front of the user,
+       producing the byte-identical SHA-256 (or truncation
+       thereof) stored with the fixture.
+
+  (ii) Render, with equal visual weight, the three candid limits
+       from CE1 §8 and CE5 §10.4. The thesis of this mode is that
+       the honest caveats DESERVE the same rigor of presentation
+       as the engineering claim. Without (ii), (i) becomes
+       marketing.
+
+Read P01, P02, P03, and P04 before starting. This
+mode depends on the fixtures from P04 (decisionInputs.ts and
+their gate-run results).
+
+
+---
+
+WHAT THIS MODE HAS TO COMMUNICATE
+
+  - Every decision produces a JSON artifact with a deterministic
+    hash (CE4 §5). Replay of the same input against the same
+    policy version yields a BIT-EXACT identical artifact.
+
+  - The artifact contains the full DecisionInput, the policy
+    version, parameter set id, CSreq with its full decomposition
+    (domain base + log-scale term + seven R components),
+    CSobserved, the outcome, the reason codes, and (on pass) an
+    escalation-packet reference.
+
+  - scoring_mode is either "enforce" (decision has effect) or
+    "shadow" (computed and recorded but no downstream action).
+    Shadow lets the team deploy new parameter sets against live
+    traffic without touching funding decisions (CE4 §7).
+
+  - The three candid limits from CE1 §8 remain true:
+      (1) Predictive validity is unproven.
+      (2) The layer weights are partly principled and partly
+          tuned.
+      (3) Cross-domain contradiction detection degrades.
+
+  - The Quintin Hypothesis is an empirical hypothesis, not a
+    measured fact (CE1 §3.2, CE5 §10.4).
+
+  - A planned 500-startup study (250 succeeded, 250 failed,
+    p < 0.01) is the stated empirical-validation program, not
+    yet reported complete (CE1 §3.2).
+
+
+---
+
+GROUNDING — VERBATIM CONSTANTS AND SENTENCES
+
+Policy version (CE4 §2 DecisionInput schema
+and §13 version manifest; series name
+"decision-policy-v1" from CE4 §1):
+                             decision-policy-v1.0.0
+DECISION_POLICY_VERSION      = "decision-policy-v1.0.0"
+Canonical parameter set id   = "params-v1"   (authored constant)
+Schema version               = 1
+Artifact hash algorithm      = SHA-256
+
+Candid-limits sentences — FIRST SENTENCE of each item is the
+integrity-check anchor. The full three-item block is taken
+verbatim from CE1 §8:
+
+    (1) "Predictive validity is unproven."
+        Body: "The hypothesis that a higher coherence score at
+        pitch time predicts a higher probability of startup
+        success has not yet been tested at scale against
+        historical outcomes. The research plan exists; the
+        result does not."
+
+    (2) "The layer weights are partly principled and partly
+        tuned."
+        Body: "The default weights (contradiction 0.30,
+        argumentation 0.20, embedding 0.20, compression 0.15,
+        structural 0.15) come from config.py and match
+        ARCHITECTURE.txt. The Formal_Mathematical_Framework.pdf
+        proposes a different six-layer weighting that includes a
+        probabilistic-coherence layer (Roche's measure) not yet
+        in production. Which weighting generalises best across
+        domains is an open empirical question."
+
+    (3) "Cross-domain contradiction detection degrades."
+        Body: "Experiments reported in the research corpus show
+        that a general-domain contradiction classifier drops
+        from near-perfect in-domain performance to approximately
+        50-65% cross-domain. The project's response is
+        domain-specific training plus domain-relative scoring;
+        both are partial mitigations, not solutions."
+
+    Closing sentence, shared for the block (CE1 §8):
+
+        "These are not criticisms. They are the honest ledger of
+         where a serious, ambitious research-to-production
+         project stands in April 2026."
+
+The Quintin Hypothesis quote (CE1 §3.1):
+
+    "Reality is fundamentally coherent. Any sufficiently coherent
+     logical structure must correspond to reality. Therefore,
+     formal logical coherence is not merely an intellectual
+     exercise—it is a marker of contact with reality itself."
+
+
+---
+
+A) FILE LAYOUT
+
+    src/components/panels/hivemind/CoherenceEngine/Experience/DecisionArtifactHonestLedger/
+        index.tsx
+        ArtifactInspector.tsx           — JSON view, scrubbable
+        ReplayButton.tsx                — re-derives hash visibly
+        HashPanel.tsx                   — shows algorithm + both expected and computed
+        ScoringModeToggle.tsx           — enforce | shadow preview
+        CandidLimitsLedger.tsx          — the three items, with body text
+        QuintinHypothesisCard.tsx       — the conjecture statement
+        ValidationPlanCard.tsx          — the 500-startup plan
+
+    src/lib/coherenceEngine/artifacts.ts
+        — precomputed artifacts per fixture decisionInput
+
+    src/lib/coherenceEngine/hashStub.ts
+        — a small deterministic hash helper (pure, no external libs)
+
+    src/lib/coherenceEngine/candidLimits.ts
+        — the three items verbatim; used by P06's assertCandidLimits
+
+    src/stores/coherenceEngineExperience.ts
+        — add AuditSlice to the store.
+
+A2. Store addition
+
+    export interface AuditSlice {
+      activeArtifactId: string;         // mirrors active application
+      inspectorExpandedSections: Set<string>;
+      scoringMode: "enforce" | "shadow"; // default "enforce"
+      replayState: "idle" | "running" | "complete" | "mismatch";
+      lastComputedHash: string | null;
+      ledgerExpanded: boolean;           // default true; ledger is on-screen by default
+    }
+
+    Store actions:
+
+      setActiveArtifact(id: string): void;
+      toggleSection(key: string): void;
+      setScoringMode(m: "enforce" | "shadow"): void;
+      runReplay(): Promise<void>;        // see D below
+      toggleLedger(): void;
+
+    Note: ledgerExpanded defaults to TRUE. The honest ledger is
+    not an opt-in — it renders by default and on every mount.
+
+
+---
+
+B) FIXTURES
+
+B1. Artifacts
+
+    src/lib/coherenceEngine/artifacts.ts
+
+    For each of the five DecisionInput fixtures from P04, a full
+    DecisionArtifact:
+
+       export interface DecisionArtifact {
+         schema_version: 1;
+         policy_version: "decision-policy-v1.0.0";
+         parameter_set_id: "params-v1";
+         input: DecisionInput;                // from P04
+         csReq: CSReqDecomposition;           // from P04
+         csObserved: number;
+         outcome: "pass" | "fail" | "manual_review";
+         failed_gates: GateKey[];
+         reason_codes: string[];
+         escalation_packet_ref: string | null; // string on pass
+         scoring_mode: "enforce" | "shadow";   // mirrored from fixture
+         created_at_iso: string;               // fixed fixture time
+         artifact_hash: string;                // sha-256, full 64-char hex
+       }
+
+    Each artifact is accompanied by a small precomputed canonical
+    serialization and its hash. The canonical form is produced by
+    a deterministic, field-ordered JSON serializer (NOT
+    JSON.stringify, which is order-dependent across runtimes).
+
+B2. Canonical serializer
+
+    src/lib/coherenceEngine/hashStub.ts exports:
+
+       export function canonicalJson(value: unknown): string;
+       export async function sha256Hex(input: string): Promise<string>;
+
+    Implementation notes:
+
+      - canonicalJson performs deterministic key ordering
+        (lexicographic), expands numbers without trailing zeros,
+        handles null, booleans, strings, integers, floats, arrays,
+        objects. No Date, Map, Set, or class instances; they are
+        rejected with a thrown error during tests so fixture bugs
+        fail loud.
+
+      - sha256Hex uses the Web Crypto API
+        (crypto.subtle.digest("SHA-256", ...)). No third-party
+        hash library in the bundle. On browsers without
+        crypto.subtle (none of the target browsers lack it) the
+        REPLAY button is disabled with an explanatory note; this
+        fallback is a safety measure, not an expected path.
+
+    For each fixture, the committed artifact_hash is the
+    sha256Hex of canonicalJson of the artifact with
+    artifact_hash itself removed. The hashStub helper handles
+    this by omitting the field before hashing.
+
+    P06's ship-gate includes a step that runs sha256Hex over
+    every committed fixture artifact and asserts equality with
+    the stored artifact_hash. Drift fails the build.
+
+B3. candidLimits.ts
+
+    src/lib/coherenceEngine/candidLimits.ts exports:
+
+       export const CANDID_LIMITS = [
+         {
+           id: "predictive-validity",
+           anchor: "Predictive validity is unproven.",
+           body: "...",                   // verbatim body from CE1 §8
+           source: "CE1 §8, item 1",
+         },
+         {
+           id: "weights-tuned",
+           anchor: "The layer weights are partly principled and partly tuned.",
+           body: "...",
+           source: "CE1 §8, item 2",
+         },
+         {
+           id: "cross-domain",
+           anchor: "Cross-domain contradiction detection degrades.",
+           body: "...",
+           source: "CE1 §8, item 3",
+         },
+       ] as const;
+
+       export const CANDID_CLOSING = {
+         anchor: "These are not criticisms. They are the honest ledger of where a serious, ambitious research-to-production project stands in April 2026.",
+         source: "CE1 §8 closing",
+       } as const;
+
+    The first sentence of each item AND the closing sentence are
+    the four integrity anchors. P06's assertCandidLimits
+    searches for each by itself and requires exactly one match
+    per anchor across all fixture strings.
+
+
+---
+
+C) UI
+
+C1. Layout
+
+    WIDE (>= 960):
+        TWO-column top:
+          left  58% — ArtifactInspector (scrollable JSON) with the
+                      ReplayButton and HashPanel at the top
+          right 42% — ScoringModeToggle (small, top)
+                      QuintinHypothesisCard
+                      CandidLimitsLedger (three expandable items)
+                      ValidationPlanCard
+
+    STANDARD (640-960):
+        Two vertical sections:
+          section A — Inspector + Replay + Hash
+          section B — Ledger + Hypothesis + Validation Plan
+        The ledger section does NOT collapse away by default.
+
+    NARROW (<640):
+        Stacked same way; inspector uses a collapsed "view
+        JSON" button to save vertical space. The CandidLimits
+        Ledger remains visible by default.
+
+C2. ArtifactInspector.tsx
+
+    A structured JSON view with section folding:
+
+        ▸ schema_version        1
+        ▸ policy_version        decision-policy-v1.0.0
+        ▸ parameter_set_id      params-v1
+        ▸ input                 {...}         ← click to expand
+        ▸ csReq                 {...}
+        ▸ csObserved            +0.xxx
+        ▸ outcome               pass | fail | manual_review
+        ▸ failed_gates          [...]
+        ▸ reason_codes          [...]
+        ▸ escalation_packet_ref "esc_..."  (or null)
+        ▸ scoring_mode          enforce | shadow
+        ▸ created_at_iso        2026-04-18T10:14:22Z
+        ▸ artifact_hash         7f3b2a1e... (full 64 chars on expand)
+
+    Each ▸ expands to show child fields. inspectorExpandedSections
+    persists in the store so the user's folding survives mode
+    switches.
+
+    The FOREGROUND color convention:
+        outcome = pass           → active terminal color
+        outcome = manual_review  → amber
+        outcome = fail           → red
+
+C3. ReplayButton.tsx
+
+    A button labeled [REPLAY]. Click behavior:
+
+      1. setReplayState("running")
+      2. announce("Replaying decision for {application_id}...")
+      3. build the artifact object from the fixture input and
+         the precomputed gate-run-result from P04
+      4. compute canonicalJson(artifact without artifact_hash)
+      5. compute sha256Hex of that string
+      6. compare to the stored artifact_hash
+      7. if equal: setReplayState("complete"),
+         lastComputedHash = <computed hex>
+      8. if not equal: setReplayState("mismatch"),
+         lastComputedHash = <computed hex>
+
+    Visual feedback:
+        running  → pulsing "hashing..." text, keyboard-disabled
+        complete → the HashPanel highlights "expected == computed"
+                   in a green-equivalent terminal color
+        mismatch → HashPanel renders both hashes with a diff
+                   highlight and a small "fixture drift — run P06
+                   ship-gate" note. A mismatch in production would
+                   be a ship-blocker; in this mode, it remains
+                   displayed so the user sees what drift looks
+                   like.
+
+    The point of the user-visible replay is epistemic: rather
+    than asserting "reproducibility is a property of the
+    system", the mode demonstrates it in front of the user and
+    does so fast (the hash completes well under 100ms for the
+    artifact sizes we commit).
+
+C4. HashPanel.tsx
+
+    Two rows:
+        expected: 7f3b2a1e8c......  (64 hex chars)
+        computed: 7f3b2a1e8c......
+
+    When replayState is idle, both read "(press REPLAY)".
+    When complete, both read the same hash.
+    When mismatch, the two rows show the diff.
+
+    Under the rows:
+
+        algorithm: SHA-256 over canonicalJson(artifact \ artifact_hash)
+
+C5. ScoringModeToggle.tsx
+
+    A two-state segmented control:
+
+        [ ENFORCE ]   [ SHADOW ]
+
+    Selecting "shadow" flips `scoringMode` in the store and
+    rewrites the artifact preview's scoring_mode field to
+    "shadow". The artifact HASH will therefore differ (because
+    scoring_mode is in the canonical-JSON payload). Pressing
+    REPLAY in shadow produces a DIFFERENT hash — this is the
+    intended teaching: hash stability is tied to the exact
+    payload, and changing any input field invalidates the
+    precomputed hash.
+
+    Microcopy next to the toggle:
+
+        "Shadow mode computes and records the decision as a
+         shadow_decision artifact but takes no downstream action.
+         It is how the team deploys new parameter sets against
+         live traffic without touching funding decisions.
+         Source: CE4 §7."
+
+    A small note:
+
+        "Switching to shadow will produce a different artifact
+         hash. That is the point: the hash binds every input —
+         including scoring_mode — to the outcome."
+
+C6. CandidLimitsLedger.tsx
+
+    Three rows. Each row renders:
+
+        [▸]   ANCHOR_SENTENCE                           source
+              body paragraph (visible on expand; default expanded
+              at first visit, then collapse state persists)
+
+    The three anchors render verbatim from candidLimits.ts.
+    Expanding shows the body; the source label links (via
+    openInMode) to the most relevant cross-reference:
+
+        predictive-validity → openInMode("audit", "validation-plan")
+                              (scrolls ValidationPlanCard into view)
+        weights-tuned        → openInMode("layers", null)
+                              (opens LAYERS mode on arguments)
+        cross-domain         → openInMode("cosine", "stage:difference")
+
+    Under the three rows, the closing sentence from CANDID_CLOSING
+    renders in a bordered callout:
+
+        "These are not criticisms. They are the honest ledger of
+         where a serious, ambitious research-to-production
+         project stands in April 2026."
+
+    A small right-justified footer:
+
+        "CE1 §8. Anchors preserved verbatim."
+
+C7. QuintinHypothesisCard.tsx
+
+    A single-card rendering of the hypothesis quote (CE1 §3.1):
+
+        "Reality is fundamentally coherent. Any sufficiently
+         coherent logical structure must correspond to reality.
+         Therefore, formal logical coherence is not merely an
+         intellectual exercise—it is a marker of contact with
+         reality itself."
+
+        — the project's Argumentative_Ontology.md (CE1 §3.1)
+
+    A one-line footer in muted type:
+
+        "Working thesis. Explicitly conjectural (CE1 §3.2)."
+
+C8. ValidationPlanCard.tsx
+
+    A compact summary of the 500-startup study program (CE1 §3.2):
+
+        Status:        planned, not reported complete
+        Design:        500 historical startups (250 successes,
+                       250 failures)
+        Target:        p < 0.01 correlation between coherence score
+                       at pitch time and 5-year outcome
+        Source:        Research/Methods_and_Experiments_Reference.md
+                       (CE1 §3.2)
+
+    A small note:
+
+        "The engine, at present, is a measurement instrument
+         whose predictive validity is an open question."
+        (CE1 §3.2)
+
+
+---
+
+D) STATE TRANSITIONS & EVENTS
+
+D1. runReplay implementation sketch
+
+    async runReplay() {
+      set({ replayState: "running" });
+      const { activeArtifactId, scoringMode } = get().audit;
+      const artifact = buildArtifact(activeArtifactId, scoringMode);
+      const bodyJson = canonicalJson(omit(artifact, ["artifact_hash"]));
+      const computed = await sha256Hex(bodyJson);
+      const expected = (scoringMode === artifact._meta.originalMode)
+        ? artifact.artifact_hash
+        : artifact._meta.shadowHash;   // precomputed alt hash
+      const ok = computed === expected;
+      set({
+        lastComputedHash: computed,
+        replayState: ok ? "complete" : "mismatch",
+      });
+      announce(
+        ok
+          ? "Replay complete. Hash matches."
+          : "Replay complete. Hash mismatch. See panel."
+      );
+    }
+
+    Note: artifacts.ts must commit TWO hashes per fixture — the
+    enforce-mode hash (as the canonical artifact_hash) and the
+    shadow-mode hash (stored in a _meta sidecar). This way,
+    toggling scoringMode still produces a verifiable match
+    rather than a mismatch. The _meta field is stripped before
+    canonicalization to keep it off the hash.
+
+D2. Announcements
+
+    replay running   — "Replaying decision for {id}..."
+    replay complete  — "Replay complete. Hash matches."
+    replay mismatch  — "Replay complete. Hash mismatch."
+    scoring-mode flip — "Scoring mode: {enforce|shadow}."
+    ledger section expand — "Ledger item expanded: {anchor}."
+
+D3. Keyboard
+
+    r          trigger REPLAY
+    e / s      set scoring mode to enforce / shadow
+    1 / 2 / 3  expand/collapse ledger item 1/2/3
+    Enter/Space activate focused control
+    Esc        collapse all expanded sections back to defaults
+
+
+---
+
+E) CROSS-MODE INTERACTIONS
+
+E1. openInMode("audit", refId)
+
+    Valid refIds:
+        "artifact:<application-id>"       — sets activeArtifact
+        "validation-plan"                 — scrolls
+                                            ValidationPlanCard into view
+        "limit:<id>"                      — expands a named limit
+                                            (limit ids match those
+                                            in candidLimits.ts)
+
+E2. Links OUT (from C6)
+
+    "limit:predictive-validity" → openInMode("audit", "validation-plan")
+    "limit:weights-tuned"        → openInMode("layers", null)
+    "limit:cross-domain"         → openInMode("cosine", "stage:difference")
+
+
+---
+
+F) BUNDLE AND PERFORMANCE
+
+F1. Code budget:  Audit mode <= 10KB gzip
+F2. Data budget:
+    artifacts.ts (5 full artifacts + shadow-mode alt hashes)   <= 6KB gzip
+    candidLimits.ts (three items with body text + closing)     <= 3KB gzip
+    hashStub.ts (pure)                                          <= 1KB gzip
+
+F3. No hash library dependency. crypto.subtle only. For
+    canonicalJson, author a minimal implementation (~80 lines)
+    rather than importing json-canonicalize or similar.
+
+F4. Hashing a committed artifact must complete in < 100ms on a
+    mid-range laptop. The artifact JSON is ~2-5KB; this is
+    trivial for Web Crypto.
+
+
+---
+
+G) PROSE LINT NOTES
+
+G1. The four anchor sentences (three CANDID_LIMITS anchors plus
+    the CANDID_CLOSING anchor) MUST each appear exactly once
+    across all authored strings in the entire suite. P06's
+    assertCandidLimits enforces this.
+
+G2. Body text of each limit is verbatim from CE1 §8; P06's
+    sources.ts byte-compares the body strings to the canonical
+    source and fails on drift.
+
+G3. The phrase "an honest ledger" may appear in subhead text;
+    "the honest ledger" appears only in the CANDID_CLOSING
+    sentence (its exact place in the source).
+
+G4. Banned phrases specific to this mode:
+
+    "cutting-edge", "state-of-the-art", "battle-tested",
+    "production-ready AI", "field-proven".
+
+    The word "production" is acceptable in precise backend
+    contexts ("the production FastAPI backend"); as a marketing
+    adjective on the engine itself, it is not.
+
+G5. The Quintin Hypothesis quote renders verbatim; P06 asserts
+    the first sentence "Reality is fundamentally coherent."
+    appears exactly once.
+
+
+---
+
+H) ACCEPTANCE CHECKLIST FOR P05
+
+  [ ] AuditSlice added to store; all actions work and announce
+      appropriately.
+  [ ] ArtifactInspector renders the full DecisionArtifact with
+      section folding; folding state persists in the store.
+  [ ] REPLAY computes a SHA-256 over the canonicalized payload,
+      compares to the stored hash, and reports match/mismatch
+      with both hashes displayed.
+  [ ] Enforce/shadow toggle is functional and the alt hash
+      matches when scoringMode is flipped.
+  [ ] CandidLimitsLedger renders three expandable items in the
+      fixed order
+      predictive-validity / weights-tuned / cross-domain,
+      plus the closing callout.
+  [ ] All four anchor sentences appear verbatim and exactly
+      once across the suite's authored strings (P06 will
+      assert).
+  [ ] QuintinHypothesisCard renders the hypothesis quote
+      verbatim.
+  [ ] ValidationPlanCard renders the 500/250/250/p<0.01 design
+      and calls it planned-not-reported.
+  [ ] Replay completes in < 100ms for each fixture.
+  [ ] Links OUT to LAYERS / COSINE / AUDIT-internal all
+      resolve via openInMode.
+  [ ] Bundle: mode code <=10KB gzip; data <=10KB gzip.
+
+
+---
+
+END P05.
+Proceed to P06 (copy + fixture integrity + verification +
+ship-gate) once P05 is approved. P06 closes the suite.

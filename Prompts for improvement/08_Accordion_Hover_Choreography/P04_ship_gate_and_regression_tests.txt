@@ -1,0 +1,947 @@
+P04 — SHIP GATE & REGRESSION TESTS
+======================================
+
+ROLE: You are a senior test-infrastructure engineer
+landing the ship gate for the 08 Accordion Hover
+Choreography suite. This prompt ships the Playwright
+rapid-swap scenarios, the R01/R02 invariant regression
+tests, the 60fps budget assertion, the reduced-motion
+parity test, the will-change hygiene check, and the
+bundle-budget audit. It coordinates — not replaces — the
+unit tests that P01 and P03 spec'd; those live in
+tests/accordion/hover_intent.test.tsx and must be passing
+for P04's ship gate to exit 0.
+
+This prompt assumes P01, P02, P03 have landed (all
+acceptance checklists green). If any earlier prompt's
+acceptance is incomplete, P04's tests will catch it and
+the ship gate will fail. That is the intended behavior.
+
+Every acceptance item declared in P01, P02, and P03 MUST
+have a corresponding automated test below. Prior-art
+preservation — R01-R04 (02_Revisions_Round_1) invariants
+untouched — is enforced by §B of this prompt.
+
+---
+
+§A — FILES
+
+Create:
+
+    scripts/accordion/hover_regression.ts
+        — Node entrypoint that launches Playwright and
+          runs the rapid-swap scenarios end-to-end. Can
+          be invoked locally (`pnpm test:hover`) or from
+          CI.
+
+    scripts/accordion/ship_gate.ts
+        — Orchestrator that runs:
+          1. hover_intent.test.tsx (via jest/vitest)
+          2. r01_r02_invariants.test.ts (via jest/vitest)
+          3. rapid_swap.spec.ts (Playwright)
+          4. a11y.spec.ts (Playwright + @axe-core)
+          5. bundle_budget check
+          6. will-change hygiene lint
+          Exit code 0 iff all pass. Prints a consolidated
+          summary.
+
+    tests/accordion/rapid_swap.spec.ts
+        — Playwright test file with §C1–§C8 scenarios.
+
+    tests/accordion/r01_r02_invariants.test.ts
+        — jsdom/vitest test file asserting R01 and R02's
+          measured behaviors survive P01/P02/P03.
+
+    tests/accordion/a11y.spec.ts
+        — Playwright + @axe-core/playwright audit per
+          P03 §H2.
+
+    tests/accordion/bundle_budget.ts
+        — pure-node script (not a test file in the
+          jest/vitest sense) that runs `pnpm build`, gzips
+          the relevant chunks, and compares totals against
+          budgets.
+
+    tests/accordion/will_change_hygiene.ts
+        — pure-node lint script that greps `will-change:`
+          in globals.css and asserts (a) it never appears
+          on `* ` selectors, and (b) it appears only on
+          `.panel.is-animating` scope (whose class is
+          added and removed by Panel.tsx per P02 §C1).
+
+Modify:
+
+    tests/accordion/hover_intent.test.tsx
+        — already created by P01; add P03's new cases
+          G4b, G11, G12. No other change.
+
+    package.json
+        — add scripts:
+            "test:hover": "node scripts/accordion/hover_regression.ts"
+            "ship:accordion": "node scripts/accordion/ship_gate.ts"
+        — add devDependencies if missing:
+            "@playwright/test": "^1.45"
+            "@axe-core/playwright": "^4.9"
+          (Use the latest minor version compatible with
+          the repo's Node version; verify with `pnpm why`
+          before bumping.)
+
+No src/ files are modified by P04.
+
+---
+
+§B — UNIT TESTS (locked in)
+
+B1. hover_intent.test.tsx must contain (final list):
+
+      G1.  idle + ENTER(1) → coldDwell + dwellTimer
+      G2.  coldDwell + ENTER(2) → dwellTimer reset
+      G3.  coldDwell + LEAVE → idle
+      G4.  warm on 1 + ENTER(2) → warm on 2 (instant swap)
+      G4b. warm on 1 + focusInsideIndex=1 + ENTER(2) →
+           warm on 1 unchanged (P03 §B3)
+      G5.  warm on 1 + ACCORDION_LEAVE → leaving +
+           leaveTimer
+      G6.  leaving on 1 + ENTER(1) → warm on 1
+      G7.  leaving on 1 + ENTER(2) → warm on 2 (no idle
+           intermediate; invariant I5)
+      G8.  warm on 1 + PIN(2) → pinned on 2, hover
+           disabled
+      G9.  focus inside 1 + ACCORDION_LEAVE → no collapse
+      G10. reduced-motion: dwell 0ms, leave 0ms
+      G11. pinned on 1 + PIN(1) → unpinned; cursor
+           over → phase warm on 1; cursor outside → phase
+           leaving
+      G12. pinned on 1 + forceIdle → idle, activeIndex
+           null, pinned false, timers cleared
+
+    All 12 tests must pass synchronously on every CI run
+    (<10s total on a 2021 M1 or equivalent). Use fake
+    timers (vi.useFakeTimers or jest.useFakeTimers) for
+    deterministic timing.
+
+B2. Pure-reducer extraction
+
+    For testability, extract the hoverIntent reducer from
+    the React hook. The reducer is `(state, action) →
+    { state, timerCommand }`. The hook wraps it with
+    useReducer and useEffect-driven timer reconciliation.
+
+    Export the reducer from hoverIntent.ts as a named
+    export (e.g., `reducer` or `hoverIntentReducer`) so
+    tests can invoke it directly. This lets G1–G12 run
+    synchronously without mounting React.
+
+    G11 and G12 as pure-reducer tests:
+
+      test("G11: pin on self unpins", () => {
+        const s0 = initial({ panelCount: 5 });
+        const s1 = reducer(s0, { type: "PIN", i: 1 }).state;
+        expect(s1.pinned).toBe(true);
+        const s2 = reducer(s1, { type: "PIN", i: 1 }).state;
+        expect(s2.pinned).toBe(false);
+        // activeIndex becomes 1 if cursor-over inferred;
+        // null otherwise. Implementation-defined per P01
+        // §B4 "onUnpin" transition; assert whatever the
+        // reducer deterministically produces and document
+        // it.
+      });
+
+    For the hook-integration tests (G5's 200ms timer,
+    G10's reduced-motion), use @testing-library/react's
+    renderHook + act + fake timers.
+
+---
+
+§C — PLAYWRIGHT RAPID-SWAP SCENARIOS
+
+C1. Cold 5-tab traversal (no expansions)
+
+    Goal: a cursor passing over all panels in <600ms
+    total produces ZERO expansions.
+
+    Script sketch (tests/accordion/rapid_swap.spec.ts):
+
+      test("C1: cold 5-tab traversal produces no expansion", async ({ page }) => {
+        await page.goto("/");
+        await expect(page.locator(".accordion")).toBeVisible();
+        // Ensure the accordion is in neutral mode. If
+        // initialExpandedIndex=1 is the default, press
+        // ESC first.
+        await page.keyboard.press("Escape");
+
+        // Read panel bounding boxes.
+        const spines = page.locator(".panel-spine");
+        const count = await spines.count();
+        expect(count).toBeGreaterThanOrEqual(5);
+
+        // Record activeIndex at start.
+        const startState = await page.evaluate(() =>
+          document.querySelector(".accordion")
+            ?.querySelector<HTMLElement>('[data-state="expanded"]')
+            ?.id ?? null
+        );
+        expect(startState).toBeNull();
+
+        // Traverse cursor across all 5 spines in 300ms
+        // total. Use page.mouse.move with steps to
+        // interpolate smoothly.
+        const boxes = await Promise.all(
+          Array.from({ length: 5 }, (_, i) => spines.nth(i).boundingBox())
+        );
+        await page.mouse.move(boxes[0]!.x + 10, boxes[0]!.y + 10);
+        for (let i = 1; i < 5; i++) {
+          await page.mouse.move(
+            boxes[i]!.x + 10,
+            boxes[i]!.y + 10,
+            { steps: 8 }
+          );
+          await page.waitForTimeout(40);  // 40ms per hop;
+                                          // total 160ms
+                                          // for 4 hops
+        }
+        // Total elapsed: ~160ms + move durations ≈ 300ms.
+
+        // Assert no panel became expanded.
+        const endState = await page.evaluate(() =>
+          document.querySelector(".accordion")
+            ?.querySelector<HTMLElement>('[data-state="expanded"]')
+            ?.id ?? null
+        );
+        expect(endState).toBeNull();
+      });
+
+    Pass criteria: the test must pass deterministically
+    on Chromium, WebKit, and Firefox. If Firefox's
+    pointer-event timing differs enough to cause
+    sub-120ms dwells to occasionally register, increase
+    the per-hop wait to 50ms (total 500ms; still well
+    under a real-user's accidental dwell).
+
+C2. Cold dwell (120ms) opens exactly one panel
+
+    test("C2: cold dwell over panel 3 opens it once", async ({ page }) => {
+      await page.goto("/");
+      await page.keyboard.press("Escape");
+      const spine3 = page.locator(".panel-spine").nth(2);
+      const box = await spine3.boundingBox();
+      await page.mouse.move(box!.x + 10, box!.y + 10);
+      await page.waitForTimeout(150);  // 120ms dwell +
+                                       // 30ms margin
+
+      const state = await page.evaluate(() =>
+        document.querySelector(".accordion")
+          ?.querySelector<HTMLElement>('[data-state="expanded"]')
+          ?.id ?? null
+      );
+      expect(state).toMatch(/panel-body-0?3/);
+    });
+
+C3. Warm swap: no neutral gap
+
+    test("C3: warm swap N→M has no neutral intermediate", async ({ page }) => {
+      await page.goto("/");
+      // Dwell on panel 2.
+      const spine2 = page.locator(".panel-spine").nth(1);
+      const spine4 = page.locator(".panel-spine").nth(3);
+      const box2 = await spine2.boundingBox();
+      const box4 = await spine4.boundingBox();
+      await page.mouse.move(box2!.x + 10, box2!.y + 10);
+      await page.waitForTimeout(200);  // now warm on 2.
+
+      // Observe data-state flips during swap. Use CDP to
+      // capture rendered frames, OR poll the DOM at 16ms
+      // intervals for 600ms.
+      const states: (number | null)[] = [];
+      const polling = page.evaluate(() => {
+        return new Promise<(number | null)[]>((resolve) => {
+          const observed: (number | null)[] = [];
+          const interval = setInterval(() => {
+            const expanded = document.querySelector(
+              '.accordion [data-state="expanded"]'
+            ) as HTMLElement | null;
+            if (!expanded) { observed.push(null); return; }
+            const m = /panel-body-0?(\d)/.exec(expanded.id);
+            observed.push(m ? parseInt(m[1], 10) : null);
+          }, 16);
+          setTimeout(() => {
+            clearInterval(interval);
+            resolve(observed);
+          }, 600);
+        });
+      });
+
+      // Trigger swap.
+      await page.mouse.move(box4!.x + 10, box4!.y + 10);
+      const observed = await polling;
+
+      // Assert: the sequence never contains a null
+      // between the last 2 and the first 4. (Invariant
+      // I5 from P01.)
+      const last2 = observed.lastIndexOf(2);
+      const first4 = observed.indexOf(4);
+      expect(first4).toBeGreaterThan(last2);
+      for (let i = last2 + 1; i < first4; i++) {
+        // Between the last observed "2" and the first
+        // observed "4", all frames must show either 2 or
+        // 4 (never null).
+        expect([2, 4]).toContain(observed[i]);
+      }
+    });
+
+C4. Mid-animation swap: no opacity restart
+
+    Goal: panel N mid-fade-in swapped to panel M must
+    NOT show panel N jumping to opacity 1 at any frame.
+
+    test("C4: mid-animation swap produces monotonic opacity", async ({ page }) => {
+      await page.goto("/");
+      await page.keyboard.press("Escape");
+
+      const spine2 = page.locator(".panel-spine").nth(1);
+      const spine3 = page.locator(".panel-spine").nth(2);
+      const box2 = await spine2.boundingBox();
+      const box3 = await spine3.boundingBox();
+
+      // Start cold. Hover on panel 2.
+      await page.mouse.move(box2!.x + 10, box2!.y + 10);
+
+      // Dwell elapses at 120ms; fade-in-delay ends at
+      // 120+260=380ms; fade-in completes at 380+260=640ms.
+      // Swap at t=500 — panel 2's body should be at
+      // opacity ~0.46 (linear from 0 at t=380 to 1 at
+      // t=640; at t=500 → (500-380)/260 ≈ 0.46, or
+      // easier with ease-out-quint).
+
+      // Sample opacity of panel-2 body at 20ms intervals
+      // through the swap window.
+      const samples: Array<{ t: number; opacity: number }> = [];
+      const sampler = page.evaluate(async () => {
+        const body = document.querySelector(
+          '.accordion #panel-body-02 .panel-body'
+        ) as HTMLElement | null;
+        if (!body) return [];
+        const out: Array<{ t: number; opacity: number }> = [];
+        const start = performance.now();
+        return new Promise<Array<{ t: number; opacity: number }>>((resolve) => {
+          const tick = () => {
+            const cs = getComputedStyle(body);
+            out.push({
+              t: performance.now() - start,
+              opacity: parseFloat(cs.opacity),
+            });
+            if (performance.now() - start < 800) {
+              requestAnimationFrame(tick);
+            } else {
+              resolve(out);
+            }
+          };
+          tick();
+        });
+      });
+
+      await page.waitForTimeout(500);
+      await page.mouse.move(box3!.x + 10, box3!.y + 10);
+      const trace = await sampler;
+
+      // Find the swap moment (opacity starts decreasing
+      // after reaching its peak). Verify that from the
+      // peak onward, opacity is monotonically
+      // non-increasing (no spike back up to 1).
+      let peak = 0;
+      let peakIdx = 0;
+      for (let i = 0; i < trace.length; i++) {
+        if (trace[i].opacity > peak) {
+          peak = trace[i].opacity;
+          peakIdx = i;
+        }
+      }
+      for (let i = peakIdx + 1; i < trace.length; i++) {
+        // Tolerate 0.02 noise for compositor rounding.
+        expect(trace[i].opacity).toBeLessThanOrEqual(
+          trace[i - 1].opacity + 0.02
+        );
+      }
+
+      // Also: peak opacity should be < 0.7 (it was
+      // mid-fade-in, interrupted before reaching 1).
+      // If peak is 1.0, that means the body fully faded
+      // in before the swap — test timing is off; reduce
+      // waitForTimeout.
+      expect(peak).toBeLessThan(0.7);
+      expect(peak).toBeGreaterThan(0.1);  // sanity: the
+                                          // fade-in did
+                                          // happen
+    });
+
+    If jsdom's computed-style machinery for transitions
+    differs from real Chromium, this test must run in a
+    headed Playwright browser, not in jsdom. Configure
+    accordingly.
+
+C5. Leave-tolerance
+
+    test("C5: cursor leaves then returns within 200ms stays open", async ({ page }) => {
+      // Expand panel 3 by dwell.
+      // Move cursor outside the accordion.
+      // At t=150 after exit, move back in.
+      // Assert panel 3 still expanded.
+      …
+    });
+
+    test("C5b: cursor leaves for 250ms collapses to neutral", async ({ page }) => {
+      // Expand panel 3 by dwell.
+      // Move cursor outside the accordion.
+      // Wait 250ms.
+      // Assert state is neutral (no [data-state="expanded"]).
+      …
+    });
+
+C6. Pin persists through cursor-out
+
+    test("C6: clicked-pinned panel survives cursor-out", async ({ page }) => {
+      const spine3 = page.locator(".panel-spine").nth(2);
+      await spine3.click();
+      // Verify data-pinned="true" appears on the panel.
+      await expect(page.locator('.panel[data-pinned="true"]'))
+        .toHaveId(/panel-body-0?3/);
+      // Move cursor far away.
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(500);
+      // Pinned panel still expanded.
+      await expect(page.locator('[data-state="expanded"]'))
+        .toHaveId(/panel-body-0?3/);
+    });
+
+C7. Focus-within suppresses hover-swap
+
+    test("C7: focus in panel N body + hover over M = no swap", async ({ page }) => {
+      // Pin panel 3.
+      const spine3 = page.locator(".panel-spine").nth(2);
+      await spine3.click();
+      // Tab into body (first focusable descendant).
+      await page.keyboard.press("Tab");
+      // Confirm focus is inside panel 3 body.
+      const focusedInside = await page.evaluate(() => {
+        const active = document.activeElement;
+        const body = document.querySelector("#panel-body-03");
+        return body?.contains(active) ?? false;
+      });
+      expect(focusedInside).toBe(true);
+
+      // Hover over spine 4.
+      const spine4 = page.locator(".panel-spine").nth(3);
+      const box4 = await spine4.boundingBox();
+      await page.mouse.move(box4!.x + 10, box4!.y + 10);
+      await page.waitForTimeout(200);
+
+      // Panel 3 still expanded.
+      await expect(page.locator('[data-state="expanded"]'))
+        .toHaveId(/panel-body-0?3/);
+    });
+
+C8. ESC + focus recovery
+
+    test("C8: ESC from focused body returns focus to spine", async ({ page }) => {
+      const spine3 = page.locator(".panel-spine").nth(2);
+      await spine3.click();
+      await page.keyboard.press("Tab");
+      // Confirm focus is inside panel 3 body.
+
+      await page.keyboard.press("Escape");
+
+      // Accordion in neutral.
+      await expect(page.locator('[data-state="expanded"]'))
+        .toHaveCount(0);
+
+      // Focus is on the spine button for panel 3.
+      const focusedSpineId = await page.evaluate(() => {
+        const active = document.activeElement;
+        const parent = active?.closest("[id^='panel-body-']");
+        return parent?.id ?? null;
+      });
+      expect(focusedSpineId).toMatch(/panel-body-0?3/);
+    });
+
+---
+
+§D — R01 / R02 INVARIANT REGRESSION
+
+Goal: prove P01/P02/P03 did not regress the prior
+revisions' acceptance criteria. These run in jsdom +
+vitest with controlled computed-style reads.
+
+D1. R01 §7: flex-basis transition duration = 420ms
+
+    test("R01: .panel has transition-property flex-basis with 420ms duration", () => {
+      document.body.innerHTML = `
+        <style>${fs.readFileSync("src/app/globals.css", "utf8")}</style>
+        <style>${fs.readFileSync("src/styles/tokens.css", "utf8")}</style>
+        <div class="panel"></div>
+      `;
+      const panel = document.querySelector(".panel")!;
+      const cs = getComputedStyle(panel);
+      // jsdom doesn't evaluate custom properties via
+      // getPropertyValue like real browsers. Use a
+      // browser-based test if jsdom is insufficient.
+      const duration = cs.transitionDuration;
+      expect(duration).toBe("420ms");
+      expect(cs.transitionProperty).toContain("flex-basis");
+    });
+
+    NOTE: jsdom has long-standing limitations resolving
+    CSS custom properties. If the test above returns ""
+    for transitionDuration, move this file to
+    tests/accordion/r01_r02_invariants.spec.ts and run
+    it as a Playwright browser test. The browser will
+    resolve tokens correctly.
+
+D2. R01 §7.1: body fade-in delay = 260ms, duration = 260ms
+
+    Load the page, expand a panel, read the computed
+    transition on the .panel-body inside:
+
+      const cs = getComputedStyle(bodyEl);
+      expect(cs.transitionDelay).toContain("260ms");
+      expect(cs.transitionDuration).toContain("260ms");
+      expect(cs.transitionProperty).toContain("opacity");
+      expect(cs.transitionProperty).toContain("transform");
+      expect(cs.transitionTimingFunction).toContain("cubic-bezier(0.22, 1, 0.36, 1)");
+
+D3. R01 §7.2: body fade-out = 180ms linear
+
+    Same pattern on a non-expanded panel body:
+
+      expect(cs.transitionDelay).toBe("0ms");
+      expect(cs.transitionDuration).toContain("180ms");
+      expect(cs.transitionTimingFunction).toContain("linear");
+
+D4. R01 reduced-motion
+
+    With media query forced:
+
+      await page.emulateMedia({ reducedMotion: "reduce" });
+
+    Verify:
+      - .panel has transition: none (or 0ms duration)
+      - .panel-body has transition: none
+      - .spine-content has transition: none
+
+D5. R02: spine-content transition opacity 180ms linear
+
+      expect(getComputedStyle(spineContentEl).transitionProperty).toBe("opacity");
+      expect(getComputedStyle(spineContentEl).transitionDuration).toBe("180ms");
+      expect(getComputedStyle(spineContentEl).transitionTimingFunction).toBe("linear");
+
+D6. R02: no keyframe animations on .panel-body
+
+    Grep globals.css post-build:
+
+      const css = fs.readFileSync("src/app/globals.css", "utf8");
+      expect(css).not.toMatch(/@keyframes operator-panel-(in|out)/);
+      expect(css).not.toMatch(/animation:\s*operator-panel-(in|out)/);
+
+    This is a static check; no browser needed. Useful
+    because it catches regression by accident (someone
+    re-introducing the keyframe on a future edit).
+
+D7. R02: no framer-motion layoutId
+
+    grep -r "layoutId" src/components/shell/ — must
+    return 0 matches. Static check.
+
+    const files = glob.sync("src/components/shell/*.tsx");
+    const hits = files.flatMap(f =>
+      fs.readFileSync(f, "utf8").split("\n")
+        .map((line, i) => ({ file: f, line: i+1, text: line }))
+        .filter(x => /layoutId/.test(x.text))
+    );
+    expect(hits).toEqual([]);
+
+---
+
+§E — 60FPS BUDGET
+
+E1. Use Playwright tracing with the Chromium DevTools
+    Protocol to capture frame timings during a scripted
+    rapid-swap interaction.
+
+E2. Test:
+
+    test("E1: rapid-swap stays at 60fps", async ({ page }) => {
+      const client = await page.context().newCDPSession(page);
+      await client.send("Tracing.start", {
+        categories: "devtools.timeline,latencyInfo,rail",
+        options: "sampling-frequency=10000",
+      });
+
+      await page.goto("/");
+      await page.keyboard.press("Escape");
+
+      const boxes = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          page.locator(".panel-spine").nth(i).boundingBox()
+        )
+      );
+
+      // Trigger a rapid 5-tab swap: dwell-then-swap 3 times.
+      await page.mouse.move(boxes[0]!.x + 10, boxes[0]!.y + 10);
+      await page.waitForTimeout(150);
+      await page.mouse.move(boxes[2]!.x + 10, boxes[2]!.y + 10);
+      await page.waitForTimeout(200);
+      await page.mouse.move(boxes[4]!.x + 10, boxes[4]!.y + 10);
+      await page.waitForTimeout(600);  // let animations
+                                       // settle
+
+      const trace = await client.send("Tracing.end") as any;
+      // Parse trace events for "DrawFrame" timestamps,
+      // compute frame intervals.
+      // ... (use a lightweight helper; see playwright-
+      //      performance or roll our own.)
+
+      const frameIntervals = parseFrameIntervals(trace);
+      const p95 = percentile(frameIntervals, 0.95);
+      expect(p95).toBeLessThan(17);  // 60fps = 16.67ms;
+                                     // allow 17ms
+    });
+
+E3. Hardware variance
+
+    Frame budget assertions are hardware-sensitive. Set
+    the CI environment to a known class (e.g., Github
+    Actions ubuntu-latest runners) and pin the budget
+    for that class. If CI frequently flakes at 17ms,
+    raise to 20ms (~50fps) for CI only; local dev
+    retains 17ms.
+
+    Expose a `--strict` flag in ship_gate.ts that
+    enforces 17ms; without the flag, 20ms is tolerated.
+    Default to strict locally, lax on CI.
+
+---
+
+§F — REDUCED-MOTION PARITY
+
+F1. Playwright test
+
+    test("F: reduced-motion collapses all durations to 0", async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/");
+      await page.keyboard.press("Escape");
+
+      // Hover panel 3. Expect instant expansion (no
+      // timer, no transition).
+      const spine3 = page.locator(".panel-spine").nth(2);
+      const box3 = await spine3.boundingBox();
+
+      const before = Date.now();
+      await page.mouse.move(box3!.x + 10, box3!.y + 10);
+      // Poll for data-state="expanded".
+      await expect(page.locator('[data-state="expanded"]'))
+        .toHaveId(/panel-body-0?3/, { timeout: 200 });
+      const elapsed = Date.now() - before;
+      expect(elapsed).toBeLessThan(100);  // instant;
+                                          // not 120ms
+                                          // cold-dwell.
+
+      // Verify computed style transition-duration = 0.
+      const cs = await page.locator('[data-state="expanded"]')
+        .evaluate(el => getComputedStyle(el).transitionDuration);
+      expect(cs).toBe("0s");
+    });
+
+F2. Unit-test the hook's reduced-motion branch
+
+    renderHook(() => useHoverIntent({ panelCount: 5 }))
+    with matchMedia mock returning reduce: ENTER(1)
+    immediately flips activeIndex without fake-timer
+    advancement.
+
+---
+
+§G — WILL-CHANGE HYGIENE
+
+G1. Static check:
+
+    const css = fs.readFileSync("src/app/globals.css", "utf8");
+    // Must NOT contain wildcard will-change.
+    expect(css).not.toMatch(/^\s*\*\s*\{[^}]*will-change/m);
+    // Must appear only in .is-animating scope (which is
+    // the class added transiently by Panel.tsx).
+    const willChangeRules = css.match(/[^\{]*\{[^}]*will-change[^}]*\}/g) ?? [];
+    for (const rule of willChangeRules) {
+      expect(rule).toMatch(/\.is-animating/);
+    }
+
+G2. Runtime check (Playwright):
+
+    test("G2: will-change drops within 500ms of settling", async ({ page }) => {
+      // Expand panel 3.
+      // Wait 600ms (420 + 80 safety + 100 margin).
+      // Check all panels:
+      const panels = page.locator(".panel");
+      const count = await panels.count();
+      for (let i = 0; i < count; i++) {
+        const cs = await panels.nth(i).evaluate(el =>
+          getComputedStyle(el).willChange
+        );
+        expect(cs).toBe("auto");  // default: nothing
+                                  // promised to the
+                                  // compositor.
+      }
+    });
+
+---
+
+§H — BUNDLE BUDGET AUDIT
+
+H1. tests/accordion/bundle_budget.ts
+
+    Pseudo-node:
+
+      const zlib = require("zlib");
+      const fs = require("fs");
+      const path = require("path");
+      const { spawnSync } = require("child_process");
+
+      // 1. Run pnpm build.
+      const r = spawnSync("pnpm", ["build"], {
+        stdio: "inherit",
+      });
+      if (r.status !== 0) process.exit(r.status);
+
+      // 2. Find the chunks that contain Accordion /
+      //    hoverIntent. Next.js produces per-route
+      //    chunks in .next/static/chunks/.
+      //    Strategy: grep the built chunks for the
+      //    export name "useHoverIntent" and sum their
+      //    gzipped sizes.
+
+      const chunkDir = ".next/static/chunks";
+      const files = fs.readdirSync(chunkDir)
+        .filter(f => f.endsWith(".js"))
+        .map(f => path.join(chunkDir, f));
+
+      let totalGz = 0;
+      for (const f of files) {
+        const content = fs.readFileSync(f);
+        if (content.toString("utf8").includes("useHoverIntent")) {
+          totalGz += zlib.gzipSync(content).length;
+        }
+      }
+
+      // 3. Assert against budget.
+      const BUDGET_BYTES = 3200;  // 3.2KB (P01 2.6 +
+                                  // P02 0.3 + P03 0.5
+                                  // - shared overhead).
+      if (totalGz > BUDGET_BYTES) {
+        console.error(`Bundle budget exceeded: ${totalGz}B > ${BUDGET_BYTES}B`);
+        process.exit(1);
+      }
+      console.log(`Bundle budget OK: ${totalGz}B / ${BUDGET_BYTES}B`);
+
+    This is approximate — the gzipped size of a chunk
+    that CONTAINS useHoverIntent is larger than the
+    incremental contribution of hoverIntent alone. A
+    better method diffs against a baseline recorded
+    pre-08: run `git stash && pnpm build && record
+    baseline && git stash pop && pnpm build && compare`.
+    Ship_gate.ts can orchestrate this.
+
+    For this prompt's acceptance, the approximate check
+    is sufficient to catch 10x overruns. If a finer
+    diff is wanted, follow up with a dedicated bundle-
+    analyzer integration.
+
+---
+
+§I — SHIP GATE ORCHESTRATION
+
+I1. scripts/accordion/ship_gate.ts
+
+    Pseudo-node:
+
+      import { spawnSync } from "node:child_process";
+
+      const steps: Array<{ name: string; cmd: string[] }> = [
+        { name: "Unit: hover intent", cmd: ["pnpm", "vitest", "run", "tests/accordion/hover_intent.test.tsx"] },
+        { name: "Unit: R01/R02 invariants", cmd: ["pnpm", "vitest", "run", "tests/accordion/r01_r02_invariants.test.ts"] },
+        { name: "E2E: rapid swap", cmd: ["pnpm", "playwright", "test", "tests/accordion/rapid_swap.spec.ts"] },
+        { name: "E2E: a11y", cmd: ["pnpm", "playwright", "test", "tests/accordion/a11y.spec.ts"] },
+        { name: "Lint: will-change hygiene", cmd: ["node", "tests/accordion/will_change_hygiene.ts"] },
+        { name: "Build + bundle budget", cmd: ["node", "tests/accordion/bundle_budget.ts"] },
+      ];
+
+      const results: Array<{ name: string; ok: boolean; ms: number }> = [];
+      for (const step of steps) {
+        const t0 = Date.now();
+        const r = spawnSync(step.cmd[0], step.cmd.slice(1), {
+          stdio: "inherit",
+        });
+        const ok = r.status === 0;
+        results.push({ name: step.name, ok, ms: Date.now() - t0 });
+        if (!ok) break;  // fail fast
+      }
+
+      console.log("\n=== 08 Ship Gate Summary ===");
+      for (const r of results) {
+        console.log(`  ${r.ok ? "✓" : "✗"} ${r.name} (${r.ms}ms)`);
+      }
+      const allOk = results.every(r => r.ok) && results.length === steps.length;
+      process.exit(allOk ? 0 : 1);
+
+I2. Invocation:
+
+      pnpm ship:accordion
+
+    Expected output:
+
+      === 08 Ship Gate Summary ===
+        ✓ Unit: hover intent (3.2s)
+        ✓ Unit: R01/R02 invariants (1.1s)
+        ✓ E2E: rapid swap (24s)
+        ✓ E2E: a11y (8s)
+        ✓ Lint: will-change hygiene (0.3s)
+        ✓ Build + bundle budget (45s)
+      Exit 0
+
+    Total wall time: ~80-90s on a 2021 M1 MacBook Air.
+    CI may take 2–3x longer.
+
+---
+
+§J — TROUBLESHOOTING (triage guide)
+
+J1. "Unit tests fail"
+    → Read the reducer output. If G4b, G11, G12 fail,
+      the FSM extensions from P03 §B3 weren't applied.
+      Re-verify hoverIntent.ts has the
+      focusInsideIndex guard in ENTER and the forceIdle
+      action.
+
+J2. "C1 (cold traversal) reports an expansion"
+    → The hook's dwell timer is firing too early, or
+      not being reset on ENTER(j != i). Inspect
+      reducer's coldDwell + ENTER branch.
+    → Alternatively, the test's timing is off on
+      slower CI. Raise per-hop wait or swap to a
+      higher-dwell token (e.g., override
+      --d-hover-intent-cold=150ms in the test fixture).
+
+J3. "C4 (mid-swap opacity) shows a spike"
+    → The keyframe→transition conversion in P02 was
+      incomplete. Re-grep for @keyframes operator-panel-
+      in/out in globals.css. If present, remove.
+    → Or: the animation: shorthand still resolves
+      against @keyframes rules because the CSS cascade
+      retained them from a cached copy. Rebuild.
+
+J4. "E (60fps) flakes at 17.2ms on CI"
+    → Relax to 20ms for CI. Investigate separately
+      whether there's a real regression.
+
+J5. "H (bundle budget) fails with ~4KB"
+    → The approximate chunk-grep method overcounts.
+      Switch to the diff-against-baseline method
+      (J-diff below).
+
+J6. "J-diff" (how to compute a precise bundle delta):
+      1. git checkout the commit BEFORE 08 lands.
+      2. pnpm build; record `du -b .next/static/chunks`.
+      3. git checkout 08-lands.
+      4. pnpm build; record `du -b .next/static/chunks`.
+      5. Compute the delta, filtered to chunks whose
+         names match the route that renders the
+         accordion.
+    Record the number; compare to 3.2KB budget.
+
+---
+
+§K — ACCEPTANCE (this prompt)
+
+    [ ] scripts/accordion/hover_regression.ts and
+        ship_gate.ts are executable from the project
+        root via `pnpm test:hover` and
+        `pnpm ship:accordion`.
+    [ ] tests/accordion/hover_intent.test.tsx has all 12
+        cases (G1-G10 + G4b + G11 + G12) passing.
+    [ ] tests/accordion/r01_r02_invariants.test.ts
+        has D1-D7 passing.
+    [ ] tests/accordion/rapid_swap.spec.ts has C1-C8
+        passing on Chromium.
+    [ ] tests/accordion/a11y.spec.ts has zero axe
+        critical/serious violations on the four states
+        enumerated in P03 §H2.
+    [ ] tests/accordion/will_change_hygiene.ts exits 0
+        (lint + runtime checks both pass).
+    [ ] tests/accordion/bundle_budget.ts exits 0 under
+        the 3.2KB budget.
+    [ ] ship_gate.ts exits 0 on a clean repo.
+    [ ] The Playwright tests also pass on WebKit and
+        Firefox (run as part of CI matrix; allow one
+        Firefox flake retry per P04's official
+        retry policy, but no more).
+    [ ] The README of tests/accordion/ documents the
+        manual VoiceOver smoke test from P03 §H3 (a
+        human must run this before ship; it is not
+        automated).
+
+---
+
+§L — SHIP POLICY
+
+L1. A green ship_gate.ts run is a NECESSARY but not
+    SUFFICIENT condition for ship. The following are
+    also required:
+
+      - Manual VoiceOver smoke test (P03 §H3) passes.
+      - Code review sign-off by a second engineer on
+        all P01/P02/P03/P04 file diffs.
+      - Visual regression snapshot (e.g., via Percy or
+        Chromatic) shows no unintended visual diffs
+        outside the accordion region.
+      - R01 and R02's own ship criteria still pass
+        (their own respective manual checklists; if
+        they were automated, their ship gates are
+        invoked by this one).
+
+L2. On failure of any P04 step, open a blocking issue
+    and DO NOT merge. Revert the P01/P02/P03 commits
+    if necessary; fix; re-run ship_gate.ts.
+
+L3. If the user is the final reviewer and wishes to
+    override a specific test failure (e.g., a Firefox
+    flake), that override MUST be recorded in a commit
+    message with the exact test name and a rationale.
+    Overrides are rare; they accumulate into a
+    "known flake" file that P04 excludes, and that
+    file must be re-audited quarterly.
+
+---
+
+§M — OUT OF SCOPE (for completeness)
+
+M1. Cross-browser visual regression (Percy, Chromatic,
+    Applitools). This suite uses Playwright
+    behavioral assertions; visual diffing is a
+    project-wide concern, not specific to 08.
+
+M2. Load testing / stress testing (e.g., 1000 rapid
+    swaps in a row). The hook's FSM is bounded (no
+    accumulating state), so load isn't a real concern.
+    If observed, open a new ticket.
+
+M3. Bundle-budget rigor beyond the approximate
+    chunk-grep + J-diff. A proper source-map-backed
+    bundle analyzer is a project-wide tool, not
+    specific to this suite.
+
+M4. Non-English screen-reader testing. The portfolio
+    is English-only at the time of this suite's
+    authoring.
+
+---
+
+END P04. Ship gate lands. Suite 08 is complete when
+ship_gate.ts exits 0 and the manual VoiceOver smoke
+test passes.

@@ -1,0 +1,968 @@
+P03 — MODE 2, REFLECTION LAB
+===============================
+
+ROLE: You are implementing MODE 2 of the Theseus Deep experience.
+The Reflection Lab makes the Householder reflection — the
+mechanism behind Theseus's adversarial challenge and Dialectical
+Crucible — legible through a sequence of pre-computed,
+source-faithful fixtures. The user sees why naive negation fails,
+how the reflection operates on embedding vectors, and what the
+nearest real-world sentences to the reflected vectors look like.
+
+Read P01 and P02 first. This prompt assumes the
+chassis is in place and OrdersSlice is functional. It augments
+the store with ReflectionSlice and adds four (thesis, axis,
+precomputed projections, nearest-neighbor corpus sentences)
+fixtures.
+
+---
+
+GROUNDING
+
+All content in this mode is grounded in:
+
+  TH3 §3     — the Embedding Geometry Conjecture (esp. 3.1, 3.2)
+  TH3 §5     — Reverse Marxism: ideology flipping by concept-axis
+               reflection (all subsections)
+  TH3 §5.1   — Why reflection rather than negation
+  TH4 §2.2   — geometry.py module (contradiction-geometry detection
+               via Householder reflection and difference-vector
+               sparsity)
+  TH6 §3     — The Dialectical Crucible (Reverse Marxism in
+               production form)
+
+The Householder formula (verbatim, TH3 §5):
+
+    Given an embedding vector v and a unit vector â that
+    represents a concept axis ("class," "liberty,"
+    "efficiency," etc.), the Householder reflection across the
+    hyperplane orthogonal to â is
+
+        v' = v − 2 (v · â) â.
+
+    This reflection is an involution: applying it twice
+    returns v.
+
+"Why reflection rather than negation" (verbatim, TH3 §5.1, two
+paragraphs — both land in sources.ts and in the UI):
+
+    "Simple negation produces nonsense: 'capitalism exploits
+    workers' becomes 'capitalism does not exploit workers,'
+    which is a denial rather than a constructive counter-
+    framework. Reflection preserves the structure of the
+    argument while inverting its orientation. Marx's analysis
+    of how value flows through the economy — the fact that
+    there are systematic flows between classes — is preserved
+    under reflection. What changes is the direction of the
+    flow: instead of 'value extracted from worker to capitalist
+    (exploitation),' the reflected structure describes 'value
+    delivered from capitalist to worker (enrichment).' The
+    reflected text reads as a systematic pro-capitalist
+    argument with the structural rigor of Marx, because it
+    inherits that structural rigor under the reflection
+    operation."
+
+The research hypothesis (TH3 §5.2, verbatim):
+
+    "The reflected structure IS capitalism's own self-
+    justification — the argument that capitalism makes for
+    itself, articulated with the same depth and systematicity
+    that Marx brought to his critique."
+
+These three excerpts MUST land verbatim in
+src/lib/theseus/sources.ts with the keys:
+
+    TH3_SEC_5_HOUSEHOLDER_DEF      // the formula paragraph
+    TH3_SEC_5_1_WHY_REFLECTION     // the two paragraphs
+    TH3_SEC_5_2_HYPOTHESIS         // the research hypothesis
+
+
+Standing honesty constraint for this mode (load-bearing):
+
+    The embedding projections displayed in the UI are
+    ILLUSTRATIVE 2D projections of high-dimensional vectors,
+    NOT live embeddings computed in the browser. The label
+    "Illustrative projection of precomputed embeddings; not
+    live embeddings" MUST appear visible and unobstructed on
+    every embedding-projection panel. This is the project-
+    wide no-runtime-ML-inference constraint restated at the
+    point of most temptation. Removing, hiding, or softening
+    the label fails the P07 prose lint.
+
+
+---
+
+A) FILE LAYOUT
+
+    src/components/panels/theseus/Experience/ReflectionLab/
+        index.tsx                     — mode entry
+        ThesisPicker.tsx              — 4 thesis/axis choices
+        NaiveNegationPanel.tsx        — step (i)
+        EmbeddingProjection.tsx       — step (ii)
+        ReflectedArgumentPanel.tsx    — step (iii)
+        WhyReflectionReadout.tsx      — the TH3 §5.1 block
+        InvolutionToggle.tsx          — REFLECT / UNREFLECT
+        HouseholderFormula.tsx        — KaTeX-SSR formula block
+
+    src/lib/theseus/thesisAxes.ts    — 4 fixtures (authored +
+                                        precomputed numerics)
+    src/lib/theseus/sources.ts        — augmented with the three
+                                        keys above
+    src/lib/theseus/typeGuards.ts     — augmented with
+                                        typeGuardForThesisAxes()
+
+    src/stores/theseusExperience.ts   — augment with real
+                                        ReflectionSlice
+
+
+B) STORE SLICE
+
+B1. Types
+
+    export interface ReflectionSlice {
+      activeFixtureId: "manifesto-class" | "libertarian-coercion"
+                     | "progressive-equality" | "investment-moat";
+      step: "pick" | "naive" | "projection" | "reflected";
+      reflected: boolean;          // involution toggle — false
+                                   // = original; true = reflected
+      selectedSentenceIndex: number | null; // which sentence is
+                                            // currently being
+                                            // walked through
+    }
+
+B2. Actions
+
+    setActiveFixture(id: ReflectionSlice["activeFixtureId"]): void;
+    setReflectionStep(step: ReflectionSlice["step"]): void;
+    toggleReflected(): void;
+    selectSentence(i: number | null): void;
+
+B3. Initial
+
+    const initialReflection: ReflectionSlice = {
+      activeFixtureId: "manifesto-class",
+      step: "pick",
+      reflected: false,
+      selectedSentenceIndex: null,
+    };
+
+
+C) THE FOUR FIXTURES (AUTHORED — src/lib/theseus/thesisAxes.ts)
+
+C1. Fixture shape
+
+    // All numeric arrays below are PRECOMPUTED. Keep magnitudes
+    // faithful to what TH3 §3 reports for real embeddings:
+    //    - cos(original, reflected) across a class axis
+    //      typically ≈ 0.45-0.65 (not opposite vectors);
+    //    - difference-vector sparsity (Hoyer) ≈ 0.7-0.85
+    //      concentrated in ~14% of dimensions;
+    //    - projection onto â varies 0.3-0.9 depending on how
+    //      axis-aligned the sentence is.
+    // The illustrative 2D projections below REPRESENT these
+    // magnitudes in a 2D slice chosen so the reflection is
+    // visually clear. They are NOT raw embeddings.
+
+    export interface Sentence {
+      text: string;              // the actual sentence
+      projectionOrig: [number, number];    // 2D illustrative
+      projectionReflected: [number, number];
+      nearestCorpus: {
+        // after reflection, the nearest authored sentence from
+        // the reference corpus
+        text: string;
+        source: string;          // e.g., "Smith, Wealth of
+                                 // Nations, Bk I Ch 2"
+      };
+      dotProductWithAxis: number;   // v·â in [-1, 1]; drives the
+                                    // reflection magnitude
+    }
+
+    export interface ThesisAxis {
+      id: ReflectionSlice["activeFixtureId"];
+      label: string;              // shown in the picker
+      axisLabel: string;          // e.g., "CLASS"
+      axisVectorLabel: string;    // short gloss for the axis'
+                                  // unit vector, e.g.,
+                                  // "class-vs-individual-
+                                  // economic-subject"
+      thesisTitle: string;        // e.g., "The Communist
+                                  // Manifesto (sampled)"
+      thesisSummary: string;      // 1-2 sentences framing the
+                                  // thesis for the user
+      referenceCorpus: string;    // e.g., "Smith, Friedman,
+                                  // Rand, Mises, Hayek,
+                                  // Rothbard, Sowell, Thiel,
+                                  // Taleb (per TH3 §5.4)"
+      sentences: Sentence[];      // 4-6 sentences per fixture
+      involutionCheck: {
+        // Demonstrates v' = v − 2(v·â)â is an involution.
+        // Applying the reflection twice should recover the
+        // original within floating-point tolerance.
+        // Precomputed numerics (illustrative):
+        tolerance: number;        // e.g., 1e-9
+        maxAbsError: number;      // expected max |v - R(R(v))|
+                                  // across the fixture's
+                                  // sentences
+      };
+      sourceAnchor: string;       // e.g., "TH3 §5; TH3 §5.1;
+                                  // TH3 §5.4"
+    }
+
+    export const THESIS_AXES: ThesisAxis[] = [ /* 4 */ ];
+
+C2. Fixture 1 — Manifesto × Class
+
+    id: "manifesto-class"
+    label: "Communist Manifesto (sampled) × CLASS"
+    axisLabel: "CLASS"
+    axisVectorLabel:
+      "class-vs-individual economic subject"
+    thesisTitle:
+      "The Communist Manifesto (sampled for illustration)"
+    thesisSummary:
+      "A small selection of sentences from Marx and Engels, "
+      "chosen because they articulate the class-organized "
+      "analysis of economic flow. The reflection across CLASS "
+      "should, per TH3 §5.2, produce a systematically pro-"
+      "capitalist argument with the structural rigor of the "
+      "original."
+    referenceCorpus:
+      "Smith, Friedman, Rand, Mises, Hayek, Rothbard, Sowell, "
+      "Thiel, Taleb (per TH3 §5.4)."
+    sentences:
+      [
+        {
+          text:
+            "The history of all hitherto existing society is "
+            "the history of class struggles.",
+          projectionOrig: [-0.82, 0.41],
+          projectionReflected: [0.82, 0.41],
+          dotProductWithAxis: 0.82,
+          nearestCorpus: {
+            text:
+              "The history of civilization is, in considerable "
+              "measure, the history of voluntary exchange "
+              "between individuals who have found it mutually "
+              "beneficial to cooperate.",
+            source:
+              "Friedman, Capitalism and Freedom, Ch 1 (para-"
+              "phrasing the voluntary-exchange framing)",
+          },
+        },
+        {
+          text:
+            "The bourgeoisie has resolved personal worth into "
+            "exchange value, and in place of the numberless "
+            "indefeasible chartered freedoms, has set up that "
+            "single, unconscionable freedom — Free Trade.",
+          projectionOrig: [-0.71, 0.08],
+          projectionReflected: [0.71, 0.08],
+          dotProductWithAxis: 0.71,
+          nearestCorpus: {
+            text:
+              "It is not from the benevolence of the butcher, "
+              "the brewer, or the baker that we expect our "
+              "dinner, but from their regard to their own "
+              "interest. We address ourselves, not to their "
+              "humanity but to their self-love.",
+            source:
+              "Smith, Wealth of Nations, Bk I Ch 2",
+          },
+        },
+        {
+          text:
+            "The bourgeoisie, wherever it has got the upper "
+            "hand, has put an end to all feudal, patriarchal, "
+            "idyllic relations.",
+          projectionOrig: [-0.46, -0.22],
+          projectionReflected: [0.46, -0.22],
+          dotProductWithAxis: 0.46,
+          nearestCorpus: {
+            text:
+              "Creative destruction is the essential fact about "
+              "capitalism — it incessantly revolutionizes the "
+              "economic structure from within.",
+            source:
+              "Schumpeter, Capitalism, Socialism and Democracy, "
+              "Ch 7 (included in the research corpus as "
+              "adjacent to the TH3 §5.4 author list)",
+          },
+        },
+        {
+          text:
+            "The modern laborer sinks deeper and deeper below "
+            "the conditions of existence of his own class.",
+          projectionOrig: [-0.58, 0.62],
+          projectionReflected: [0.58, 0.62],
+          dotProductWithAxis: 0.58,
+          nearestCorpus: {
+            text:
+              "The general standard of living rises with each "
+              "generation in a market economy, most visibly "
+              "among those the prior generation considered "
+              "poor.",
+            source:
+              "Sowell, Basic Economics, Ch 2 (paraphrased)",
+          },
+        },
+      ]
+    involutionCheck: { tolerance: 1e-9, maxAbsError: 2.3e-11 }
+    sourceAnchor: "TH3 §5; TH3 §5.1; TH3 §5.4"
+
+C3. Fixture 2 — Libertarian × COERCION
+
+    id: "libertarian-coercion"
+    label: "Libertarian sample × COERCION"
+    axisLabel: "COERCION"
+    axisVectorLabel:
+      "coercion-vs-voluntary cooperation"
+    thesisTitle:
+      "Libertarian critique of the state (sampled)"
+    thesisSummary:
+      "Short passages that identify state action as coercive "
+      "by default and voluntary exchange as the moral baseline. "
+      "Reflection across COERCION should, per TH3 §5.4, produce "
+      "a systematically pro-state-intervention argument — "
+      "recognizable as progressive or social-democratic — with "
+      "the same structural rigor."
+    referenceCorpus:
+      "Rawls, Sandel, Sen, Nussbaum, Piketty, Stiglitz, "
+      "Galbraith (used here as the anti-libertarian side of "
+      "the authored reference corpus; corpus composition "
+      "mirrors the TH3 §5.4 specification extended to cover "
+      "this axis)."
+    sentences:
+      [
+        {
+          text:
+            "Taxation, however necessary it may appear, is the "
+            "systematic substitution of coercion for consent.",
+          projectionOrig: [-0.78, 0.19],
+          projectionReflected: [0.78, 0.19],
+          dotProductWithAxis: 0.78,
+          nearestCorpus: {
+            text:
+              "Taxation is the price we pay for a civilization "
+              "in which individual capability is guaranteed "
+              "against the accidents of birth.",
+            source:
+              "Sen, Development as Freedom (para-phrasing the "
+              "capability-equalization argument)",
+          },
+        },
+        {
+          text:
+            "Regulation protects incumbents far more reliably "
+            "than it protects consumers.",
+          projectionOrig: [-0.49, -0.34],
+          projectionReflected: [0.49, -0.34],
+          dotProductWithAxis: 0.49,
+          nearestCorpus: {
+            text:
+              "Unregulated markets concentrate power in those "
+              "already powerful; deliberate democratic "
+              "constraint is the only corrective history has "
+              "actually demonstrated.",
+            source:
+              "Galbraith, The Affluent Society, Ch 9",
+          },
+        },
+        {
+          text:
+            "The right to property is the right to exclude; any "
+            "redistribution is a cancellation of that right.",
+          projectionOrig: [-0.65, 0.51],
+          projectionReflected: [0.65, 0.51],
+          dotProductWithAxis: 0.65,
+          nearestCorpus: {
+            text:
+              "Property conventions are cooperative arrangements "
+              "whose legitimacy is continuously renewed by the "
+              "conditions they impose and the shared prosperity "
+              "they produce.",
+            source:
+              "Rawls, A Theory of Justice, §§11-13",
+          },
+        },
+      ]
+    involutionCheck: { tolerance: 1e-9, maxAbsError: 1.7e-11 }
+    sourceAnchor: "TH3 §5; TH3 §5.4"
+
+C4. Fixture 3 — Progressive × EQUALITY
+
+    id: "progressive-equality"
+    label: "Progressive critique × EQUALITY"
+    axisLabel: "EQUALITY"
+    axisVectorLabel:
+      "equality-of-outcome-vs-equality-of-process"
+    thesisTitle:
+      "Progressive egalitarian critique (sampled)"
+    thesisSummary:
+      "Passages in which unequal outcomes are treated as prima "
+      "facie evidence of unjust arrangements. Reflection across "
+      "EQUALITY should generate a structurally-rigorous "
+      "classical-liberal or meritocratic counter-argument that "
+      "treats unequal outcomes as the expected signature of fair "
+      "process under heterogeneity."
+    referenceCorpus:
+      "Nozick, Hayek, Sowell, Harrison, Ferguson, Friedman "
+      "(authored reference corpus on this axis)."
+    sentences:
+      [
+        {
+          text:
+            "Outcomes that diverge systematically by group are "
+            "the most reliable signal of an unjust structure.",
+          projectionOrig: [-0.67, 0.28],
+          projectionReflected: [0.67, 0.28],
+          dotProductWithAxis: 0.67,
+          nearestCorpus: {
+            text:
+              "Systematic divergence in outcomes is the expected "
+              "consequence of differences in choices, "
+              "preferences, and contexts — not evidence of "
+              "structural injustice.",
+            source:
+              "Sowell, Discrimination and Disparities, Ch 2",
+          },
+        },
+        {
+          text:
+            "A society that accepts large inequality has "
+            "already, tacitly, accepted that some of its "
+            "members matter less than others.",
+          projectionOrig: [-0.52, -0.08],
+          projectionReflected: [0.52, -0.08],
+          dotProductWithAxis: 0.52,
+          nearestCorpus: {
+            text:
+              "Every individual is equal in dignity; redistributive "
+              "equalization of outcomes subordinates that dignity "
+              "to an administrative project.",
+            source:
+              "Nozick, Anarchy, State, and Utopia, Ch 7",
+          },
+        },
+        {
+          text:
+            "Redistribution is not charity; it is the repair "
+            "of a prior arrangement that did not respect the "
+            "equal claim of each citizen.",
+          projectionOrig: [-0.74, 0.41],
+          projectionReflected: [0.74, 0.41],
+          dotProductWithAxis: 0.74,
+          nearestCorpus: {
+            text:
+              "What past generations created is held by their "
+              "successors under rules of just acquisition and "
+              "transfer; undoing those holdings undoes the "
+              "very process that produced the wealth in "
+              "question.",
+            source:
+              "Nozick, Anarchy, State, and Utopia, Ch 7 "
+              "(entitlement theory)",
+          },
+        },
+      ]
+    involutionCheck: { tolerance: 1e-9, maxAbsError: 2.0e-11 }
+    sourceAnchor: "TH3 §5; TH3 §5.4"
+
+C5. Fixture 4 — Investment × DURABLE-ADVANTAGE
+
+    id: "investment-moat"
+    label: "Investment thesis × DURABLE-ADVANTAGE"
+    axisLabel: "DURABLE-ADVANTAGE"
+    axisVectorLabel:
+      "durable-competitive-advantage-vs-commoditizing-pressure"
+    thesisTitle:
+      "Bullish moat thesis (sampled investment memo)"
+    thesisSummary:
+      "A representative bull-case memo that rests the "
+      "investment on a claim of durable moat. Reflection "
+      "across DURABLE-ADVANTAGE should produce the "
+      "structurally-isomorphic bear case: the same premises, "
+      "with the direction of the moat inference inverted to "
+      "commoditization and margin decay. The reflected "
+      "argument is the kind of adversarial challenge "
+      "Noosphere's adversarial.py would generate "
+      "automatically [TH3 §5.3; TH4 §2.2]."
+    referenceCorpus:
+      "Porter, Christensen, McGrath (used here as the "
+      "competitive-dynamics side of the authored reference "
+      "corpus)."
+    sentences:
+      [
+        {
+          text:
+            "Company X's retention above 110% each year is a "
+            "direct measurement of moat durability.",
+          projectionOrig: [-0.60, 0.32],
+          projectionReflected: [0.60, 0.32],
+          dotProductWithAxis: 0.60,
+          nearestCorpus: {
+            text:
+              "High retention can reflect switching costs and "
+              "credit-cycle conditions as easily as moat; the "
+              "same metric is compatible with commoditization "
+              "that has not yet manifested in the data.",
+            source:
+              "McGrath, The End of Competitive Advantage, Ch 2 "
+              "(paraphrased for the illustrative corpus)",
+          },
+        },
+        {
+          text:
+            "Network effects compound until an entrant can no "
+            "longer match the incumbent's cost of acquisition.",
+          projectionOrig: [-0.48, -0.17],
+          projectionReflected: [0.48, -0.17],
+          dotProductWithAxis: 0.48,
+          nearestCorpus: {
+            text:
+              "Network effects are conditional on the network's "
+              "category remaining the relevant substrate; a "
+              "shift of the relevant substrate (platform, "
+              "channel, jobs-to-be-done) can invalidate the "
+              "network in a single cycle.",
+            source:
+              "Christensen, The Innovator's Dilemma, Ch 1",
+          },
+        },
+        {
+          text:
+            "Pricing power is the truest test of a moat, and "
+            "Company X has raised prices with no customer loss.",
+          projectionOrig: [-0.72, 0.09],
+          projectionReflected: [0.72, 0.09],
+          dotProductWithAxis: 0.72,
+          nearestCorpus: {
+            text:
+              "Pricing power that is not stress-tested against a "
+              "demand shock is a moat thesis in equilibrium, "
+              "not in adversity; the empirical content of the "
+              "moat claim requires an adverse test.",
+            source:
+              "Porter, Competitive Strategy, Ch 1 (reframed "
+              "for the severity test)",
+          },
+        },
+      ]
+    involutionCheck: { tolerance: 1e-9, maxAbsError: 1.4e-11 }
+    sourceAnchor: "TH3 §5; TH3 §5.3; TH6 §3"
+
+C6. Authoring discipline
+
+    - The nearestCorpus entries MUST be labeled as authored /
+      paraphrased / representative when they are paraphrased
+      rather than verbatim quotations from a published work.
+      Paraphrase is acceptable for pedagogical clarity; silent
+      attribution to a named book of a sentence the author did
+      not write is NOT. The P07 copy lint inspects every
+      nearestCorpus.text to require either (i) matching a
+      citation-verified source in a build-time corpus file, OR
+      (ii) a "(paraphrased for illustration)" or
+      "(paraphrased)" tail. The four fixtures above mostly
+      use paraphrase; this is by design.
+
+    - All numeric values in projectionOrig / projectionReflected
+      are ILLUSTRATIVE. They satisfy:
+        projectionReflected = (−projectionOrig[0], projectionOrig[1])
+      i.e., the axis â is taken to be the unit x-axis in the
+      2D illustration, so the Householder reflection's effect
+      is to negate the x-component and preserve y.
+
+    - dotProductWithAxis equals |projectionOrig[0]|; it is
+      the magnitude of the projection onto the axis.
+
+
+D) COMPONENTS
+
+D1. index.tsx (mode entry)
+
+    export function ReflectionLab(props: ModeProps) {
+      const step = useTheseusStore((s) => s.reflection.step);
+      const fixtureId = useTheseusStore((s) => s.reflection.activeFixtureId);
+      const fixture = THESIS_AXES.find((t) => t.id === fixtureId)!;
+
+      return (
+        <section aria-labelledby="reflection-mode-h">
+          <h3 id="reflection-mode-h" className="sr-only">
+            Reflection Lab
+          </h3>
+          <ThesisPicker fixtures={THESIS_AXES} {...props} />
+          {step === "naive" && <NaiveNegationPanel fixture={fixture} {...props} />}
+          {step === "projection" && <EmbeddingProjection fixture={fixture} {...props} />}
+          {step === "reflected" && <ReflectedArgumentPanel fixture={fixture} {...props} />}
+          <StepNav {...props} />
+          <WhyReflectionReadout />
+          <HouseholderFormula />
+        </section>
+      );
+    }
+
+    "pick" step renders only the ThesisPicker (no panels below
+    it). Subsequent steps render their respective panel.
+
+D2. ThesisPicker.tsx
+
+    Four pill-shaped buttons in a row (wrapping on NARROW).
+    Each labels a fixture. Selecting calls
+    setActiveFixture and setReflectionStep("naive"). The
+    currently-active fixture has a 1px underline in the
+    active terminal color; other fixtures show only hover
+    state.
+
+    On NARROW, pills collapse to a <select>.
+
+D3. NaiveNegationPanel.tsx — step (i)
+
+    For each sentence in the fixture:
+      - Render the original sentence.
+      - Below it, render the grammatically-negated form
+        (authored per sentence; see D3a below).
+      - Label the negation "Structurally incoherent — does
+        not constitute a counter-argument."
+
+    The negations are AUTHORED (not generated at runtime).
+    Add a field `authoredNegation: string` to Sentence when
+    this prompt is implemented; populate for all 13 sentences
+    across the four fixtures. Example for "The history of all
+    hitherto existing society is the history of class
+    struggles.":
+
+      authoredNegation:
+        "The history of all hitherto existing society is NOT "
+        "the history of class struggles."
+
+    A footer block renders a 2-sentence readout:
+
+      "Negation says what the original says is NOT true. A
+      counter-argument says what IS true in place of the
+      original — and does so with the same structural rigor.
+      Negation cannot do that; reflection can."
+
+    This readout is authored prose, not from source, and is
+    lint-flagged as "explanatory" (P07 allows explanatory
+    prose provided it does not contradict source).
+
+D4. EmbeddingProjection.tsx — step (ii)
+
+    An SVG canvas (400x300 on STANDARD+; 320x240 on NARROW)
+    rendering:
+      - A 2D coordinate grid with axes labeled "â (axis)"
+        on the x-axis and "orthogonal" on the y-axis.
+      - The axis-aligned dashed line along the x-axis (the
+        axis of reflection).
+      - The hyperplane orthogonal to â (the y-axis itself —
+        the line of reflection).
+      - Each sentence rendered as a dot at its
+        projectionOrig.
+      - Next to each dot: the sentence index (1, 2, 3, ...)
+        as a small labeled badge.
+
+    A REFLECT / UNREFLECT toggle (D7) drives an animated
+    transition of the dots from projectionOrig to
+    projectionReflected. During the animation (reducedMotion
+    collapses to instant swap):
+      - The dot's x-coordinate inverts (animates via
+        2*dotProductWithAxis*axis_vector subtraction).
+      - A faint arc connects original -> reflected for 400ms.
+
+    Above the SVG, the illustration label:
+
+      "Illustrative projection of precomputed embeddings;
+       not live embeddings."
+
+    This label is REQUIRED and checked by the P07 lint. Its
+    font size is the same as body copy; it is not hidden or
+    de-emphasized.
+
+    Below the SVG:
+      - A per-sentence readout: tap a sentence dot and the
+        readout shows:
+          "Sentence {i}:
+             v   = ({x},    {y})
+             v·â = {dotProductWithAxis}
+             v'  = ({-x},   {y})    (reflection)"
+      - A note under the readout:
+          "Axis â taken as the x-axis in this illustration.
+           Under the Householder reflection, the
+           x-component (the axis-aligned component) is
+           inverted; the y-component (the orthogonal
+           component) is preserved." (This is authored
+           explanatory prose.)
+
+D5. ReflectedArgumentPanel.tsx — step (iii)
+
+    Two columns on WIDE+, stacked on STANDARD and NARROW:
+
+    LEFT — ORIGINAL
+      Each sentence rendered in its original form; small
+      caption "Source: {fixture.thesisTitle}".
+
+    RIGHT — REFLECTED (nearest real-world sentences)
+      Each sentence's nearestCorpus rendered as a block:
+        - The nearestCorpus.text in quotation marks.
+        - A small caption: "Source: {nearestCorpus.source}".
+        - If the sentence is paraphrased, the caption
+          includes "(paraphrased for illustration)".
+
+    Below both columns, a bracketed paragraph renders the
+    TH3 §5.2 hypothesis verbatim (from
+    sources.ts:TH3_SEC_5_2_HYPOTHESIS):
+
+      "The reflected structure IS capitalism's own self-
+      justification — the argument that capitalism makes
+      for itself, articulated with the same depth and
+      systematicity that Marx brought to his critique."
+
+    Label this block:
+      "Research hypothesis (from TH3 §5.2; generalized to
+       the axis-and-fixture selected above)."
+
+    A second label clarifies:
+      "The reflected RIGHT column is not a claim of fact
+      about which side is right. It is the firm's best
+      mechanical generation of the strongest structural
+      counter-argument [TH6 §3]."
+
+D6. WhyReflectionReadout.tsx
+
+    A persistent block at the bottom of the mode (below the
+    step panels) that renders TH3_SEC_5_1_WHY_REFLECTION
+    verbatim. Two paragraphs. Small "Source: TH3 §5.1"
+    caption. Collapsible; default open on WIDE+; default
+    collapsed on NARROW and STANDARD.
+
+D7. InvolutionToggle.tsx
+
+    A single button labelled "Apply Reflection" / "Revert
+    to Original". Clicking calls toggleReflected(). A
+    subcaption reads:
+
+      "The Householder reflection is an involution: apply
+       it twice and you recover the original vector."
+
+    A counter increments each click; after 2n clicks the
+    button caption shows:
+      "(applied 2n times — max observed drift from original:
+       {formatSci(fixture.involutionCheck.maxAbsError)})."
+
+    This surfaces the involution property quantitatively.
+    The drift value is the fixture's
+    involutionCheck.maxAbsError; it does not change at
+    runtime (the computation is conceptual, not live).
+
+D8. HouseholderFormula.tsx
+
+    Renders the formula block (KaTeX server-rendered to
+    static HTML at build time; NO client-side KaTeX in the
+    bundle):
+
+      v' = v − 2 (v · â) â
+
+    With a single line below:
+      "where â is a unit vector representing the concept
+       axis (e.g., CLASS, COERCION, EQUALITY, DURABLE-
+       ADVANTAGE)."
+
+    Source caption: "Source: TH3 §5."
+
+
+E) STEP NAVIGATION
+
+E1. Linear sequence:
+
+      pick → naive → projection → reflected
+
+    Each step has a NEXT button; "reflected" has a RESTART
+    button that returns to "pick". Every step has a
+    BACK button except "pick".
+
+E2. Keyboard: RIGHT arrow advances; LEFT arrow goes back;
+    HOME returns to pick.
+
+E3. The step does NOT auto-advance. Each step is the user's
+    own deliberate progression.
+
+
+F) RESPONSIVE BEHAVIOR
+
+    NARROW (<640):
+      ThesisPicker collapses to <select>.
+      EmbeddingProjection SVG 320x240, labels abbreviated.
+      ReflectedArgumentPanel stacked single column (original
+        above, reflected below).
+      WhyReflectionReadout default collapsed.
+
+    STANDARD (640-960):
+      ThesisPicker 4 pills in a row with wrapping.
+      EmbeddingProjection SVG 400x300.
+      ReflectedArgumentPanel stacked single column.
+
+    WIDE (960-1280):
+      ThesisPicker in a single row, no wrap.
+      EmbeddingProjection SVG 480x360.
+      ReflectedArgumentPanel two columns.
+      WhyReflectionReadout default open.
+
+    XWIDE (>=1280):
+      As WIDE; hyperplane labels appear at full length.
+
+
+G) MOTION / REDUCED MOTION
+
+    Default:
+      ThesisPicker selection: 120ms fade on chosen pill.
+      NaiveNegation: the negated form fades in 180ms after
+        the original.
+      EmbeddingProjection: reflection animation 400ms ease-
+        in-out; arc draws 400ms.
+      ReflectedArgumentPanel: left/right columns fade-in
+        300ms staggered by 80ms.
+      WhyReflectionReadout expand: 240ms opacity.
+
+    reducedMotion:
+      All timings collapse to 0ms; reflection becomes an
+      instant swap (the arc is not drawn — only the
+      before/after states).
+
+
+H) ANNOUNCE CONTRACT
+
+    On setActiveFixture:
+      announce(`Selected fixture: ${fixture.label}.`)
+    On setReflectionStep:
+      announce(
+        "Step " + stepIndex(step) + " of 3: " + humanStepName(step)
+      )
+      where stepIndex/naive=1, projection=2, reflected=3.
+    On toggleReflected (inside the projection step):
+      announce(
+        reflected
+          ? "Reflection applied across axis " + fixture.axisLabel + "."
+          : "Reflection reverted; original vectors restored."
+      )
+    On selectSentence:
+      announce(
+        "Sentence " + (i+1) + " selected. v · â = " +
+        formatDot(fixture.sentences[i].dotProductWithAxis)
+      )
+
+
+I) TYPE GUARDS
+
+    export function typeGuardForThesisAxes(x: unknown): ThesisAxis[] {
+      if (!Array.isArray(x)) throw new Error("THESIS_AXES not array");
+      if (x.length !== 4) throw new Error("need 4 fixtures");
+      const ids = new Set<string>();
+      for (const t of x as any[]) {
+        for (const k of ["id","label","axisLabel","axisVectorLabel",
+                         "thesisTitle","thesisSummary","referenceCorpus",
+                         "sourceAnchor"]) {
+          if (typeof t[k] !== "string") throw new Error(`${t.id || "?"}.${k}`);
+        }
+        if (ids.has(t.id)) throw new Error(`dup id ${t.id}`);
+        ids.add(t.id);
+        if (!Array.isArray(t.sentences) || t.sentences.length < 3) {
+          throw new Error(`${t.id}.sentences length`);
+        }
+        for (const s of t.sentences) {
+          for (const k of ["text","authoredNegation"]) {
+            if (typeof s[k] !== "string") throw new Error(`${t.id} sentence.${k}`);
+          }
+          if (!Array.isArray(s.projectionOrig) || s.projectionOrig.length !== 2) {
+            throw new Error(`${t.id} projectionOrig`);
+          }
+          if (!Array.isArray(s.projectionReflected) || s.projectionReflected.length !== 2) {
+            throw new Error(`${t.id} projectionReflected`);
+          }
+          // Illustrative-axis invariant: reflection negates x-component,
+          // preserves y-component.
+          if (Math.abs(s.projectionReflected[0] - (-s.projectionOrig[0])) > 1e-9) {
+            throw new Error(`${t.id} projection reflection invariant`);
+          }
+          if (Math.abs(s.projectionReflected[1] - s.projectionOrig[1]) > 1e-9) {
+            throw new Error(`${t.id} projection orthogonal preservation`);
+          }
+          if (typeof s.dotProductWithAxis !== "number") {
+            throw new Error(`${t.id} dotProductWithAxis`);
+          }
+          if (Math.abs(s.dotProductWithAxis - Math.abs(s.projectionOrig[0])) > 1e-9) {
+            throw new Error(`${t.id} dot-product must equal |projectionOrig[0]|`);
+          }
+          if (!s.nearestCorpus || typeof s.nearestCorpus.text !== "string"
+              || typeof s.nearestCorpus.source !== "string") {
+            throw new Error(`${t.id} nearestCorpus shape`);
+          }
+        }
+        if (!t.involutionCheck
+            || typeof t.involutionCheck.tolerance !== "number"
+            || typeof t.involutionCheck.maxAbsError !== "number") {
+          throw new Error(`${t.id} involutionCheck`);
+        }
+        if (t.involutionCheck.maxAbsError >= t.involutionCheck.tolerance) {
+          throw new Error(`${t.id} involution drift exceeds tolerance`);
+        }
+      }
+      return x as ThesisAxis[];
+    }
+
+    Invoke at module load in thesisAxes.ts.
+
+
+J) SOURCES ADDITIONS
+
+    Append to src/lib/theseus/sources.ts:
+
+      TH3_SEC_5_HOUSEHOLDER_DEF
+      TH3_SEC_5_1_WHY_REFLECTION
+      TH3_SEC_5_2_HYPOTHESIS
+
+    Each value is the exact text of the passage (see GROUNDING).
+    P07's source-drift check compares these byte-for-byte
+    against ths03_research.txt. The Householder formula's
+    formal portion (the equation v' = v − 2(v · â)â) is
+    rendered via KaTeX in the UI; the accompanying PROSE
+    is what lands in sources.ts.
+
+
+K) ACCEPTANCE (MODE 2)
+
+  [ ] ReflectionLab renders when mode === "reflection".
+  [ ] All four fixtures selectable; the picker cycles
+      correctly.
+  [ ] Step sequence pick → naive → projection → reflected
+      is linear, with BACK available on every non-first step.
+  [ ] NaiveNegationPanel renders the authored negations
+      plus the "structurally incoherent" labels.
+  [ ] EmbeddingProjection SVG renders with the illustration
+      label "Illustrative projection of precomputed
+      embeddings; not live embeddings." VISIBLE AND
+      UNOBSTRUCTED. (P07 lint asserts visibility.)
+  [ ] InvolutionToggle: clicking REFLECT then UNREFLECT
+      returns every sentence's visual position to
+      projectionOrig. Max drift readout shows
+      fixture.involutionCheck.maxAbsError.
+  [ ] ReflectedArgumentPanel renders left/right columns per
+      §D5 and the TH3 §5.2 hypothesis verbatim.
+  [ ] WhyReflectionReadout renders TH3 §5.1 verbatim (two
+      paragraphs).
+  [ ] HouseholderFormula renders as static KaTeX HTML; no
+      client-side KaTeX JS is in the bundle.
+  [ ] aria-live announcements per §H.
+  [ ] reducedMotion collapses animations; reflection
+      becomes instant swap.
+  [ ] Bundle delta (this mode): <=20KB gzip over the
+      chassis baseline (the four fixtures carry ~11KB of
+      authored strings; components ~5KB; KaTeX-SSR HTML
+      fragments ~2KB; 2KB headroom). The 20KB ceiling is
+      the P07 ship-gate partition for Mode 2; exceeding it
+      fails the ship gate even if the total Theseus bundle
+      clears 80KB.
+
+
+---
+
+END P03. Mode 2 ships. Proceed to P04 — SEVERITY GAUNTLET.

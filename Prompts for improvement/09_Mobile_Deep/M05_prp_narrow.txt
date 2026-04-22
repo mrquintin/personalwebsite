@@ -1,0 +1,344 @@
+M05 — PRP PANEL (narrow)
+================================================
+
+PURPOSE
+-------
+Narrow-mode rendering for the Purposeless Efficiency panel
+(03, /purposeless-efficiency). PRP is the most prose-heavy of
+the three "interactive" panels; its narrow form therefore
+leans on READING MODE (M04 §F) plus a small set of interaction
+primitives that replace desktop's multi-tile layouts.
+
+The full PRP spec lives in the 04_Purposeless_Efficiency_Deep
+suite (P01–P06). This prompt adds the narrow branch for each
+of the five sub-experiences specified there, binding to
+04/P01 §A4 (prp-prose.css), 04/P04 TILE B (canonical drop-cap
+site), and 04/P06 (ship-gate grep).
+
+
+SCOPE
+-----
+Touches (new files):
+  src/content/projects/purposeless-efficiency/narrow/*
+    - OntologyExplorerNarrow.tsx
+    - QuadrantStepperNarrow.tsx
+    - DiamondCarouselNarrow.tsx
+    - ObjectionsStackNarrow.tsx
+    - AtlasCardsNarrow.tsx
+
+Touches (edits):
+  src/styles/prp-prose.css (add narrow branch)
+  Each existing PRP component gets a mode branch:
+    if mode === "narrow" return <XxxNarrow />; else <XxxStandard />;
+
+Does NOT touch:
+  04_Purposeless_Efficiency_Deep suite (spec authority remains
+  there; M05 is the narrow implementation note).
+
+
+§A  INHERITED CONVENTIONS
+=========================
+
+From 04/P01 §A4 — prp-prose.css typography utility. The 64 ch
+measure on `.prp-prose` is non-binding at narrow viewports
+(viewport < 64 ch). Hyphens, hanging-punctuation, small-caps
+mono headings all continue to apply. The drop-cap variant
+(.prp-prose--drop-cap, used canonically at 04/P04 TILE B) is
+RETAINED on narrow. 3.5 em drop cap on a 16 px base = 56 px
+letter, which on 288 px effective width is 19% of a line —
+acceptable.
+
+From 04/P06 — ship-gate greps. Confine `.prp-prose` and
+"Source Serif" references to the PRP directory. Narrow
+components in `src/content/projects/purposeless-efficiency/
+narrow/` are inside that directory, so the grep continues to
+hold.
+
+From M03 — every component below consumes useExperienceHost()
+to read `mode` and `reducedMotion`.
+
+
+§B  prp-prose.css — NARROW BRANCH
+=================================
+
+Append to `src/styles/prp-prose.css`:
+
+  @media (max-width: 639px) {
+    .prp-prose {
+      font-size: var(--t-md-size);       /* retain 17 px */
+      line-height: 1.65;                  /* tighter than 1.7 at narrow */
+      padding: 0;                         /* container handles gutter */
+    }
+    .prp-prose--drop-cap > p:first-of-type::first-letter {
+      font-size: 3em;                     /* down from 3.5em */
+      padding: 0.06em 0.12em 0 0;
+    }
+    .prp-prose h4,
+    .prp-prose .prp-prose-heading {
+      font-size: 11px;                    /* explicit; stays mono uppercase */
+      margin-top: 1.3em;
+    }
+  }
+
+Rationale for the 1.65 line-height on narrow: 1.7 produces
+pleasing long-form rhythm on a desktop viewport where a line
+is 64 ch. At 28 ch per line on narrow, 1.7 creates vertical
+"rivers" between short lines. 1.65 reads as rhythmically
+continuous.
+
+
+§C  ONTOLOGY EXPLORER (04/P01 §B) — NARROW BRANCH
+=================================================
+
+Desktop behavior: a three-tier hierarchical tree (root →
+category → claim) rendered side-by-side with a detail pane.
+
+Narrow behavior: a breadcrumb-driven single-column drill-down.
+
+  State (held in the narrow component or lifted to the
+  ExperienceHost's fixture store if one exists):
+    - path: [rootId?, categoryId?, claimId?]
+
+  Render:
+    - If path.length === 0: render the ROOT list — one card
+      per top-level category. Each card has title (--t-md-size),
+      one-line summary (--t-sm-size), and a chevron-right
+      affordance.
+    - If path.length === 1: render "< <categoryTitle>" as a
+      left-aligned tap affordance (back button); then the
+      list of CLAIMS inside the category, same card pattern.
+    - If path.length === 2: render "< <claimTitle>" as the
+      back button; then the full claim content in
+      .prp-prose. Children (examples, dependencies, objections)
+      render beneath as headed sub-lists.
+
+  Transition: reducedMotion path uses no transition; otherwise
+  a 160 ms translateX(-8px → 0) fade-in on entry, translateX(0
+  → 8px) fade-out on exit — mirroring the desktop side-pane
+  slide.
+
+  Deep links: the active path round-trips via URL hash, e.g.
+  `#prp/ontology/governance/anti-corruption-audits`. Desktop
+  and narrow share the hash.
+
+Touch target: each card is at minimum 64 px tall with 16 px
+of horizontal padding. Chevron sits right-aligned with 8 px
+optical gap.
+
+ACCEPTANCE:
+  [ ] OntologyExplorerNarrow.tsx exists; renders in the PRP
+      panel body on narrow.
+  [ ] At path.length=0, the tap on a category pushes path to
+      length 1 and updates the URL hash.
+  [ ] Back button (or the hardware back button on Android)
+      pops a level.
+  [ ] No side-by-side layout at any scroll position.
+
+
+§D  PURPOSE-EFFICIENCY QUADRANT (04/P02) — NARROW
+=================================================
+
+Desktop behavior: a 2×2 grid (x-axis purpose, y-axis
+efficiency) with a cell per archetype, each cell containing
+a mini-vignette and a selection affordance.
+
+Narrow behavior: a stepper through the four vignettes, in
+quadrant order (high/high, high/low, low/high, low/low).
+
+  Render:
+    - A strip of four dots at the top; the active dot is
+      filled, the others outlined.
+    - Below the dots, a 2×2 mini-map (thumbnails) showing
+      the current position in the quadrant (a dim
+      illustration, not interactive) with one cell
+      highlighted.
+    - Below the map, the vignette's full content in
+      .prp-prose.
+    - Below the content, two buttons: "Previous" and "Next"
+      — each 44 px min-height, stretched to 48% width with a
+      4% gap.
+
+  Keyboard (hardware on mobile): Left/Right arrows move
+  through; Enter activates nothing (the stepper has no
+  selection — all four are shown sequentially).
+
+  The quadrant semantics (axes labelled "purpose" and
+  "efficiency") are preserved in the mini-map. No side-by-side
+  comparison (that's desktop's idiom).
+
+ACCEPTANCE:
+  [ ] QuadrantStepperNarrow.tsx exists.
+  [ ] Four dots render; active dot is --accent, others
+      --fg-mute.
+  [ ] Vignette content uses .prp-prose.
+  [ ] Prev/Next buttons have min-height 44 px and are both
+      reachable without horizontal overflow at 320 px.
+
+
+§E  DIAMOND METHOD (04/P03) — NARROW
+====================================
+
+Desktop behavior: a horizontal rail of DiamondCase cards with
+a sticky header explaining the method; each card shows a
+small diamond-shape visualisation.
+
+Narrow behavior: a carousel — one DiamondCase per viewport,
+horizontal swipe to page, tap-equivalent chevrons at edges.
+
+  This is the ONE narrow surface in PRP that permits
+  horizontal swipe (M03 §D3 rule: dot indicators + tap chevrons
+  + touch-action: pan-x).
+
+  Render:
+    - A sticky header (position: sticky; top: 0) with the
+      method explainer in .prp-prose, two lines tall maximum
+      on narrow. This header scrolls with page but sticks at
+      the top once it reaches the top of the viewport.
+    - Below, a `.diamond-carousel` with
+      `scroll-snap-type: x mandatory;
+       scroll-padding: 0;
+       overflow-x: auto;
+       touch-action: pan-x;
+       scrollbar-width: none;`
+    - Each slide (one DiamondCase) is `width: 100%;
+      scroll-snap-align: start; padding: var(--mobile-gutter);`.
+    - Below the carousel, a dot strip (one dot per case).
+      Tapping a dot scrolls the carousel to that index.
+    - Chevron buttons floating on the carousel's left/right
+      edges (absolutely positioned, 44×44 px, opacity 0.7
+      on default, 1.0 on focus). On the first slide the left
+      chevron is hidden; on the last, the right is hidden.
+
+  Diamond-shape visualisation: on narrow, collapse the SVG to
+  a horizontal bar chart of the diamond's four dimensions
+  (width, depth, symmetry, yield — or whatever the DiamondCase
+  spec names them in 04/P03). Reasoning: a diamond-shaped SVG
+  at <320 px renders illegibly; the abstract "diamond" idea
+  is less useful than the concrete dimensions.
+
+ACCEPTANCE:
+  [ ] DiamondCarouselNarrow.tsx exists.
+  [ ] Swipe pages through cases; dots highlight; chevrons
+      tap-equivalently.
+  [ ] No vertical-scroll hijacking (touch-action: pan-x only).
+  [ ] Sticky header remains readable through the carousel.
+
+
+§F  OBJECTIONS DOJO (04/P04) — NARROW
+=====================================
+
+Desktop behavior: TILE A (objection) on the left, TILE B
+(response) on the right, side-by-side.
+
+Narrow behavior: vertical stack, TILE A on top, TILE B below.
+Both use `.prp-prose`. TILE B retains the drop cap
+(.prp-prose--drop-cap) per 04/P04 TILE B canonical site.
+
+  Render:
+    - Each "objection pair" is a card with:
+      - TILE A header "OBJECTION" (mono uppercase, --t-xs-size)
+      - TILE A content (.prp-prose)
+      - separator line (.separator { border-top: var(--border-hair); })
+      - TILE B header "RESPONSE" (mono uppercase)
+      - TILE B content (.prp-prose.prp-prose--drop-cap)
+    - Multiple pairs stack vertically with generous
+      between-spacing (--s-7).
+    - No pagination; all pairs render on the page. If this
+      produces a very long scroll, that's acceptable — the
+      single-scroll page model expects this.
+
+  Alternative considered but REJECTED: accordion-within-accordion
+  (each objection pair collapsed by default; tap to expand).
+  Rejected because the prose is the content; hiding it behind
+  a tap gates the user's access to the reasoning. The drop-cap
+  on TILE B is an invitation to read; you can't invite through
+  a closed door.
+
+ACCEPTANCE:
+  [ ] ObjectionsStackNarrow.tsx exists.
+  [ ] No side-by-side layout at any width <640 px.
+  [ ] TILE B retains drop cap.
+  [ ] Grep in 04/P06 ship-gate: `.prp-prose--drop-cap` is
+      reachable from narrow.
+
+
+§G  INTELLECTUAL ATLAS (04/P05) — NARROW
+========================================
+
+Desktop behavior: a map-like graph view with pillar nodes and
+thinker pins; a sidebar lists ThinkerCards filterable by pillar.
+
+Narrow behavior: a filterable card list.
+
+  Render:
+    - A horizontal pill strip at the top: "All | Pillar1 |
+      Pillar2 | ... | PillarN". Scrollable horizontally with
+      `touch-action: pan-x`. Tap a pill to filter.
+    - Below, a vertical list of ThinkerCards. Each card has:
+      - thinker name (--t-base-size, weight 500)
+      - pillar label (mono, --t-xs-size uppercase, colored
+        per pillar)
+      - one-line abstract
+      - "Read more" affordance → expands the card inline to
+        show the full ThinkerCard content (.prp-prose)
+    - Pagination: none. Pillars tend to have 8–20 thinkers
+      each; render all.
+
+  Map view (the graph with pillars as nodes) is OMITTED on
+  narrow. The map was never load-bearing pedagogy; it was
+  desktop ornament. On narrow, the filterable card list is
+  the SAME information in a more usable form.
+
+ACCEPTANCE:
+  [ ] AtlasCardsNarrow.tsx exists.
+  [ ] Pill strip filters the list by pillar.
+  [ ] Read-more expands the card in place; a second tap
+      collapses it.
+  [ ] No map-graph SVG rendered on narrow.
+
+
+§H  PANEL-LEVEL WIRING
+======================
+
+Inside the PRP panel component (currently PurposelessTeaser.tsx
+per src/components/panels/PurposelessTeaser.tsx; verify):
+
+  const { mode } = useExperienceHost();
+  if (mode === "narrow") {
+    return <PRPNarrow />;
+  }
+  return <PRPStandard />;
+
+where PRPNarrow renders the five narrow sub-experiences in a
+scrollable vertical sequence. The teaser on the accordion panel
+may show ONLY a subset (e.g., the ontology explorer's first
+level and the objections dojo) with a "See full site" link to
+/purposeless-efficiency. The route page /purposeless-efficiency
+renders ALL five.
+
+
+§I  FIXTURES ON NARROW
+======================
+
+The 04 suite's fixture set (ontology entries, thinker cards,
+objection pairs) is NOT reduced on narrow. Same fixtures;
+different presentation. The fixture bundle budget from 04/P06
+continues to apply.
+
+
+ACCEPTANCE FOR M05 (cumulative with per-section above)
+------------------------------------------------------
+[ ] All five narrow components exist under
+    src/content/projects/purposeless-efficiency/narrow/.
+[ ] PurposelessTeaser.tsx branches on mode === "narrow".
+[ ] prp-prose.css has a narrow-viewport branch per §B.
+[ ] On 320×568: all five PRP sub-experiences are reachable,
+    operable, and render without horizontal overflow.
+[ ] 04/P06 grep gates continue to pass: `.prp-prose` and
+    "Source Serif" references remain confined to the PRP
+    directory.
+[ ] TILE B drop cap renders at 3em on narrow (was 3.5em on
+    desktop).
+[ ] Playwright smoke test (M09): at 320 px, navigating
+    #prp/ontology/governance renders the governance claim
+    list.

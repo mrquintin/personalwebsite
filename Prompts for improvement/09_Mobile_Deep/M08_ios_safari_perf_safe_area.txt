@@ -1,0 +1,383 @@
+M08 — iOS SAFARI, PERF, SAFE-AREA
+================================================
+
+PURPOSE
+-------
+Production hardening. Everything the chassis (M02), mode
+propagation (M03), and per-panel prompts (M04–M07) assume
+about the mobile runtime — iOS Safari quirks, safe areas
+on notched devices, overscroll behavior, momentum scroll,
+bfcache, perf budgets — is made explicit here.
+
+This prompt is intentionally granular. Each subsection is a
+discrete change the implementer can apply independently.
+
+
+SCOPE
+-----
+Touches:
+  src/app/layout.tsx                           (viewport meta)
+  src/app/globals.css                          (overscroll, tap-highlight, safe-area)
+  src/styles/tokens.css                        (dvh-related adjustments if any)
+  src/components/shell/TopRail.tsx             (safe-area-inset-top)
+  src/components/palette/Palette.tsx           (svh-aware max-height)
+  src/components/easter/EasterEggs.tsx         (audit for touch regressions)
+
+
+§A  viewport META
+=================
+
+A1 — Add `viewport-fit=cover` to the meta viewport directive.
+
+     Current (expected; verify): layout.tsx either uses the Next.js
+     app-router `metadata.viewport` export or a <meta> tag.
+
+     Target:
+       export const viewport: Viewport = {
+         width: "device-width",
+         initialScale: 1,
+         maximumScale: 5,     // allow zoom (WCAG 1.4.4)
+         userScalable: true,  // allow zoom
+         viewportFit: "cover",
+       };
+
+     Rationale: without viewport-fit=cover, env(safe-area-inset-*)
+     returns 0 even on notched devices (audit E2). maximumScale=5
+     and userScalable=true are WCAG 1.4.4 compliance — do NOT set
+     maximum-scale=1 or user-scalable=no.
+
+
+§B  SAFE-AREA PADDING
+=====================
+
+B1 — Top rail.
+     TopRail.tsx should include `padding-top:
+     env(safe-area-inset-top)` or be wrapped in a container
+     that does. The rail renders at the top of the viewport
+     and on notched devices is currently clipped by the
+     sensor housing in landscape.
+
+     Preferred: apply via CSS on `.toprail` class (the class
+     the component exposes; verify name):
+
+       .toprail {
+         padding-top: env(safe-area-inset-top);
+       }
+
+     If the rail sets its own height via a var (--toprail-h),
+     the height stays; the padding is additive. Update any
+     downstream `padding-top: var(--toprail-h)` references
+     (Shell.tsx <main>, globals.css .keycap `top:
+     calc(var(--toprail-h) + 12px)`) to account for the
+     extra inset. Cleanest: define a derived token
+
+       :root { --toprail-total-h: calc(var(--toprail-h) + env(safe-area-inset-top)); }
+
+     and use it in downstream consumers.
+
+B2 — Bottom rail / safe-area-inset-bottom.
+     The regime selector from M06 §C5 sits at
+     `bottom: env(safe-area-inset-bottom)`. Already correct.
+
+     Any other bottom-anchored element (none currently) must
+     respect this inset.
+
+B3 — Horizontal safe-area on landscape notched devices.
+     On iPhone X+ in landscape orientation, the notch takes
+     env(safe-area-inset-left) or right (depending on rotation).
+     Content that runs edge-to-edge horizontally must inset:
+
+       .accordion .panel-body,
+       .reading-mode,
+       .mode-tabs-narrow {
+         padding-left: max(var(--mobile-gutter), env(safe-area-inset-left));
+         padding-right: max(var(--mobile-gutter), env(safe-area-inset-right));
+       }
+
+     Use max() so the existing gutter is respected on
+     non-notched devices.
+
+
+§C  VIEWPORT UNITS — dvh / svh / lvh
+=====================================
+
+Browsers in the last three years all support the dynamic
+viewport units (dvh = dynamic, adjusts as URL bar hides/shows;
+svh = small viewport height, assumes URL bar always visible;
+lvh = large, always hidden). Safari 16+, Chrome 108+.
+
+C1 — Replace every `100vh` with `100dvh` UNLESS the
+     semantics require svh or lvh.
+     Grep to find:
+       `grep -n "100vh\|vh;\|vh$" src/`
+
+     Known sites (confirm):
+       - Accordion.tsx line 95 (removed in M02)
+       - globals.css palette `max-height: 70vh` (line 43)
+       - globals.css `min-height: calc(100vh - var(--statusbar-h))`
+         (removed in M02)
+
+     For palette:
+       .palette { max-height: 70svh; }
+
+     `svh` here is correct — the palette appears over the
+     URL bar, so its max-height should assume the URL bar is
+     ALWAYS present (the conservative case).
+
+C2 — Do NOT use `100vh` for hero sections or full-screen
+     backdrops. Use `100dvh` for dynamic or `100lvh` for
+     "always fill" (e.g., a loading splash).
+
+C3 — Fallback: put the vh value first, dvh second, so older
+     browsers (Safari <16, rare today) degrade gracefully:
+
+       .x {
+         height: 100vh;        /* fallback */
+         height: 100dvh;       /* modern */
+       }
+
+
+§D  TOUCH INTERACTION
+=====================
+
+D1 — -webkit-tap-highlight-color.
+     Add to globals.css at the top of the cascade (reset.css
+     is a fine home):
+
+       * { -webkit-tap-highlight-color: transparent; }
+
+     Custom active-state visuals per component (e.g., button
+     :active { background: var(--bg-3); }). Without this
+     rule, iOS Safari flashes a gray box on every tap.
+
+D2 — touch-action on interactive surfaces.
+     Blanket rule on all buttons, links, and tap-regions:
+
+       button, [role="button"], a, [role="tab"],
+       [role="listbox"], [role="option"], summary {
+         touch-action: manipulation;
+       }
+
+     Eliminates the 300 ms tap delay and disables
+     double-tap-to-zoom on these elements. Double-tap zoom
+     still works on plain prose and non-interactive surfaces.
+
+D3 — focus-visible on touch.
+     Browsers differ in when they show focus rings on touch.
+     Unify with:
+
+       :focus { outline: none; }
+       :focus-visible {
+         outline: 2px solid var(--accent);
+         outline-offset: 2px;
+       }
+
+     Touch-only interactions fire :focus but not :focus-visible,
+     so no ring appears after a tap; keyboard interactions
+     fire both, so the ring appears.
+
+D4 — Disable iOS text-size auto-inflate.
+     iOS Safari inflates font-size on rotation on some elements:
+
+       html { -webkit-text-size-adjust: 100%; }
+
+     Add to reset.css if not present.
+
+D5 — iOS momentum scrolling.
+     On iOS <8 the `-webkit-overflow-scrolling: touch` was
+     required. Modern iOS has momentum by default; the rule
+     is no-op. REMOVE any existing occurrences (none expected
+     in this codebase).
+
+
+§E  OVERSCROLL BEHAVIOR
+=======================
+
+E1 — Body-level overscroll.
+     `overscroll-behavior: contain` on the body defeats
+     pull-to-refresh on the landing page. This is a
+     CONTROVERSIAL choice; some users expect pull-to-refresh.
+
+     RECOMMENDED: leave body overscroll alone (default: auto).
+     Allow pull-to-refresh.
+
+E2 — Drawer overscroll.
+     For the HVM bottom-sheet drawer (M06 B4 Knowledge
+     Pipeline details), the THS axis drawer (M07 §D), and
+     any other overlay drawer:
+
+       .drawer {
+         overscroll-behavior: contain;
+         -webkit-overflow-scrolling: touch;
+       }
+
+     This prevents scroll bleed from the drawer into the
+     page when the drawer reaches its scroll limit.
+
+
+§F  bfcache COMPATIBILITY
+=========================
+
+F1 — Every useEffect with a listener registration must
+     return a cleanup. Audit:
+       - Accordion.tsx BroadcastChannel: returns ch.close(). ✓
+       - Accordion.tsx useHotkey registrations: library
+         handles cleanup. ✓
+       - ExperienceHost.tsx (M03): return ro.disconnect() for
+         ResizeObserver; return removeEventListener for
+         matchMedia. ✓
+       - Any new component (M04–M07): must follow the same
+         pattern.
+
+F2 — Avoid `unload` event. Use `pagehide` for navigation-time
+     cleanup; `unload` disables bfcache on modern browsers.
+
+F3 — Do NOT store the only copy of critical state in
+     component-local React state — sessionStorage (M06 §E)
+     or zustand (06 suite) survives bfcache-restored
+     navigation and pageshow events.
+
+
+§G  PERFORMANCE BUDGET
+======================
+
+G1 — LCP (Largest Contentful Paint): ≤2.5 s on Moto G4
+     simulation (Lighthouse Mobile default).
+
+G2 — CLS (Cumulative Layout Shift): ≤0.05. The chassis
+     rewrite (M02) specifically addresses the URL-bar
+     show/hide CLS via 100dvh; any new addition that
+     renders asynchronously (images, charts, KaTeX) must
+     reserve space via aspect-ratio or min-height BEFORE
+     the async load resolves.
+
+G3 — TBT (Total Blocking Time): ≤200 ms. The dynamic
+     imports (03/I01 LAZY-LOAD CONTRACT) plus lazy KaTeX
+     (M07 B2) plus the core shell keep TBT low.
+
+G4 — Per-experience bundle: ≤80 KB gzip per 03/I01.
+     Suite-delta (M02+M03+M04+M05+M06+M07) must not regress
+     any existing bundle. M09 runs bundle-size checks.
+
+G5 — Initial shell bundle (the accordion + top rail +
+     palette) delta from this suite: ≤6 KB gzip.
+
+G6 — CSS total: ≤40 KB gzip. globals.css grows most in
+     this suite; M04's reading-mode.css and M05's prp-prose
+     narrow branch add ~2 KB.
+
+
+§H  NETWORK PATHOLOGY
+=====================
+
+H1 — Offline-first: not a goal for this site (not an app),
+     but aggressive HTTP caching is fine via Vercel's
+     default headers. The Next.js output already handles
+     this; no action required.
+
+H2 — Flaky 3G / 4G: dynamic imports should have fallbacks.
+     The "initialising · <name>" placeholder (03/I01
+     LAZY-LOAD CONTRACT) covers this. No action beyond
+     verifying the per-panel lazy wrappers implement the
+     fallback.
+
+H3 — Data usage: avoid loading experience fixtures when a
+     user has data-saver on. Future optional enhancement:
+     respect `Save-Data: on` request header / the `navigator.
+     connection.saveData` hint to lazy-load more aggressively.
+     Mark NICE-TO-HAVE for M09.
+
+
+§I  PALETTE (⌘K) ON TOUCH
+=========================
+
+I1 — Keybind discoverability.
+     The ⌘K key-cap (Shell.tsx KeyCap) is a desktop affordance.
+     On touch, the ⌘ key doesn't exist. The key-cap should
+     either:
+       (a) render as a tap affordance that opens the palette,
+           with the glyph replaced by "?" or a search icon, or
+       (b) hide on narrow entirely.
+
+     RECOMMENDED: (a). The key-cap becomes a 44×44 px
+     search-icon button on narrow. Tap opens the palette
+     identically to ⌘K.
+
+I2 — Palette positioning on narrow.
+     The existing palette uses `top: 14vh; width: min(640px,
+     92vw); max-height: 70vh`. On narrow, prefer full-width
+     bottom-sheet:
+
+       @media (max-width: 639px) {
+         .palette {
+           top: auto;
+           bottom: 0;
+           left: 0;
+           transform: none;
+           width: 100%;
+           max-width: 100%;
+           max-height: min(80svh, 600px);
+           border-top: 1px solid var(--accent);
+           border-bottom: none;
+         }
+       }
+
+     Rationale: a top-docked modal on a portrait phone is
+     out-of-thumb-reach; bottom sheets are the native mobile
+     pattern.
+
+I3 — Palette input autofocus.
+     Opening the palette on touch should focus the input
+     WITHOUT bringing up the virtual keyboard automatically
+     (iOS Safari requires a user-initiated event to focus +
+     keyboard). Since the palette open IS a user-initiated
+     tap, a direct `inputRef.current?.focus()` inside the
+     tap handler works. If the palette is opened via a
+     non-tap mechanism (e.g., a URL hash), do not auto-focus.
+
+
+§J  EASTER EGGS / DISABLED ON TOUCH
+===================================
+
+J1 — Audit src/components/easter/EasterEggs.tsx for touch
+     regressions. Any keyboard-chord-triggered egg (e.g.,
+     konami code) is silent on touch — acceptable.
+
+J2 — Any egg that overlays UI elements should respect
+     safe-area-inset and not render under the notch or
+     home indicator.
+
+
+§K  VERCEL ANALYTICS
+====================
+
+K1 — The Analytics import at Shell.tsx:9 is fine on mobile;
+     no changes.
+
+
+ACCEPTANCE FOR M08
+------------------
+[ ] `viewport-fit=cover` present in the viewport meta.
+[ ] maximum-scale=5, user-scalable=true (WCAG compliance
+    retained).
+[ ] env(safe-area-inset-*) applied to TopRail, accordion
+    panel bodies, reading-mode, mode-tabs-narrow.
+[ ] All `100vh` replaced with `100dvh` or justified as
+    `100svh`/`100lvh` at each site.
+[ ] -webkit-tap-highlight-color: transparent applied
+    globally.
+[ ] touch-action: manipulation on all interactive roles.
+[ ] -webkit-text-size-adjust: 100% on html.
+[ ] :focus-visible unified across buttons/links.
+[ ] Drawer-type overlays use overscroll-behavior: contain.
+[ ] Body overscroll: unchanged (pull-to-refresh respected).
+[ ] No useEffect without cleanup (audited in each new
+    component).
+[ ] No `unload` event listeners (grep must be empty).
+[ ] LCP ≤2.5 s on Lighthouse Mobile.
+[ ] CLS ≤0.05 across the landing page, /about, /hivemind,
+    /purposeless-efficiency, /theseus, /resume at 375×667.
+[ ] TBT ≤200 ms.
+[ ] Shell bundle delta ≤6 KB gzip.
+[ ] Palette opens as bottom-sheet on narrow; key-cap is a
+    tap affordance on narrow.

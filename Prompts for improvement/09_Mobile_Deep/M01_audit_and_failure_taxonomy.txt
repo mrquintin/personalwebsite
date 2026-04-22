@@ -1,0 +1,423 @@
+M01 — AUDIT & FAILURE TAXONOMY
+================================================
+
+PURPOSE
+-------
+Ground the rest of the suite in a concrete, file:line-level
+enumeration of what is currently broken on the mobile surface.
+Every subsequent prompt MUST resolve at least one item from
+this list, and M09 (ship gate) MUST demonstrate each item is
+resolved. If during implementation a new failure is discovered,
+it is appended to this file (not swept into a fix silently).
+
+
+AUDIT ENVIRONMENT
+-----------------
+Observations below are against the production-committed code
+as of 2026-04-21 (branch: main, commit at time of suite
+authoring). Viewport references:
+  - iPhone SE portrait:      320×568  (smallest modern)
+  - iPhone 13 mini:          375×667
+  - iPhone 14 Pro:           390×844
+  - iPhone 14 Pro landscape: 844×390
+  - Small Android:           360×640
+  - iPad portrait:           768×1024 (boundary)
+User agents tested (per M09): iOS Safari 17+, Chrome Android 122+,
+Firefox Android 124+.
+
+
+CATEGORIES
+----------
+  §A  CHASSIS (shell layer)
+  §B  MODE CONTRACT (propagation)
+  §C  TYPOGRAPHY & INPUT (touch targets, forms)
+  §D  INTERACTIVE EXPERIENCES (by panel)
+  §E  SAFE AREAS & iOS SAFARI
+  §F  ACCESSIBILITY
+
+
+§A  CHASSIS FAILURES
+====================
+
+A1 — HARDCODED 100vh IN ACCORDION INLINE STYLE
+   File:  src/components/shell/Accordion.tsx, line 95
+   Fault: `height: "100vh"` is applied inline to the accordion
+          root. On iOS Safari, 100vh is computed against the
+          LARGEST viewport (URL bar hidden); when the URL bar
+          is visible, content is pushed below the fold and
+          the bottom ~60px of the last panel is inaccessible.
+          100dvh would correct this; 100vh does not.
+   Also:  When globals.css:161 flips `flex-direction: column`
+          at max-width 767px, every panel's height is forced
+          into 100vh / 5 = 20vh ≈ 133 px on iPhone 13 mini.
+          Each panel body has ~101 px after the 56 px spine
+          header — rendering every experience blank.
+   Owner: M02
+
+A2 — HARDCODED INLINE FLEX IN PANEL.TSX FIGHTS MOBILE CSS
+   File:  src/components/shell/Panel.tsx, lines 43–44
+   Fault: Inline styles apply
+            flex: "1 1 0" (expanded/neutral)
+            flex: "0 0 80px" (collapsed)
+          with minWidth: 80/56. The CSS override at
+          globals.css:171 does `flex: 0 0 auto !important`
+          which wins specificity-wise but does NOT reset the
+          80px minWidth. Result: collapsed panels on mobile
+          still enforce a minimum WIDTH of 80 px, which is
+          irrelevant since the panel is full-width, but the
+          minHeight is unconstrained, so collapsed panel
+          headers collapse to 56 px while expanded panels
+          try to fill with 1 1 0 basis computed against a
+          100vh column. Behavior is indeterminate across
+          browsers.
+   Owner: M02
+
+A3 — NESTED SCROLL-WITHIN-SCROLL
+   File:  src/components/shell/Panel.tsx, line 77
+   Fault: `.panel-body` has `overflow: auto`. The page itself
+          can also scroll (on mobile, the body is the scroller).
+          Two scrollers stacked create the well-documented
+          "which thing scrolls?" problem on touch: the inner
+          scroller traps touch events once it has any
+          overflow, and the user cannot scroll the outer
+          page. On iOS Safari specifically, inertia is
+          destroyed by parent-child scroll conflicts.
+          On a narrow viewport there is no reason for
+          panel-body to be its own scroller — the page
+          is the scroller, the panel simply extends the
+          page.
+   Owner: M02
+
+A4 — VERTICAL-LETTER SPINE TITLE FAILS ON MOBILE HEADER
+   File:  src/components/shell/PanelSpine.tsx, line 14
+   Fault: `panel.title.toUpperCase().split("").join("\n")`
+          produces a stacked letter-per-line title meant to
+          read vertically in a narrow desktop spine. On mobile,
+          globals.css:183 uses `writing-mode: horizontal-tb
+          !important` to un-rotate, but the title string is
+          still "H\nI\nV\nE\nM\nI\nN\nD" — a column of
+          single-letter lines that the override does NOT
+          reformat into a single horizontal word. Rendered
+          result: an 8-line-tall mobile header with one
+          letter per line.
+   Owner: M02 (regenerate the title string when hostWidthPx
+          < 640 without the char-join)
+
+A5 — HOVER WIRING AT min-width: 768px LEAVES A DEAD BAND
+   File:  src/components/shell/Accordion.tsx, line 114
+   Fault: Hover-to-expand fires only when `(hover: hover) and
+          (pointer: fine) and (min-width: 768px)`. The dead
+          band from 641–767 px (iPad portrait, large phones
+          landscape) gets neither mobile-tap choreography nor
+          desktop-hover choreography. Panels at that width
+          are tappable but require a hard click — which is
+          fine, but the CSS at globals.css:161 stops working
+          at 768 px, leaving 641–767 px in a FLEX-ROW layout
+          with no expanded-panel width set for that range.
+   Owner: M02 (shift chassis breakpoint to 640 and validate
+          the 641–767 band renders as compact horizontal)
+
+A6 — BROADCASTCHANNEL SYNC DOES NOT DISTINGUISH SURFACES
+   File:  src/components/shell/Accordion.tsx, lines 60–75
+   Fault: Cross-tab sync assumes all surfaces share a
+          panel-index identity. On mobile, if the user opens
+          the site in two Safari tabs and expands panel 3 in
+          one, the other tab receives the expand message —
+          good. But the receiver uses the SAME inline 100vh
+          structure, which means two different tabs with two
+          different URL-bar heights end up with divergent
+          layouts. Not a regression of the sync itself;
+          a consequence of A1.
+   Owner: M02 (fixing A1 resolves this)
+
+A7 — NO dvh / svh / lvh USE ANYWHERE
+   Files: src/app/globals.css (global), tokens.css
+   Fault: Zero occurrences of `dvh`, `svh`, or `lvh` units
+          in the codebase. Every viewport-relative height
+          is in `vh`, which collapses to the largest-viewport
+          measure on iOS Safari. The palette (`max-height: 70vh`,
+          line 43) also shares this bug.
+   Owner: M02 (chassis), M08 (palette and other chrome)
+
+A8 — STATUSBAR HEIGHT VARIABLE REFERENCED BUT UNDEFINED
+   File:  globals.css line 165 references `--statusbar-h`
+   Fault: No `--statusbar-h` exists in tokens.css. The
+          `min-height: calc(100vh - var(--statusbar-h))`
+          computes to `calc(100vh - undefined)` = invalid,
+          which most browsers treat as `100vh`. The
+          statusbar was removed (see globals.css:36 comment
+          "R04: status bar deleted") but the variable
+          reference in the mobile override was never
+          purged.
+   Owner: M02
+
+A9 — ACCORDION ROOT HAS NO MIN-HEIGHT GUARANTEE ON MOBILE
+   File:  Accordion.tsx inline style, plus globals.css:165
+   Fault: If all panels are in "neutral" state (hash = "",
+          initialExpandedIndex = null), on mobile the
+          accordion collapses to just the stack of spine
+          headers. The TopRail is already 48px; the spine
+          headers total 56×5 = 280 px; there is nothing to
+          scroll because content total is ~328 px on a
+          568-px viewport. Fine. But when a panel is
+          expanded, A3 plus A1 produce a short scroll range
+          for the body. Neutral vs expanded should both
+          guarantee the page is tall enough to dismiss the
+          URL bar on iOS so content is reachable.
+   Owner: M02
+
+
+§B  MODE CONTRACT FAILURES
+==========================
+
+B1 — hostWidthPx CONTRACT NEVER CONSUMED BY ANY EXPERIENCE
+   Files: Every panel teaser under src/components/panels/
+   Fault: The I01 contract (03/I01) specifies hostWidthPx
+          with canonical thresholds (<640, 640–960, 960–1280,
+          ≥1280). No experience component reads hostWidthPx.
+          Every interior layout is computed against the
+          same CSS breakpoint structure, which means the
+          narrow-mode design never activates inside the
+          expanded panel body — only the outer chassis
+          degrades.
+   Owner: M03, M05, M06, M07
+
+B2 — NO ExperienceHost / ExperienceScaffold IN TREE
+   Files: src/components/panels/*.tsx (teasers),
+          src/components/shell/Panel.tsx
+   Fault: As of audit, the teaser components are direct
+          children of Panel.tsx's children slot. There is no
+          ExperienceHost wrapper measuring hostWidthPx. The
+          contract exists in the spec (I01) but not in the
+          code. The 04/05/06/07 suites assume ExperienceHost
+          will be present when they land; this suite treats
+          ExperienceHost as a prerequisite and, where absent,
+          M03 introduces a minimal implementation.
+   Owner: M03
+
+B3 — prefers-reduced-motion NOT FORWARDED TO EXPERIENCE
+   File:  All panel teasers
+   Fault: The CSS `@media (prefers-reduced-motion: reduce)`
+          queries in globals.css apply to transitions on
+          .panel and .panel-body. Experience-internal motion
+          is not a shell concern; each experience must read
+          reducedMotion from the host context. Currently none
+          do. On touch devices, where power budget and
+          vestibular concerns are higher, this silent
+          default-to-animated is a regression.
+   Owner: M03, M07 (Theseus is motion-heaviest)
+
+
+§C  TYPOGRAPHY & INPUT FAILURES
+===============================
+
+C1 — TOUCH TARGETS BELOW 44×44 PX
+   Files: Multiple. Concrete instances:
+     - .palette-row height 36 px (globals.css:63)
+     - .projects-table th/td height 40 px (globals.css:230)
+     - .pill height 20 px (globals.css:243) [acceptable if
+       non-interactive; audit the uses]
+     - .artifacts li grid 2 px padding (globals.css:219)
+   Fault: Apple HIG mandates 44 px; Material Design
+          recommends 48 dp. Anything below produces a tap
+          miss rate users experience as "unresponsive."
+   Owner: M02 (global), each of M04–M07 (per-panel)
+
+C2 — TEXT AT 11–13 px IS BELOW MOBILE READABILITY FLOOR
+   File:  tokens.css lines 38–41
+   Fault: The type scale exposes --t-xxs-size: 11px, --t-xs-size:
+          12px, --t-sm-size: 13px. On a 2× DPR mobile device
+          these render crisp but sub-body-threshold; WCAG 2.2
+          SC 1.4.4 requires 200% zoom support which these
+          generally accommodate, but the PERCEIVED reading
+          experience at 11 px on mobile is hostile. Many
+          chrome elements (.dossier-bread at --t-xs, .metadata-pane
+          .k at uppercase --t-sm) use these sizes.
+   Owner: M04 (reading-mode), M02 (min body-size on narrow)
+
+C3 — HOVER-ONLY AFFORDANCES
+   Files: Multiple. Examples:
+     - .projects-table tr[data-row]:hover (globals.css:238)
+     - .artifacts a:hover underline (globals.css:222)
+     - .panel hover → expand (Accordion.tsx:112–117 —
+       correctly gated at min-width 768, so OK)
+   Fault: Any interaction discoverable ONLY via hover is
+          undiscoverable on touch. The @media (hover: hover)
+          pattern correctly identifies non-touch; each
+          hover-only affordance must have a tap-equivalent
+          or a persistent visible-state equivalent on touch.
+   Owner: M02 (general principle), M04–M07 (per-usage)
+
+C4 — NO touch-action ON ACCORDION HEADER
+   File:  PanelSpine.tsx button, globals.css
+   Fault: Absent `touch-action: manipulation` on the header
+          button, iOS Safari inserts a 300 ms tap delay and
+          allows double-tap-to-zoom. Both are hostile.
+   Owner: M02
+
+C5 — -webkit-tap-highlight-color DEFAULT FLASHES GRAY
+   File:  globals.css (global)
+   Fault: iOS Safari flashes a translucent gray box on every
+          tap. The design system has no explicit override,
+          so the default applies. On the dark theme it is
+          jarring.
+   Owner: M02 or M08
+
+
+§D  INTERACTIVE EXPERIENCES (BY PANEL)
+======================================
+
+Scope note: each panel's full narrow specification lives in
+its respective prompt (M04 ABT/CV, M05 PRP, M06 HVM, M07 THS).
+§D enumerates only the top-level failure for each; the
+prompts detail the fix.
+
+D1 — ABT (About) PANEL (01)
+   Current content is prose + a small synopsis grid. At 311 px
+   panel-body width, the .dossier-grid breakpoint at 1024 px
+   already collapses to single-column (globals.css:206), so
+   the basic layout survives. Failure: the generic dossier
+   chrome (header pills, metadata pane) uses fixed 96/120 px
+   grid-template-columns (.metadata-pane .row, globals.css:210;
+   .artifacts li, :219) which horizontally overflow at narrow
+   viewports. A fixed 96 px `k` column on a 311 px body leaves
+   203 px for the `v`, which is usually enough, but the
+   96-px uppercase key column ("KEY") text-aligns right and
+   hits 96 px boundary with 13-char keys wrapping awkwardly.
+   Owner: M04
+
+D2 — HVM (Hivemind) PANEL (02)
+   Deliberation theater is a multi-agent display. At narrow,
+   no current fallback. Failure: the spec (05/P01) assumes
+   a grid of agent cells; at 311 px body width the grid
+   collapses to 1-up stacks but the motion choreography
+   (overlap, staggered entry) still runs and creates jitter.
+   Coherence Engine (06) has a six-gate chain expected to
+   render horizontally; no narrow fallback exists.
+   Owner: M06
+
+D3 — PRP (Purposeless Efficiency) PANEL (03)
+   Multiple sub-experiences (Ontology Explorer, Quadrant,
+   Diamond Method, Objections Dojo, Intellectual Atlas).
+   Each assumes >= compact width. Current mobile: the
+   prp-prose.css utility (from 04/P01 §A4) applies a 64ch
+   measure which is non-binding at narrow, so typography
+   holds. But no narrow branches for the interactive
+   visualisations.
+   Owner: M05
+
+D4 — THS (Theseus) PANEL (04)
+   Reflection visualisation, contradiction axis, five-mode
+   frame. No narrow branches. 3D visualisations (if any)
+   catastrophic on mobile.
+   Owner: M07
+
+D5 — CV (Resume) PANEL (05)
+   Mostly a layout of rows and pills. .resume content inherits
+   the dossier chrome issues from D1.
+   Owner: M04
+
+
+§E  SAFE-AREA & iOS SAFARI FAILURES
+===================================
+
+E1 — NO env(safe-area-inset-*) ANYWHERE
+   File:  entire codebase
+   Fault: On notched iPhones, a panel body that extends to
+          the bottom of the screen is partially hidden behind
+          the home indicator. Top-rail at `top: 0` on a landscape
+          notched device is cut off by the sensor housing.
+   Owner: M08
+
+E2 — `viewport-fit=cover` MISSING FROM META VIEWPORT
+   File:  src/app/layout.tsx (not yet audited — confirm)
+   Fault: Without viewport-fit=cover, env(safe-area-inset-*)
+          returns 0 even on notched devices. The meta viewport
+          must be `width=device-width, initial-scale=1,
+          viewport-fit=cover`.
+   Owner: M08
+
+E3 — URL BAR SHOW/HIDE SHIFTS LAYOUT WITHOUT CLS BUDGET
+   Consequence of A1 + A7. Owner: M02 (resolves via dvh)
+
+E4 — NO overscroll-behavior CONTROL
+   File:  globals.css / reset.css
+   Fault: Pull-to-refresh at the page top and rubber-band
+          at the bottom cause bleed on iOS when a nested
+          scroller (e.g., the current panel-body overflow:auto)
+          is involved. Resolved partially by fixing A3; the
+          remaining cases want `overscroll-behavior: contain`
+          on controlled drawers / sheets.
+   Owner: M08
+
+E5 — bfcache COMPATIBILITY UNVERIFIED
+   Fault: Back/forward navigation to the landing page on
+          iOS Safari may be served from bfcache; the
+          BroadcastChannel wiring and any window listeners
+          must be idempotent / teardown-safe. Current
+          Accordion.tsx useEffect does clean up BroadcastChannel
+          (line 74 return ch.close()) — correct. Audit
+          remaining panels for missing cleanups.
+   Owner: M08
+
+
+§F  ACCESSIBILITY FAILURES
+==========================
+
+F1 — NO aria-expanded ON MOBILE COLLAPSED HEADERS WHEN
+     THE HEADER BECOMES THE PRIMARY NAV
+   File:  PanelSpine.tsx line 19 uses aria-expanded on the
+          button — correct. So this is NOT a failure on
+          the current spec; confirmed satisfied. Move to
+          §F ACCEPTED.
+
+F2 — FOCUS MANAGEMENT ON EXPAND MISSES THE FIRST-FOCUSABLE
+   File:  Accordion.tsx expand()
+   Fault: Expanding a panel via keyboard or tap does not move
+          focus into the panel body. Screen-reader users and
+          keyboard users on mobile Bluetooth keyboards lose
+          context; they must manually tab forward through the
+          remaining collapsed spines before reaching the
+          expanded content.
+   Owner: M02
+
+F3 — SKIP-TO-CONTENT LINK IS NOT KEYBOARD-REACHABLE ON TOUCH
+   File:  Shell.tsx line 19 (anchor with .sr-only and
+          position: absolute top/left 0)
+   Fault: The skip-link is correctly focusable on Tab but
+          is never exposed visually even when focused
+          (sr-only hides it). WCAG 2.1 2.4.1 is technically
+          satisfied for keyboard, but a visible focus-styled
+          override is the normal implementation. Minor.
+   Owner: M08
+
+F4 — HELPMODAL / PALETTE POSITIONED AT top: 14vh
+   File:  globals.css:32 .palette { top: 14vh }
+   Fault: On iOS Safari with URL bar visible, 14vh of a 100vh
+          computes against LARGEST viewport, so the palette
+          appears higher than intended. Combined with A7
+          (100vh instead of 100svh) on max-height, the palette
+          body can be cut off at the bottom.
+   Owner: M08
+
+F5 — NO announce() CALL ON MOBILE EXPAND/COLLAPSE
+   File:  Accordion.tsx expand/collapse paths, plus the
+          operator-aria-live region in Shell.tsx:37
+   Fault: The live region exists but the expand/collapse
+          flows don't push text into it. A screen-reader
+          user invoking expand(3) via a number keyboard
+          shortcut (or tap) is not told "Purposeless
+          Efficiency panel expanded."
+   Owner: M02
+
+
+ACCEPTANCE FOR M01
+------------------
+[ ] This file is reviewed against the live codebase commit
+    at the time of implementation and any drift noted.
+[ ] Each item Ax/Bx/Cx/Dx/Ex/Fx above is either (a) fixed
+    by a later prompt in this suite, referenced explicitly,
+    or (b) annotated as ACCEPTED / NOT-A-REGRESSION with
+    reasoning. No item is left unaddressed.
+[ ] Any new failure discovered during implementation is
+    appended to this file, not silently absorbed into a fix.

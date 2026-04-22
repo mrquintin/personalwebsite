@@ -1,0 +1,737 @@
+P01 — CHASSIS + LAYER SCORING LAB
+===================================
+
+ROLE: You are a senior TypeScript/React engineer implementing the
+Coherence Engine experience suite. This prompt establishes (A) the
+mode-tabbed chassis inside the CE accordion host, and (B) MODE 1,
+the Layer Scoring Lab — the first and most load-bearing mode.
+
+Read I01_integration_and_accordion_wiring.txt
+for the ExperienceHost / ExperienceScaffold / mode / hostWidthPx /
+reducedMotion / announce conventions. This prompt depends on I01
+and assumes I01 has shipped.
+
+---
+
+GROUNDING
+
+All per-layer mechanics in this prompt come from CE2 "The
+Mathematical Framework", §2 and §3, with additional language from
+CE1 §2.2 and CE5 §3. Do not invent per-layer weights, layer order,
+or layer semantics. Where this prompt names a numeric constant,
+that constant is traceable to a line in CE2, CE3, or CE4; the
+prompt preserves the published magnitude exactly.
+
+Layer weights (CE2 §2, production defaults from config.py):
+
+    S1  Contradiction   w1 = 0.30
+    S2  Argumentation   w2 = 0.20
+    S3  Embedding       w3 = 0.20
+    S4  Compression     w4 = 0.15
+    S5  Structural      w5 = 0.15
+    Σ   = 1.00
+
+Composite (CE2 Definition 4):
+
+    Coh(Γ) = Σ_{i=1..5} w_i · S_i    ∈ [0, 1]
+
+Cross-layer fusion (CE2 §4.1): a high-confidence contradiction
+finding from S1 dampens S3 via a bounded multiplicative
+adjustment that can only REDUCE, never inflate. Anti-gaming
+multiplier a ∈ [0, 1] from core/anti_gaming.py multiplies the
+composite when enabled; its five internal signals and weights
+(CE2 §4.2):
+
+    AG_TEMPLATE_OVERLAP           0.30
+    AG_PRIOR_CORPUS_ECHO          0.25
+    AG_CONTRADICTION_DENIAL       0.25
+    AG_REPETITIVE_FILLER          0.20
+    AG_FLUENCY_WITHOUT_CONTENT    0.15
+                                  ─────
+                                  1.15   (deliberately > 1)
+
+The 1.15-sum-of-weights is load-bearing: the floor expression
+clamp(1.0 - Σw, 0.0, 1.0) cannot reach 1 if all five gaming
+signals fire at full strength. This fact renders as a tooltip on
+the anti-gaming meter — see C5 below.
+
+
+---
+
+A) CHASSIS
+
+A1. File layout
+
+    src/components/panels/hivemind/CoherenceEngine/Experience/
+        CoherenceEngineExperience.tsx
+        ModeTabBar.tsx
+        LayerScoringLab/
+            index.tsx                   — mode entry point
+            ArgumentPane.tsx            — the parsed argument structure
+            LayerBreakdown.tsx          — 5 layers side-by-side
+            CompositeMeter.tsx          — Coh(Γ) dial + decomposition
+            FusionReadout.tsx           — cross-layer fusion explanation
+            AntiGamingReadout.tsx       — the 5 signals + multiplier
+
+    src/stores/coherenceEngineExperience.ts   — zustand store
+
+    src/lib/coherenceEngine/
+        arguments.ts                   — toy argument fixtures
+        typeGuards.ts                  — runtime fixture integrity
+
+A2. Store shape (authoritative for the whole suite; other prompts
+    fill in their own mode slice)
+
+    // src/stores/coherenceEngineExperience.ts
+    import { create } from "zustand";
+
+    export type Mode = "layers" | "cosine" | "compare" | "gates" | "audit";
+
+    export interface LayersSlice {
+      activeFixtureId: string;           // see B1
+      selectedLayer: 1 | 2 | 3 | 4 | 5 | null;
+      antiGamingEnabled: boolean;        // default true; toggleable
+      fusionEnabled: boolean;            // default true; toggleable
+    }
+
+    export interface CoherenceEngineExperienceState {
+      mode: Mode;
+      dossierOpen: boolean;
+      layers: LayersSlice;
+      // cosine:  /* owned by P02 */;
+      // compare: /* owned by P03 */;
+      // gates:   /* owned by P04 */;
+      // audit:   /* owned by P05 */;
+      setMode(m: Mode): void;
+      setActiveFixture(id: string): void;
+      setSelectedLayer(n: LayersSlice["selectedLayer"]): void;
+      toggleAntiGaming(): void;
+      toggleFusion(): void;
+    }
+
+    Default Mode is "layers". setMode MUST call announce() from the
+    ExperienceScaffold with a polite aria-live message of the form
+    "Mode: Layer Scoring Lab" (or the equivalent for other modes —
+    see P02-P05).
+
+A3. CoherenceEngineExperience.tsx
+
+    import { ExperienceScaffold } from "@/components/experience/ExperienceScaffold";
+    import { ModeTabBar } from "./ModeTabBar";
+    import { LayerScoringLab } from "./LayerScoringLab";
+    // other modes lazy-imported in later prompts
+
+    type Props = {
+      mode: "panel" | "route";
+      hostWidthPx: number;
+      reducedMotion: boolean;
+      announce: (msg: string) => void;
+    };
+
+    export function CoherenceEngineExperience(props: Props) {
+      const mode = useStore((s) => s.mode);
+      return (
+        <ExperienceScaffold {...props} projectId="coherence-engine">
+          <ModeTabBar />
+          {mode === "layers" && <LayerScoringLab {...props} />}
+          {/* other modes mounted in P02-P05 */}
+        </ExperienceScaffold>
+      );
+    }
+
+    The projectId "coherence-engine" is the sessionStorage key per
+    I01. The wrapper mounts inside the HVM (Hivemind) accordion
+    panel at src/components/panels/hivemind/Panel.tsx; the
+    CoherenceEngineExperience is one of the two experience faces
+    that panel renders (the other being the 05 strategic-operator
+    face). See 00_INDEX for the HVM-internal mount model.
+
+A4. ModeTabBar.tsx — five tabs
+
+    Tab order MUST be:
+        LAYERS | COSINE | COMPARE | GATES | AUDIT
+
+    Each tab is a <button role="tab"> with aria-selected. The
+    active tab gets a 1px underline in the active terminal color.
+    Tabs are keyboard-reachable with Tab; LEFT/RIGHT move between
+    tabs; ENTER activates. On activation, setMode fires and
+    announce() reports the new mode to aria-live.
+
+    The tab labels (exactly):
+        1. LAYERS
+        2. COSINE
+        3. COMPARE
+        4. GATES
+        5. AUDIT
+
+    Tab descriptions (visible only to screen readers via
+    aria-describedby):
+        LAYERS   — "Layer Scoring Lab. Shows how five parallel
+                   analyses combine into a single coherence score."
+        COSINE   — "Cosine Paradox. Why naive cosine similarity
+                   cannot detect contradiction."
+        COMPARE  — "Domain-Relative Comparator. A pitch scored
+                   against its domain incumbent."
+        GATES    — "Decision Policy Gates. Six gates in fixed
+                   order that drive an automated funding decision."
+        AUDIT    — "Decision Artifact and Honest Ledger. A
+                   reproducible artifact and the three items the
+                   project openly marks as unresolved."
+
+A5. Responsive behavior
+
+    hostWidthPx ranges (inherited from I01):
+        NARROW    < 640
+        STANDARD  640-960
+        WIDE      960-1280
+        XWIDE     >= 1280
+
+    ModeTabBar:
+        WIDE+    — horizontal, full label text
+        STANDARD — horizontal, truncated labels to 3 chars
+                   (LAY / COS / CMP / GAT / AUD)
+        NARROW   — a native <select> with the five options, for
+                   thumb-reachability. Selecting calls setMode.
+
+
+---
+
+B) LAYER SCORING LAB — fixtures
+
+B1. Toy argument fixtures
+
+    src/lib/coherenceEngine/arguments.ts
+
+    Export THREE fixture argument structures:
+
+       "a-coherent"       — a small coherent argument (4-5
+                            propositions, 4 relations, all
+                            supports, no contradictions).
+                            Expected Coh ≈ 0.78.
+       "a-contradictory"  — the same surface topic rewritten to
+                            contain one hard contradiction and one
+                            circular-support path. Expected Coh
+                            ≈ 0.32.
+       "a-mixed"          — a 7-proposition argument with 1
+                            contradiction, otherwise well-
+                            structured. Expected Coh ≈ 0.54.
+
+    Each fixture is a typed object:
+
+       export interface ArgumentFixture {
+         id: string;
+         label: string;                  // <= 40 chars; display title
+         topic: string;                  // one-sentence domain hint
+         propositions: Proposition[];    // CE2 Def 1
+         relations: Relation[];          // CE2 Def 2
+         layerScores: LayerScores;       // precomputed
+         fusion: FusionResult;           // precomputed
+         antiGaming: AntiGamingResult;   // precomputed
+         composite: number;              // precomputed Coh(Γ)
+         compositeBeforeFusion: number;  // raw weighted sum, before fusion+AG
+         citation: "CE2 §2-§4";          // constant
+       }
+
+    Propositions are tuples (id, text, type, importance, span) per
+    CE2 Definition 1. Relations are (sourceId, targetId,
+    relationType, strength) per CE2 Definition 2. Importance
+    defaults: claim 1.0, premise 0.7, evidence 0.5, qualifier 0.3.
+
+    AUTHORED TEXTS — use these three topics:
+
+       "a-coherent":     a 5-proposition argument for reading
+                         fiction before sleep, a benign
+                         non-commercial topic with clear
+                         discourse markers ("therefore", "because",
+                         "in particular") so the discourse-marker
+                         parser labels the propositions predictably.
+
+       "a-contradictory":a 5-proposition argument with the same
+                         surface topic but rewritten to include
+                         one explicit contradiction ("A exists
+                         and A does not exist") and one
+                         circular-support path (P1 supports P2
+                         and P2 supports P1).
+
+       "a-mixed":        a 7-proposition argument on a distinct
+                         benign topic (how to select a walking
+                         shoe) with one small contradiction over
+                         a minor premise.
+
+    The rationale for benign non-commercial topics: CE's own
+    engine is agnostic between topics, but the PANEL's prose lint
+    (P06) forbids marketing copy. Fiction-at-bedtime and walking
+    shoes are safe from marketing tone. Do NOT use "our product",
+    "our methodology", "clients", or any word that invites
+    commercial reading.
+
+B2. LayerScores shape
+
+    export interface LayerScores {
+      s1: LayerResult<"contradiction">;
+      s2: LayerResult<"argumentation">;
+      s3: LayerResult<"embedding">;
+      s4: LayerResult<"compression">;
+      s5: LayerResult<"structural">;
+    }
+
+    export interface LayerResult<K extends LayerKind> {
+      score: number;                         // [0, 1]
+      weight: number;                        // w_i
+      details: LayerDetails[K];
+      warnings?: string[];
+    }
+
+    LayerDetails for each layer:
+
+      s1 (contradiction):
+        {
+          pairsChecked: number,              // n·(n-1)/2 or gated
+          pairsFlagged: number,
+          topPairs: Array<{ i: string; j: string; prob: number }>, // up to 3
+          backend: "deberta-v3" | "heuristic",
+          wcs: number,                       // WCS(Γ) = Σw_ij·c_ij / Σw_ij
+        }
+
+      s2 (argumentation):
+        {
+          groundedExtensionSize: number,     // |E_g|
+          totalArguments: number,            // |A|
+          fixedPointIterations: number,      // <= |A|
+          cycleCount: number,
+          attackDensity: number,             // [0, 1]
+          supportDensity: number,            // [0, 1]
+          maxSupportDepth: number,
+        }
+
+      s3 (embedding):
+        {
+          embedder: "sbert-mpnet" | "tfidf",
+          pairCount: number,
+          meanCosine: number,                // c̄
+          suspiciousFraction: number,        // ρ
+          hoyerMean: number,                 // H(d_ij) mean
+          dampenedBy: number,                // fusion dampening, ≥ 0
+        }
+
+      s4 (compression):
+        {
+          lJoint: number,                    // L(t)
+          lSum: number,                      // Σ L(t_i)
+          ratio: number,                     // L(t) / Σ L(t_i)
+          s4Raw: number,                     // 1 - ratio
+          lengthAdjustment: number,          // sigmoid cal delta
+        }
+
+      s5 (structural):
+        {
+          connectivityKappa: number,         // κ ∈ [0, 1]
+          isolationPenalty: number,          // π_iso
+          circularityPenalty: number,        // π_cyc
+          depthBonus: number,                // β_d = min(1, D/3)
+          longestChain: number,              // D
+        }
+
+    All numeric values in details MUST be consistent with the
+    layer's score. P06's fixture integrity check re-derives each
+    layer's score from its details using CE2's formulas and fails
+    the build if drift exceeds 1e-6.
+
+B3. FusionResult
+
+    export interface FusionResult {
+      s3BeforeFusion: number;
+      s3AfterFusion: number;
+      fusionCoefficient: number;             // [0, 1]; 1 = no dampening
+      trigger: "none" | "s1-high-confidence";
+    }
+
+    For "a-coherent", fusion is identity (coefficient = 1.0,
+    trigger "none"). For "a-contradictory", fusion triggers with
+    coefficient ≈ 0.75 (dampening S3 by ~25%). For "a-mixed",
+    fusion triggers lightly with coefficient ≈ 0.92.
+
+    The "bounded multiplicative adjustment that can only reduce"
+    language from CE2 §4.1 is load-bearing: the fixture integrity
+    check MUST assert s3AfterFusion <= s3BeforeFusion for every
+    fixture.
+
+B4. AntiGamingResult
+
+    export interface AntiGamingResult {
+      enabled: boolean;
+      signals: Record<AntiGamingKey, number>;   // each ∈ [0, 1]
+      rawSum: number;                           // Σ w_k · signal_k
+      score: number;                            // a ∈ [0, 1]
+      floor: "clamped" | "unclamped";
+      floorExpression: "clamp(1.0 - Σ w·s, 0.0, 1.0)";
+    }
+
+    export type AntiGamingKey =
+      | "AG_TEMPLATE_OVERLAP"
+      | "AG_PRIOR_CORPUS_ECHO"
+      | "AG_CONTRADICTION_DENIAL"
+      | "AG_REPETITIVE_FILLER"
+      | "AG_FLUENCY_WITHOUT_CONTENT";
+
+    The internal weights (VERBATIM from CE2 §4.2):
+
+      AG_TEMPLATE_OVERLAP           0.30
+      AG_PRIOR_CORPUS_ECHO          0.25
+      AG_CONTRADICTION_DENIAL       0.25
+      AG_REPETITIVE_FILLER          0.20
+      AG_FLUENCY_WITHOUT_CONTENT    0.15
+
+    Fixture values:
+
+      "a-coherent":     all signals ~0.05, a ≈ 0.94
+      "a-contradictory": AG_CONTRADICTION_DENIAL ~0.60, rest low,
+                        a ≈ 0.74
+      "a-mixed":        AG_TEMPLATE_OVERLAP ~0.20, rest low,
+                        a ≈ 0.89
+
+    The composite render shows BOTH the raw weighted sum (before
+    AG) and the composite after AG. The multiplication is
+    explicit: final = rawComposite · a (when enabled). When
+    disabled, a is omitted from the computation and the meter
+    shows the raw composite.
+
+
+---
+
+C) LAYER SCORING LAB — UI
+
+C1. Layout
+
+    WIDE (hostWidthPx >= 960):
+        THREE-region grid:
+          left  30% — ArgumentPane (propositions and relations)
+          mid   45% — LayerBreakdown (5 layer cards in a row)
+          right 25% — CompositeMeter stacked above AntiGamingReadout
+        FusionReadout is a drawer that opens from the right-hand
+        region when the user clicks "Fusion" on S3 or anywhere in
+        the FUSION chip on CompositeMeter.
+
+    STANDARD (640-960):
+        TWO rows:
+          row 1 — ArgumentPane (full width)
+          row 2 — LayerBreakdown (full width, 5 columns grid)
+        CompositeMeter + AntiGamingReadout render as a thin bar
+        pinned to the bottom of the viewport.
+
+    NARROW (<640):
+        Stacked:
+          ArgumentPane
+          LayerBreakdown as a 5-row vertical list
+          CompositeMeter
+          AntiGamingReadout
+        FusionReadout is a full-panel modal.
+
+C2. ArgumentPane.tsx
+
+    Renders the fixture's propositions and relations.
+
+    Fixture selector (top bar): three <button> elements for
+    "a-coherent" | "a-contradictory" | "a-mixed". Activated via
+    1/2/3 digit keys.
+
+    Proposition list: one row per proposition. Each row shows:
+        id (P1, P2, ...)
+        type chip (CLAIM / PREMISE / EVIDENCE / QUALIFIER)
+        importance bar (width proportional to ι)
+        text
+    Rows are keyboard-navigable with Up/Down. Selecting a row
+    highlights its relations in the relation pane.
+
+    Relation pane: a compact adjacency view. Each relation is
+    "P_i  → P_j   [supports|attacks|qualifies]   strength w".
+    Supports render in the default terminal color; attacks in the
+    error color; qualifies in a neutral color.
+
+    CE2's discourse-marker classification rules (therefore =>
+    claim; studies show => evidence; however => attack-suggesting)
+    are documented in a small drawer opened by a "?" button on
+    the relation pane.
+
+C3. LayerBreakdown.tsx — five cards
+
+    Each card (one per layer) is 180×120 at WIDE, 100% width at
+    NARROW. The card displays:
+
+        Title row:
+          "S_i  LAYER_NAME"           large
+          "w_i = 0.xx"                small right-aligned
+
+        Score row:
+          "0.xxx"                      two decimal digits visible;
+                                       third decimal in a tooltip
+          a 6-segment bar (bar fills 0..6 proportional to score)
+
+        Details row:
+          one or two lines of the most salient details for that
+          layer (see specifics below)
+
+        Detail expansion (click or Enter):
+          expands the card to show all details from the
+          LayerDetails object for that layer.
+
+    Salient details per layer (chosen for pedagogy):
+
+      S1 Contradiction:
+          "pairsFlagged / pairsChecked  backend=deberta-v3"
+      S2 Argumentation:
+          "|E_g| / |A|  cycles=k  depth=D"
+      S3 Embedding:
+          "c̄=0.xx  ρ=0.xx  H̄=0.xx"   (mean cos / suspicious
+                                          fraction / mean Hoyer)
+          if fusion active, show "fusion × 0.xx" chip
+      S4 Compression:
+          "ratio=0.xx  L_joint=NB  Σ L_i=NB"
+      S5 Structural:
+          "κ=0.xx  π_iso=0.xx  π_cyc=0.xx  β_d=0.xx"
+
+    Layer cards animate score changes over 180ms (framer-motion),
+    opacity-only when reducedMotion is true. Score-number text
+    uses role="text" aria-live="polite" so it is announced on
+    change.
+
+C4. CompositeMeter.tsx
+
+    Top band: one-line formula, typeset:
+
+        Coh(Γ) = Σ w_i · S_i
+
+    Below: a horizontal stacked bar showing each layer's
+    contribution w_i · S_i colored by layer. Hovering a segment
+    highlights the corresponding LayerBreakdown card. Total
+    bar width reflects the composite.
+
+    Large numeric: "Coh = 0.xxx". A second line below:
+    "before fusion: 0.xxx" when fusion changed the composite;
+    "before anti-gaming: 0.xxx" when AG is enabled.
+
+    When the user flips the antiGamingEnabled toggle, the meter
+    smoothly retitles between "Coh · a" and "Coh" and the
+    numeric updates. The announcement is
+    "Anti-gaming {enabled|disabled}. Composite {value}."
+
+    WIDE only: a small 5-segment sparkline under the meter
+    showing each fixture's composite for quick cross-fixture
+    comparison; segments are clickable to swap fixture.
+
+C5. AntiGamingReadout.tsx
+
+    A 5-row stack. Each row is:
+        "AG_SIGNAL_NAME     ▓▓░░░  0.xx  (w = 0.xx)"
+    The row's bar width is signal·weight, not signal alone, so
+    the five bars together visualize the weighted sum.
+
+    Below the 5 rows:
+        "raw weighted sum: 0.xxx   (weights sum 1.15 > 1 by design)"
+        "a = clamp(1.0 − Σ w·s, 0.0, 1.0) = 0.xxx"
+
+    Hovering the "(weights sum 1.15 > 1 by design)" phrase opens
+    a tooltip with the tooltip text:
+
+        "The five internal weights deliberately sum to 1.15, not
+         1.0. The clamp floor cannot reach 1 if all five gaming
+         signals fire at full strength. A pitch that saturates
+         every gaming signal cannot appear clean. Source: CE2 §4.2."
+
+    Beneath: a toggle "anti-gaming: {on|off}". When off, the read-
+    out greys out and the composite meter no longer multiplies by a.
+
+C6. FusionReadout.tsx (drawer)
+
+    Trigger: clicking the "fusion × 0.xx" chip on the S3 card or
+    the FUSION indicator on CompositeMeter.
+
+    Content:
+        Headline: "Cross-layer fusion"
+        Explanation (authored prose; passes P06 lint):
+
+            "Fusion applies between the per-layer scores and the
+            final composite. It can REDUCE a layer's score but
+            never inflate one. The only fusion rule active in the
+            shipped engine: a high-confidence finding in S1
+            (contradiction) dampens S3 (embedding), because
+            embedding coherence rewards topical unity, and
+            contradictory claims tend to be topically unified
+            while being logically opposed. The dampening is a
+            bounded multiplicative adjustment. Source: CE2 §4.1."
+
+        Then for the current fixture:
+            S3 before fusion:  0.xxx
+            S3 after fusion:   0.xxx
+            fusion coefficient: 0.xx
+            trigger: {none | s1-high-confidence}
+
+        A small notice:
+
+            "This drawer shows fusion as documented in the
+             framework guide. The shipped engine has exactly one
+             fusion rule today; the same mechanism is generic
+             enough to support additional rules in future
+             versions."
+
+    Keyboard: ESC closes drawer; TAB cycles through focusable
+    elements; drawer returns focus to the trigger on close.
+
+
+---
+
+D) STATE TRANSITIONS & EVENTS
+
+D1. Store actions (authoritative semantics)
+
+    setMode(m):
+        - sets state.mode = m
+        - announce("Mode: " + LABELS[m])
+        - WHEN mode transitions OUT of "layers", preserve
+          activeFixtureId and selectedLayer in state so returning
+          to layers resumes.
+
+    setActiveFixture(id):
+        - asserts id ∈ {"a-coherent", "a-contradictory", "a-mixed"}
+        - sets state.layers.activeFixtureId = id
+        - sets state.layers.selectedLayer = null
+        - announce("Fixture: " + fixture.label)
+
+    setSelectedLayer(n):
+        - asserts n ∈ {1,2,3,4,5,null}
+        - sets state.layers.selectedLayer = n
+        - announce, if not null, "Layer " + n + " selected."
+
+    toggleAntiGaming():
+        - flips enabled
+        - announce("Anti-gaming " + (enabled ? "enabled" : "disabled"))
+
+    toggleFusion():
+        - flips enabled
+        - announce("Fusion " + (enabled ? "enabled" : "disabled"))
+
+D2. Keyboard map (Layer Scoring Lab)
+
+    1 / 2 / 3       — activate fixtures a-coherent / a-contradictory / a-mixed
+    f               — toggle fusion
+    g               — toggle anti-gaming
+    Tab / Shift+Tab — between focusable controls
+    Up / Down       — move proposition selection in ArgumentPane
+    Enter / Space   — activate focused control
+    Esc             — close FusionReadout drawer if open
+
+
+---
+
+E) PERFORMANCE AND BUDGET
+
+E1. Code budget for this mode
+    Layer Scoring Lab code            <= 10KB gzip
+    (excludes the CE chassis, which is budgeted separately at
+    <= 5KB in P06 D1.)
+
+E2. Data budget for this mode
+    arguments.ts (3 fixtures with full LayerScores/Fusion/
+    AntiGaming/composites)                        <= 4KB gzip
+
+E3. No dependency on ML runtimes, zlib, KaTeX runtime, or
+    external image assets. The single formula "Coh(Γ) = Σ w_i · S_i"
+    is rendered as SVG text at build time; no client KaTeX.
+
+E4. No polling, no intervals, no WebSockets.
+
+
+---
+
+F) ACCESSIBILITY
+
+F1. ARIA roles
+    ModeTabBar:       role="tablist" with role="tab" children
+    Main content:     role="tabpanel" with aria-labelledby binding
+    LayerBreakdown:   role="group" aria-label="Layer breakdown"
+    CompositeMeter:   role="status" aria-live="polite"
+
+F2. Contrast
+    All layer score bars >= 4.5:1 contrast against background per
+    I01.
+
+F3. reducedMotion
+    All translate/scale transitions replaced with opacity fades.
+    No parallax, no rubber-banding.
+
+F4. aria-live announcements
+    Mode change, fixture change, layer selection, toggle changes,
+    fusion drawer open/close. The announce() helper from I01 is
+    the single surface; do not add additional aria-live regions.
+
+
+---
+
+G) GOTCHAS / EDGE CASES
+
+G1. Layer graceful degradation. CE2 §3 notes that each layer is
+    designed to fail to a heuristic backend. Since this panel does
+    not run a real backend, the fixture data uses the "preferred"
+    backends for S1 and S3 (deberta-v3 and sbert-mpnet), with a
+    single warning on one fixture ("a-mixed") that S1 is running
+    on the heuristic fallback. This teaches the graceful-
+    degradation property without faking inference.
+
+G2. Importance weights. CE2 defaults (claim 1.0, premise 0.7,
+    evidence 0.5, qualifier 0.3) THEN adjusted by graph
+    connectivity. Fixtures should show the POST-adjustment values,
+    with a small note that these are post-adjustment.
+
+G3. Order-sensitivity (CE2 Proposition 3). The parser's
+    classification depends on discourse markers and order. The
+    ArgumentPane does not let the user reorder propositions; this
+    is intentional, to avoid teaching the wrong lesson. A small
+    "?" next to the fixture title opens an info drawer
+    explaining order sensitivity.
+
+G4. Not a truth detector (CE2 Proposition 4 / CE1 §2.3). A
+    persistent microcopy line below the composite meter reads:
+
+        "This measures self-consistency, not truth. A coherent
+         argument can be false."
+
+    This line is part of the P06 verbatim-anchor check; it MUST
+    render exactly once on the LAYERS mode.
+
+
+---
+
+H) ACCEPTANCE CHECKLIST FOR P01
+
+  [ ] CoherenceEngineExperience mounts inside ExperienceScaffold
+      via the HVM Panel.tsx host
+      (src/components/panels/hivemind/Panel.tsx).
+  [ ] ModeTabBar renders five tabs in order LAYERS / COSINE /
+      COMPARE / GATES / AUDIT.
+  [ ] Only the LAYERS tab has a body implementation after P01.
+      Clicking COSINE / COMPARE / GATES / AUDIT shows a
+      one-line placeholder "Available after P0N" and does NOT
+      throw.
+  [ ] Layer Scoring Lab displays three fixtures; the user can
+      activate each via 1/2/3 digit keys or the fixture
+      selector.
+  [ ] Composite meter recomputes visibly on fixture change.
+  [ ] Anti-gaming toggle and fusion toggle both modify the
+      composite value.
+  [ ] Fusion drawer opens, explains the rule, and closes on ESC.
+  [ ] "This measures self-consistency, not truth" microcopy
+      renders exactly once in the LAYERS mode.
+  [ ] Bundle: chassis <=5KB gzip (measured against a chassis-only
+      build), Layer Scoring Lab <=10KB gzip, arguments.ts <=4KB
+      gzip. Measured via `next build` + gzipped-sizes reporter.
+  [ ] No SBERT, DeBERTa, or KaTeX runtime import appears in the
+      bundle analysis.
+  [ ] All formulas render at build time; no client KaTeX.
+
+
+---
+
+END P01.
+Proceed to P02 (Cosine Paradox) once P01 has shipped, has an
+approved diff, and the chassis is stable under the five
+viewport regimes.

@@ -5,13 +5,14 @@ export type PanelDef = {
   title: string;
   href: string;
   index: number;       // 1..5
+  flushBody?: boolean; // I01: project panels host an ExperienceHost; no padding
 };
 
 export const PANELS: PanelDef[] = [
   { id: "01", code: "ABT", title: "About",                   href: "/about",                   index: 1 },
-  { id: "02", code: "HVM", title: "Hivemind",                href: "/hivemind",                index: 2 },
-  { id: "03", code: "PRP", title: "Purposeless Efficiency",  href: "/purposeless-efficiency",  index: 3 },
-  { id: "04", code: "THS", title: "Theseus",                 href: "/theseus",                 index: 4 },
+  { id: "02", code: "HVM", title: "Hivemind",                href: "/hivemind",                index: 2, flushBody: true },
+  { id: "03", code: "PRP", title: "Purposeless Efficiency",  href: "/purposeless-efficiency",  index: 3, flushBody: true },
+  { id: "04", code: "THS", title: "Theseus",                 href: "/theseus",                 index: 4, flushBody: true },
   { id: "05", code: "CV",  title: "Resume",                  href: "/resume",                  index: 5 },
 ];
 

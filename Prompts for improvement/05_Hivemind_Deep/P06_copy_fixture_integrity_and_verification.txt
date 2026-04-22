@@ -1,0 +1,720 @@
+P06 — COPY, FIXTURE INTEGRITY, AND SHIP VERIFICATION
+=====================================================
+
+Prerequisites: P01, P02, P03, P04, P05 — each having delivered
+their own acceptance clauses. This prompt adds no new user-facing
+features. It does four things:
+
+  1. Codifies the HIVEMIND VOICE rules as a small, enforceable
+     lint that runs at build time and test time on every authored
+     string in the HVM fixtures.
+  2. Defines the FIXTURE INTEGRITY contract: the shape every
+     fixture file must satisfy, the type-guard machinery that
+     verifies it, the source-drift protection that keeps the
+     fixtures aligned with the three Guides, and the
+     theater/audit consistency check.
+  3. Defines the NO-LIVE-MODEL CHECK: a build-time assertion that
+     the HVM bundle contains no MiniLM weights, no Anthropic
+     client initialization, no Qdrant client, no API keys, and no
+     fetch-to-external-host calls from this experience's code
+     paths.
+  4. Specifies the SHIP VERIFICATION protocol: the full matrix of
+     acceptance tests, a11y sweeps, performance budgets, and
+     cross-mode state checks that must pass before the
+     EXPERIENCE/DOSSIER toggle is flipped on for the HVM panel.
+
+
+----------------------------------------------------------------------
+PART A — HIVEMIND VOICE LINT
+----------------------------------------------------------------------
+
+A1. The two modes of failure this suite must avoid.
+
+    INDUSTRY JARGON (the target of Failure IV in Guide I §2)
+        Managerial / consulting vocabulary: "disruptive",
+        "paradigm shift", "value proposition", "synergy",
+        "leverage" as a verb, "unlock", "at scale" alone, etc.
+        Guide I §2 Failure IV is specifically about this register;
+        using it in the panel that diagnoses it is self-defeating.
+
+    SALES TONE (the target of the INDEX posture)
+        "Try our AI", "get started", "demo", "trial", "request a
+         preview", "join waitlist". The INDEX bans these; they
+        conflict with the disclaim-responsibility honesty posture
+        that the panel must surface.
+
+A2. The lint rules.
+
+Implement as a node script at scripts/hvm-prose-lint.ts that reads
+every fixture file under src/lib/hivemind/*.ts, extracts every
+string field marked as authored prose via the fixture type (see
+Part B), and checks each against the following rules. Failures
+exit the process with non-zero and print the offending file,
+field, and excerpt.
+
+Rule L01 (FORBIDDEN WORDS — industry jargon).
+    Case-insensitive. Forbidden tokens:
+        "disruptive", "disruptive force", "paradigm shift",
+        "paradigm-shifting", "game-changing", "game-changer",
+        "cutting-edge", "revolutionary", "world-class",
+        "next-generation", "best-in-class", "value proposition",
+        "unlock", "unleash", "supercharge", "empower",
+        "synergy", "synergies", "leverage" (as verb — noun OK),
+        "seamless", "frictionless", "turnkey",
+        "mission-critical", "at scale" (as sole qualifier),
+        "robust" (alone, without a domain), "solution" (as
+        marketing substitute for "approach" — exempt when used
+        in the Monitor/cluster context, where "solutions" is
+        the Guide II term; see A4),
+        "platform" (for anything not actually a software
+        platform; exempt "client-side platform" references
+        from Guide III), "journey" (for the user),
+        "story", "narrative" (for the product's behavior),
+        "thought leader", "take" (as a noun).
+
+Rule L02 (FORBIDDEN SALES PHRASES).
+    Case-insensitive, no exemptions:
+        "try our", "try hivemind", "demo", "free trial",
+        "trial version", "sign up", "request a demo",
+        "request access", "request a preview", "join our",
+        "join the waitlist", "subscribe to", "mailing list",
+        "contact us", "learn more" (use a direct link whose
+        text names what the reader will see),
+        "book a call", "schedule a call", "talk to sales".
+
+Rule L03 (OVERCLAIM — fiduciary / legal).
+    Case-insensitive, no exemptions. The audit trail's
+    posture is "evidence of due diligence", not "legal
+    immunity":
+        "bulletproof", "tamper-proof", "court-admissible",
+        "legally binding", "legally immutable",
+        "regulator-approved", "fda-cleared", "sec-approved".
+    Any string implying a specific regulatory clearance Hivemind
+    has not earned fails the lint.
+
+Rule L04 (LLM ANTHROPOMORPHISM).
+    Forbidden phrasings (case-insensitive):
+        "the agent thinks", "agents think", "agent feels",
+        "agents believe", "the AI decides", "AI decides",
+        "AI recommends" (use "the system outputs" or
+        "Hivemind outputs"; per P01 D5).
+    Guide III §1.3 is explicit: "an agent is not an autonomous
+    entity that decides what to do next."
+
+Rule L05 (EM-DASH OVERUSE).
+    No string may contain more than 2 em-dashes ("—") in a
+    single sentence, and no paragraph more than 4. At the small
+    widths the panel runs in, more is a legibility problem. When
+    the rule trips, revise to parenthetical or semicolon.
+
+Rule L06 (UNDEFINED CAPITALS).
+    Any all-caps token longer than 4 letters that is not an
+    approved label ID (from labels.ts), agent ID, stage name,
+    failure roman numeral, or event-type badge must be defined
+    at first appearance in the string or omitted. This catches
+    acronym invention.
+
+Rule L07 (NON-CANON PRODUCT TERMS).
+    The three Guides are the canonical vocabulary. The
+    following terms are FORBIDDEN because they imply a
+    feature the Guides do not describe:
+        "reinforcement learning loop", "model fine-tune",
+        "online learning", "federated learning", "self-healing",
+        "self-tuning" (for the density/feasibility/sufficiency
+        knobs, which are client-set), "autopilot",
+        "closed-loop automation" (Hivemind is not closed-loop;
+        the client decides what to do with the output),
+        "recommendation engine" (the product does not recommend
+        items the way a Netflix-style recommender does; it
+        produces strategic recommendations).
+
+Rule L08 (COMPETITOR NAMING).
+    Forbidden, case-insensitive:
+        "McKinsey", "Bain", "BCG", "Deloitte", "Accenture",
+        "KPMG", "EY", "PwC", "MBB", "Big Four",
+        "Big 3" (consulting), "Tier-1 firm".
+    The Guide I §2 diagnosis is structural and deliberate in
+    naming no competitor firms; the panel must match.
+
+Rule L09 (VERBATIM STRINGS MUST MATCH).
+    A subset of strings in the fixtures is marked
+    `verbatimSource: "Guide I §X"` / `"Guide II §X"` /
+    `"Guide III §X"`. The lint compares each such string,
+    byte-exact, against a canonical source table maintained at
+    src/lib/hivemind/__sources/verbatim.ts. Any drift fails the
+    build. The source table is populated from the three Guides
+    and re-generated only on explicit re-import.
+
+A3. Authored-string shape.
+
+    export interface AuthoredProse {
+      text: string;
+      verbatimSource?: string;             // e.g., "Guide I §2 Failure II"
+      lintOverrides?: Array<{ rule:
+        | "L01" | "L02" | "L03" | "L04"
+        | "L05" | "L06" | "L07" | "L08"; reason: string }>;
+      authorApproved: boolean;
+    }
+
+    Any string field the user sees in the HVM panel is typed as
+    AuthoredProse or as a narrowed subtype (see A5). Overrides
+    require a one-line reason; overrides without reasons fail
+    the lint.
+
+A4. "Solution" and "cluster" vocabulary exemption.
+
+Guide II uses "solution" as a technical term (a theory agent's
+proposed recommendation; a cluster is a set of similar
+solutions). L01 would ordinarily flag "solution" as marketing-
+sub for "approach". The exemption: any string typed as
+DeliberationProse (a subtype of AuthoredProse for Theater /
+Audit / Monitor / Practicality content) may use "solution" and
+"cluster" without an override. Other string types cannot.
+
+A5. Narrowed prose types.
+
+    export type DeliberationProse   = AuthoredProse & { kind: "deliberation" };
+    export type FirmProse           = AuthoredProse & { kind: "firm" };
+    export type PipelineProse       = AuthoredProse & { kind: "pipeline" };
+    export type AuditProse          = AuthoredProse & { kind: "audit" };
+    export type KnobProse           = AuthoredProse & { kind: "knob" };
+
+The lint reads the kind to decide which exemptions apply.
+
+A6. Sentence-length soft cap.
+
+No single sentence may exceed 45 words. The Guides' own prose
+sometimes exceeds this; the experience runs at smaller widths
+and requires tighter pacing. A warning (not a hard failure) is
+printed on any authored sentence over 45 words.
+
+
+----------------------------------------------------------------------
+PART B — FIXTURE INTEGRITY
+----------------------------------------------------------------------
+
+B1. src/lib/hivemind/typeGuards.ts
+
+Defines runtime type guards for every fixture shape. Runs once
+at module load in dev and in the test bundle; tree-shaken in
+production.
+
+    import type { TheaterRun, TranscriptEvent, TheoryAgent }
+      from "./theaterScript";
+    import type { KnobOutcome, KnobTuple } from "./knobMatrix";
+    import type { FailureEntry, ExecutiveEntry } from "./failures";
+    import type { CoreBelief } from "./beliefs";
+    import type { PipelineStageEntry, SamplePipelineDoc }
+      from "./pipeline";
+    import type { AuditRun, AuditEvent, AuditHeader }
+      from "./auditScript";
+
+    export function assertFixtures(): void {
+      assertTheaterRuns();
+      assertKnobMatrix();
+      assertFailures();
+      assertBeliefs();
+      assertPipeline();
+      assertAudit();
+      assertCrossReferences();
+    }
+
+Each assertX verifies:
+
+    - All required fields present.
+    - Enum fields (event type, verdict, failure roman, belief
+      number, stage id, etc.) match declared unions exactly.
+    - authorApproved=true on every v1-ship item AND string
+      fields are non-empty and do not contain the drafting
+      stub prefix "[GUIDE — PENDING AUTHOR REVIEW]".
+    - Numeric fields in range (sufficiency ∈ {1,2,3,4};
+      feasibility ∈ {40,55,70,85}; density ∈ {600,1200,2400,
+      4800}; practicality score ∈ [0,100]; round ≥ 0).
+
+assertTheaterRuns:
+    - Exactly 16 runs (4 × 4 of sufficiency × feasibility).
+    - Each run's events sorted by tSec non-decreasing.
+    - Each run's event ids unique within the run, and globally
+      unique across all runs.
+    - The VETOED run with the highest feasibility value contains
+      a restart cycle (a round labelled "R-restart" or a
+      second series of R0..Rn events after the VETO event).
+
+assertKnobMatrix:
+    - Exactly 64 cells (4 × 4 × 4 of sufficiency × feasibility ×
+      density), each with a unique (suff, feas, dens) key.
+    - lookupOutcome never throws on any authored tuple.
+    - agentCount is consistent with AGENT_COUNT_BY_DENSITY for
+      each density value.
+    - For each tuple (suff, feas, 1200) — the theater-cover
+      density — a matching TheaterRun exists under
+      THEATER_RUNS; the bench's outcome.verdict equals that
+      theater run's verdict.
+
+assertFailures:
+    - FAILURES has exactly 4 entries in I,II,III,IV order.
+    - Each VERBATIM one-liner byte-exact against Guide I §2
+      source strings in __sources/verbatim.ts.
+    - beliefsEngaged references exist in BELIEFS.
+    - productCrossRef is null for "hiring" and non-null for
+      the other three.
+
+assertBeliefs:
+    - BELIEFS has exactly 7 entries in 1..7 order.
+    - loadBearing is true for beliefs 1 and 6 only.
+    - Each belief's VERBATIM string matches Guide I §4.
+
+assertPipeline:
+    - PIPELINE_STAGES has exactly 7 entries, ordered 1..7.
+    - Stages 1-6 have phase "ingest"; stage 7 has phase "query".
+    - SAMPLE_DOCS has exactly 3 entries, one per document_type.
+    - EMBEDDING_CLOUD_POINTS has >=20 and <=40 entries.
+    - Stage 4 configConstants includes RAG_CHUNK_MAX_TOKENS=800,
+      RAG_CHUNK_OVERLAP=80, RAG_CHUNK_MIN_TOKENS=500.
+
+assertAudit:
+    - AUDIT_RUN is the audit-superset of the default TheaterRun
+      (suff=3, feas=55): every event id in AUDIT_RUN.events
+      exists in THEATER_RUNS[default].events and vice versa.
+    - retrievedContext is [] for all Monitor events.
+    - retrievedContext is non-empty for all theory-network
+      proposal, critique, and revision events.
+    - Every event has a parentEventId that exists in the run
+      (except initial proposals, which have no parent).
+    - AUDIT_HEADER has ownership: "client" exactly.
+    - The fiduciary disclaimer's anchor sentence ("The Nash Lab
+      disclaims responsibility for conclusions drawn by the
+      client.") appears VERBATIM in exactly ONE user-reachable
+      surface across all fixtures — the Audit Export Preview.
+      Scanning all fixture strings for that first sentence (as
+      a standalone substring) must yield exactly one match. The
+      second and third sentences of the three-sentence
+      disclaimer block ("The audit trail is owned by the
+      client. The firm does not read it.") are checked
+      separately: they must also appear exactly once, and in the
+      same fixture string, adjacent to the anchor.
+
+assertCrossReferences:
+    - Every openInMode refId referenced in any fixture resolves
+      to an extant target (event id, tuple, failure id,
+      stage id, etc.).
+    - openInMode("theater", id) references in P02's SEND TO
+      THEATER and in P03's Failure II/III/IV cross-refs all
+      resolve to TranscriptEvent ids in the default run
+      (density=1200).
+
+B2. Source-drift protection.
+
+The three Guides are external documents; the fixtures encode
+prose from them. To prevent silent drift:
+
+    - src/lib/hivemind/__sources/verbatim.ts contains every
+      string flagged as `verbatimSource` in the fixtures,
+      together with the Guide reference (Guide I §2, Guide II
+      §3 Component 5, etc.).
+    - A separate file src/lib/hivemind/__sources/guides.ts
+      contains the CURRENT text of each cited passage, keyed
+      by the same reference. This file is manually updated
+      when Michael re-imports or revises a Guide.
+    - The lint compares verbatim.ts values against guides.ts
+      extracts. Any mismatch fails the build with a message
+      pointing at both files.
+
+This protection is one-way: fixtures cannot silently diverge
+from the Guides. But the Guides can still be revised; when
+they are, guides.ts is updated by hand (see B3).
+
+B3. Re-import workflow.
+
+When Michael updates one of the Guides:
+    1. Update guides.ts with the new passage text.
+    2. Run `pnpm hvm-source-refresh`, which prints every
+       verbatim string whose source has changed and asks for
+       a replacement.
+    3. Update verbatim.ts with the new strings.
+    4. Run the build; the lint re-verifies.
+
+No automated PDF scraping is part of this workflow. Guides are
+small and the re-import is rare; human review is the correct
+touchpoint.
+
+B4. Unpublished-work posture (analogous to 04/P06 B2).
+
+The Hivemind guides may contain internal Nash Lab language that
+should not appear in the public panel:
+
+    - Internal documents referenced in Guide I (TNL Core Beliefs
+      document, Hivemind Compressed Pitch, Product Pitch,
+      nashlab.ai/architecture brief) are permissible sources for
+      verbatim strings, but the panel must not link to any
+      internal URLs or imply the reader can access them.
+    - Firm financials, employee names, client names, and any
+      un-redacted client data are off-limits. The audit fixture
+      uses "client-id: redacted-demo".
+    - A specific lint (L10) scans authored strings for a small
+      regex-set suggesting internal names and firm financials.
+      Implement as a block-list at build time.
+
+B5. Authoring states.
+
+Each fixture item is in one of three states:
+
+    DRAFT
+        authorApproved=false. May contain the "[GUIDE —
+        PENDING AUTHOR REVIEW]" prefix. Not rendered in
+        production builds; in dev the mode shows a stub.
+
+    AUTHOR-REVIEWED
+        authorApproved=true. Passes full lint. Ship-ready.
+
+    RETIRED
+        retired=true + retiredReason. Remains in data for
+        reference, filtered at render.
+
+Ship builds REJECT any DRAFT item reaching a user-facing surface.
+
+
+----------------------------------------------------------------------
+PART C — NO-LIVE-MODEL CHECK
+----------------------------------------------------------------------
+
+Unique to this suite (the 04 suite did not require it because
+Purposeless Efficiency has no runtime model surface). The HVM
+panel's honesty posture depends on no model inference happening
+at panel time. The check comprises:
+
+C1. Static-import forbidden-list.
+
+A build-time script at scripts/hvm-no-live-model-check.ts walks
+the compiled experience bundle and asserts the ABSENCE of any
+of the following module specifiers in the HVM component tree:
+
+    - "@anthropic-ai/sdk"
+    - "openai"
+    - "@qdrant/js-client-rest"
+    - "onnxruntime-web", "onnxruntime", "@xenova/transformers"
+    - "tiktoken", "@dqbd/tiktoken"
+    - Any direct fetch to *.anthropic.com, *.openai.com,
+      *.qdrant.*, or *.nashlab.ai hosts.
+
+Any match fails the build.
+
+C2. Runtime network check.
+
+A test at src/components/projects/hivemind/Experience/__tests__/
+no-network.spec.tsx mounts the HVM experience under a test
+harness that stubs global fetch / XMLHttpRequest / WebSocket /
+EventSource, navigates through all five modes, exercises every
+playback/knob/filter interaction, and asserts that the stubbed
+network functions were never called. Any call fails the test.
+
+C3. Bundle-size secondary assertion.
+
+MiniLM's quantized weights are several megabytes. If bundle
+size exceeds 200KB gzip for the HVM panel (the 80KB contract
+from the INDEX plus a 120KB slack), the bundle-budget test
+additionally prints a warning suggesting the possibility that
+a model file slipped in.
+
+C4. Prose check.
+
+The lint rule L04 (LLM anthropomorphism) is the prose-side of
+this same posture. L04 plus C1-C3 together enforce: "the panel
+does not anthropomorphize agents AND does not actually run them."
+
+
+----------------------------------------------------------------------
+PART D — SHIP VERIFICATION PROTOCOL
+----------------------------------------------------------------------
+
+D1. Test matrix.
+
+Acceptance tests live under
+src/components/projects/hivemind/Experience/__tests__/.
+Vitest per the repo's existing harness.
+
+Required suites:
+
+  chassis.spec.tsx
+      - Mounts HivemindExperience at NARROW/STANDARD/WIDE.
+      - Verifies ModeTabBar order (DELIBERATION/KNOBS/
+        FOUR FAILURES/PIPELINE/AUDIT) and active mode.
+      - Verifies EXPERIENCE/DOSSIER toggle preserves dossier.
+      - Verifies sessionStorage persistence of "hvm.side".
+
+  theater.spec.tsx
+      - Default run plays from t=0 to t=end; cursor advances
+        monotonically.
+      - Step forward/back move by exactly one event.
+      - Jump-to-end renders final output without playing.
+      - Speed change (1x/2x/4x) affects scheduler interval but
+        not event order.
+      - Sufficiency/feasibility sliders disabled mid-play;
+        enabled when paused or ended; changing loads alternate
+        fixture and resets cursor.
+      - Agent filter clicks restrict transcript correctly.
+      - MonitorPanel cluster count matches cluster_formed events
+        at each cursor.
+      - PracticalityPanel dim until theory halt; populates with
+        verdict after halt.
+      - VETOED run includes the restart cycle events.
+      - Keyboard: Space, Left/Right, Home/End, 1/2/4 work.
+      - reducedMotion: no opacity transitions on new lines.
+
+  knobs.spec.tsx
+      - Three sliders render; each discrete-snap to authored
+        domain.
+      - Moving a slider triggers setKnob; previous/current
+        updated correctly.
+      - OutcomeMatrix displays lookupOutcome(current) for all 64
+        cells.
+      - SEND TO THEATER enabled only at density=1200; disabled
+        tooltip matches D7-equivalent string.
+      - RESET restores DEFAULT_TUPLE.
+      - DeltaReadout grammar matches specification at each
+        transition.
+      - Firm-set calibrations panel is read-only.
+
+  failures.spec.tsx
+      - Four FailureCards render in I,II,III,IV order.
+      - Each one-liner byte-exact per L09.
+      - Expansion: WIDE drawer, STANDARD/NARROW inline.
+      - PrinciplesDrawer opens with correct initial belief.
+      - Product cross-refs navigate to correct modes.
+      - EXECUTIVE card is not expandable.
+
+  pipeline.spec.tsx
+      - Seven stages render in order.
+      - Click activates; default is stage 1.
+      - Stage 4 shows three config constants verbatim.
+      - Stage 5 EmbeddingCloud renders ~30 points; clicking a
+        point updates sample.
+      - Three sample archetypes selectable; each has stage
+        samples for all seven stages.
+      - Stage 7 excerpt format matches Guide III §2.2 verbatim.
+
+  audit.spec.tsx
+      - AuditTimeline renders complete default-run transcript.
+      - FilterBar filters by type/round/agent/substring.
+      - EventCard shows full schema; event id copyable.
+      - RETRIEVED CONTEXT empty for Monitor events.
+      - ExportPreview fiduciary disclaimer VERBATIM.
+      - EXPORT button disabled with tooltip VERBATIM.
+      - Event ids byte-identical to default TheaterRun.
+      - J/K navigation works.
+
+  cross-mode.spec.tsx
+      - P02 SEND TO THEATER navigates theater to matching run.
+      - P03 Failure II/III/IV -> theater/audit navigations land
+        on the right event id.
+      - P04 Stage 4 -> Knobs (density) navigates to Knob Bench
+        with density slider focused.
+      - P05 Audit export link navigates from other modes to the
+        ExportPreview.
+      - All cross-mode navigations announce via aria-live.
+
+  a11y.spec.tsx
+      - No heading-order violations.
+      - Every interactive element has an accessible name.
+      - Tablist/tab/tabpanel roles on ModeTabBar.
+      - PrinciplesDrawer and ResponsePanel trap focus when open;
+        ESC closes and restores focus to opener.
+      - aria-live region receives the expected announcements
+        per the per-mode acceptance clauses.
+      - reducedMotion media-query mock forces opacity-only;
+        test asserts no transform: translate/scale on any
+        element in the HVM tree during transitions.
+      - Color contrast meets WCAG AA on all semantic tokens
+        (--ok, --warn, --err, --fg, --fg-dim, --bg, --accent).
+
+  prose-lint.spec.ts
+      - Imports all fixture files and runs the lint rules.
+      - Fails on any L01/L02/L03/L04/L06/L07/L08/L09/L10
+        violation.
+      - Reports L05 and sentence-length (A6) as warnings.
+
+  no-network.spec.tsx   (see C2)
+
+  fixture-integrity.spec.ts
+      - Runs assertFixtures() and asserts no throws.
+      - Asserts the theater/audit id correspondence.
+      - Asserts the knob/theater verdict correspondence at
+        density=1200.
+      - Asserts the exactly-one fiduciary disclaimer match
+        across all fixture strings.
+
+  bundle-budget.spec.ts (or CI assertion step)
+      - Measures gzipped size of the HVM experience bundle
+        (code for all five modes + fixtures) and asserts it is
+        under 80KB.
+      - Per-mode CODE targets (excluding fixture data):
+          Chassis + ModeTabBar + store       <=  5KB
+          Deliberation Theater               <= 18KB
+          Knob Bench                         <=  5KB
+          Four Failures Map                  <=  6KB
+          Knowledge Pipeline                 <=  7KB
+          Audit Artifact                     <=  6KB
+        Code subtotal target:                 <= 47KB
+      - FIXTURE DATA budget (files under src/lib/hivemind/*)
+        counted ONCE, not per-mode. Targets:
+          theaterScript.ts  (16 runs)        <= 10KB gzip
+          knobMatrix.ts     (64 cells)       <=  3KB gzip
+          failures.ts       (4 + exec)       <=  3KB gzip
+          beliefs.ts        (7 beliefs)      <=  1KB gzip
+          pipeline.ts       (7 × 3)          <=  6KB gzip
+          auditScript.ts    (default run)    <= 10KB gzip
+        Data subtotal target:                 <= 33KB
+      - Code + data subtotal:                  <= 80KB.
+      - Per-mode CODE budgets are internal consistency targets;
+        a mode exceeding its target but keeping the total under
+        80KB is acceptable (drift warning only).
+      - Code-splitting on a per-mode lazy-load basis is
+        PERMITTED for FIRST PAINT improvement; the 80KB is the
+        binding worst-case constraint (user visits every mode).
+
+D2. Manual verification protocol (before flipping EXPERIENCE on
+for production).
+
+Even with D1 green, a manual pass is required:
+
+  - Open HVM panel at screen widths 360, 640, 960, 1280, 1440.
+    Confirm no horizontal scroll, no clipping, no font-size
+    collapse on any mode. The Theater stage's three-region
+    layout must degrade correctly at STANDARD and NARROW.
+  - Run the default theater replay end to end (~2-3 min
+    virtual) without pause. Confirm no UI jitter, no scheduler
+    drift, no aria-live stampede.
+  - Step through one vetoed-run replay (suff=3, feas=85)
+    event-by-event. Confirm the restart cycle renders and the
+    post-restart final events render correctly.
+  - Flip all three knob sliders across their domains (12
+    transitions). Confirm DeltaReadout grammar reads cleanly
+    and is honest about knob-only changes.
+  - Expand each of the four FailureCards + click each product
+    cross-reference. Confirm each navigation lands on a visible
+    event in the target mode.
+  - Open PrinciplesDrawer and read each belief; confirm beliefs
+    1 and 6 carry LOAD-BEARING chips.
+  - Click every stage in the Pipeline; expand RETRIEVED CONTEXT
+    on at least one event in the Audit; scroll the Audit to
+    end; confirm fiduciary disclaimer is visible.
+  - Verify the disabled EXPORT tooltip on focus and on hover.
+  - Confirm the audit fiduciary disclaimer appears ONLY in the
+    Audit Export Preview (not pasted into any other mode).
+  - Run with reducedMotion forced in OS settings; confirm no
+    translation or scale transitions anywhere.
+  - Full keyboard-only pass through all five modes; confirm no
+    keyboard trap, all interactive elements reachable, ESC
+    closes all drawers and returns focus to opener.
+  - Run the production build and diff bundle composition
+    against the previous shipped HVM bundle; flag any new
+    third-party module additions.
+
+D3. Rollback plan.
+
+If a post-ship issue surfaces (e.g., a lint regression escaped
+CI, or a fixture was updated out of sync with the Guides),
+revert the experience toggle by:
+
+    localStorage.setItem("hvm.side.override", "dossier");
+
+plus a feature-flag check in ExperienceHost that forces
+defaultSide="dossier" for the HVM panel. The rollback is
+single-flag, panel-scoped, and does not affect the PRP or
+THS panels.
+
+D4. Post-ship watch.
+
+For the first two weeks after ship:
+    - Log aria-live announcement counts per mode (client-side
+      only; aggregate with no per-session identifier). If any
+      mode produces an order-of-magnitude more announcements
+      than expected (e.g., a runaway state bug), the numbers
+      surface early.
+    - Track bundle-size delta on each subsequent deploy; a
+      delta >10KB triggers a P06 re-run.
+    - A manual re-read of the fiduciary disclaimer surface in
+      Audit Export Preview once/week for four weeks, to catch
+      accidental edits.
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P06 (AND FOR THE FULL SUITE)
+----------------------------------------------------------------------
+
+P06 itself is acceptance; it does not produce user-visible
+surfaces. The ship gate is:
+
+  [ ] All suites under D1 green.
+  [ ] Prose lint green across all AuthoredProse strings.
+  [ ] No-live-model check (C1, C2, C3) green.
+  [ ] Source-drift check (B2) green against current guides.ts.
+  [ ] Unpublished-work posture (B4) clean.
+  [ ] Bundle size within 80KB gzip total; per-mode targets met
+      or drift-warned only.
+  [ ] Manual verification (D2) passed by at least one reviewer
+      (Michael).
+  [ ] The INDEX's full-suite acceptance clauses all green.
+  [ ] The rollback plan (D3) has been tested at least once on
+      a staging deploy.
+
+When all are green, the HVM panel ships with
+defaultSide="experience".
+
+
+----------------------------------------------------------------------
+PART F — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+F1. Do NOT make the prose lint configurable at runtime. It must
+    be a build-time hard gate. A runtime toggle tempts "just
+    skip it this once for the demo" and the demo becomes the
+    production copy.
+
+F2. Do NOT widen the verbatim source list beyond what has been
+    grounded in the three Guides. A claim that is not in the
+    Guides is not a ship-safe claim for this suite. If new
+    product behavior is added later, it must be documented in a
+    Guide update before it can appear in authored strings with
+    authorApproved=true.
+
+F3. The no-live-model check is ALSO a security posture. A panel
+    that accidentally ships a bundled API key is a credential
+    leak. Bundle-scan the production build for literals matching
+    `sk-[a-zA-Z0-9]{20,}` (Anthropic-style keys), `sk_live_`
+    stripe keys, AWS access-key patterns, etc., and fail the
+    ship on any match.
+
+F4. The 80KB budget is tight. If a tempting feature would push
+    over: cut the feature, or move it to the DOSSIER side. Do
+    not trade budget for marginal polish; the EXPERIENCE is not
+    the whole panel, and the DOSSIER side is available for
+    material that does not fit.
+
+F5. When the theater or audit fixture is regenerated (the audit
+    is derived from the default theater run via a codegen script;
+    see P05 C5), run the full P06 suite. The codegen and the
+    integrity check must be kept in lockstep; drift is the most
+    likely source of post-ship regressions.
+
+F6. If a new mode is added later (e.g., the P07 Contradiction
+    Geometry mode contemplated in the INDEX), P06 MUST be
+    expanded in the same pass. An unlinted mode is worse than
+    no mode.
+
+F7. The prose lint is the only place where the three Guides'
+    exact language is enforced. Skipping it — even for a "just
+    this once" paraphrase — is the fastest path to the
+    industry-jargon voice the firm diagnoses. The whole suite's
+    coherence depends on L01/L02/L07/L09 running on every
+    ship build.
+
+F8. Do NOT add a "contact sales" or "request a demo" link to the
+    HVM panel in any iteration. The panel's audience is the
+    reader of the portfolio site; serious client inquiries
+    reach The Nash Lab through channels outside this panel.
+    L02 is the lint-side of this norm; F8 is the policy-side.
+
+
+End of P06.
+End of the 05 HVM suite.

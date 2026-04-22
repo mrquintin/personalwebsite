@@ -134,13 +134,23 @@ The user picks an objection card. A DialecticTurn panel opens.
 The turn has three "tiles", shown in order:
 
     TILE A. OBJECTION (full)
-        The authored objection in full. 2-4 sentences. Serif.
+        The authored objection in full. 2-4 sentences. Serif —
+        apply class .prp-prose (NO drop cap) from the utility
+        defined in P01 §A4. Do not re-define typography here.
 
     TILE B. BOOK'S RESPONSE
-        The authored response. 3-6 sentences. Serif. Includes a
-        clearly labeled sub-section called REFRAMES or REFUTES:
-        a single word indicator. This indicator is the book's
-        own self-description of its move, and it IS load-bearing.
+        The authored response. 3-6 sentences. Serif. Apply class
+        .prp-prose AND .prp-prose--drop-cap from the P01 §A4
+        utility: this is the canonical drop-cap site in the
+        suite, per the enumeration in P01 §A4 "Where this
+        utility is applied". (If the authored response falls
+        below ~120 words the drop cap still reads as intentional
+        here because the response IS the pedagogical climax of
+        the mode; unlike quadrant diagnoses where the drop cap
+        would be ornamental.) Includes a clearly labeled
+        sub-section called REFRAMES or REFUTES: a single word
+        indicator. This indicator is the book's own
+        self-description of its move, and it IS load-bearing.
         (14.1 and 14.7 are REFRAMES; 14.2 and 14.3 are REFUTES;
         14.4 is REFUTES-IN-PRINCIPLE; 14.5 is CONCEDES-AND-
         DISCIPLINES; 14.6 is REFRAMES.)

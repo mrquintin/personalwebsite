@@ -1,0 +1,785 @@
+P02 — MOTION COORDINATION (INTERRUPT-SAFE TRANSITIONS)
+==========================================================
+
+ROLE: You are a senior CSS / React engineer landing the
+motion-layer changes that make the accordion's open/close
+path interrupt-safe during hover-driven swaps. This prompt
+is purely mechanical in ambition — it does NOT invent new
+animations, durations, or curves. It converts the current
+keyframe-based body animation to an equivalent transition-
+based one so the animation retargets from its current
+computed value when state changes mid-flight, rather than
+restarting from the keyframe origin.
+
+This prompt assumes P01 has landed (hoverIntent.ts is
+wired into Accordion.tsx; --d-hover-intent-cold and
+--d-hover-intent-leave exist in tokens.css; FSM is
+producing the correct activeIndex under rapid hover). If
+P01 has not landed this prompt's correctness claims do not
+hold — the flicker fix needs the FSM to produce the
+expected activeIndex sequence first.
+
+This prompt solves deficiencies C3, C8, C9 and the "intent
+underline" affordance allusion in §J1 of P01. It does NOT
+solve C5 (focus-within) or C6 (click pin) — those land in
+P03.
+
+---
+
+§A — FILES
+
+Modify:
+
+    src/app/globals.css
+        — replace .panel-body keyframe animations with
+          transitions. This is the central change.
+
+    src/components/shell/Panel.tsx
+        — replace the current "always-540ms" is-animating
+          class with swap-scoped is-animating management;
+        — accept `pinned` and `intentTarget` props and
+          surface `data-pinned` and `data-intent-target`
+          attributes;
+        — accept onHoverLeave callback (paired with
+          existing onHover) to thread P01's
+          handlers.onPanelLeave.
+
+    src/components/shell/Accordion.tsx
+        — pass `pinned`, `intentTarget` (from P01's hook
+          return), and `onHoverLeave={handlers.onPanelLeave}`
+          down to each Panel.
+
+    src/styles/tokens.css
+        — add --d-panel-body-in, --d-panel-body-in-delay,
+          --d-panel-body-out, --ease-panel-body-in so the
+          durations already baked into globals.css become
+          tokens (single source of truth; R01 durations
+          preserved to the millisecond).
+
+Create: nothing. P02 is CSS-surface-level; no new modules.
+
+No file under src/components/panels/ is touched. No file
+under src/lib/ (except what P01 created) is touched.
+
+---
+
+§B — THE CORE CONVERSION: KEYFRAME → TRANSITION
+
+B1. Why this matters (restate for the implementer)
+
+    CSS keyframe animations with `fill-mode: forwards` are
+    a state-machine that reads: "when this rule matches,
+    run this keyframe from its 0% mark to its 100% mark,
+    then hold the 100% values." Crucially, when the rule
+    STOPS matching (because data-state flipped) the
+    animation is halted and the element reverts to whatever
+    the cascade now dictates — which for .panel-body is
+    the base `opacity: 0; transform: translateY(6px)`. If
+    a DIFFERENT rule then matches (e.g., the panel swings
+    back to expanded), a NEW animation starts, again FROM
+    its 0% mark. The animation engine has no memory of the
+    in-flight computed values.
+
+    Under a rapid hover swap N→M→N (say each hop ~80ms),
+    panel N's body would:
+
+        t=0     : rule "expanded" matches; animation-in
+                  starts, 260ms delay, 260ms duration.
+        t=80    : rule flips to "collapsed"; animation-in
+                  is yanked; animation-out starts from
+                  opacity 1, transform 0 (0% of
+                  animation-out). But the IN never reached
+                  its visible phase (t<260ms delay), so
+                  opacity was still 0 per the cascade base.
+                  animation-out now says: from opacity 1 to
+                  opacity 0 — a JUMP from 0 to 1 on frame 1
+                  of out. Visible flash to opacity 1 for
+                  one frame, then fade down.
+        t=160   : rule flips back to "expanded"; animation-
+                  in restarts from 0% (opacity 0, translateY
+                  6px). In-flight fade-down is discarded.
+                  No memory of where the fade-out got to.
+
+    CSS transitions, by contrast, are property-level and
+    from-current-value. When the target value changes, the
+    transition retargets with the current computed value as
+    the starting point. There is no "animation origin" to
+    restart from. Rapid swap produces smooth retargeting on
+    every interruption. This is the entire substance of C3.
+
+B2. The replacement rule set (authoritative)
+
+    Remove from globals.css (lines 119-140 of the current
+    file):
+
+      .panel-body {
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+      }
+      .panel[data-state="expanded"] .panel-body {
+        pointer-events: auto;
+        animation: operator-panel-in 260ms var(--ease-accordion) 260ms forwards;
+      }
+      .panel[data-state="collapsed"] .panel-body,
+      .panel[data-state="neutral"]   .panel-body {
+        animation: operator-panel-out 180ms linear forwards;
+      }
+
+      @keyframes operator-panel-in { … }
+      @keyframes operator-panel-out { … }
+
+    Replace with:
+
+      /* R01+08: .panel-body is driven by CSS transitions on
+         opacity and transform rather than keyframe
+         animations. Transitions retarget from current
+         computed value on state change, so mid-animation
+         swaps do not restart the fade from keyframe origin.
+         Durations preserved from R01 (260ms delay + 260ms
+         fade-in; 180ms linear fade-out). */
+      .panel-body {
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+        transition:
+          opacity  var(--d-panel-body-out) linear 0ms,
+          transform var(--d-panel-body-out) linear 0ms;
+      }
+      .panel[data-state="expanded"] .panel-body {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+        transition:
+          opacity   var(--d-panel-body-in)  var(--ease-panel-body-in) var(--d-panel-body-in-delay),
+          transform var(--d-panel-body-in)  var(--ease-panel-body-in) var(--d-panel-body-in-delay);
+      }
+      /* collapsed and neutral inherit the base rule's
+         transition (180ms linear 0ms) because neither rule
+         redeclares opacity/transform targets — they fall
+         back to the base's opacity:0, transform:6px. The
+         transition on the base rule IS the fade-out. */
+
+      /* keyframe definitions operator-panel-in /
+         operator-panel-out are deleted — no other rule
+         references them. Grep to verify before removing. */
+
+    The @keyframes operator-fade-up and operator-blink
+    blocks stay; those are used elsewhere (.cursor-blink,
+    .palette-backdrop). Only operator-panel-in and
+    operator-panel-out are removed.
+
+B3. Why the transition goes on BOTH rules, not just the base
+
+    A common temptation is to put `transition:` only on the
+    base rule and let the cascade inherit it. Resist. The
+    transition on the base rule (180ms linear) governs
+    fade-OUT timing, which must be faster than fade-IN so
+    R01's "body fades out BEFORE the width change completes"
+    invariant holds (R01 §7.2). The transition on the
+    expanded rule (260ms with 260ms delay) governs fade-IN
+    timing, which must DELAY until the width has progressed
+    ~62% so the content doesn't appear while the panel is
+    still physically narrow.
+
+    Defining the transition on both rules makes the timing
+    directional: which transition applies is determined by
+    which rule currently matches, which is determined by
+    data-state. When data-state flips from expanded to
+    collapsed, the cascade re-applies the base rule, which
+    brings its transition (180ms linear) into effect for
+    the NEW target values (opacity:0, translateY:6px). The
+    browser sees a computed-style change from, say,
+    opacity:0.4 to opacity:0, and transitions over 180ms.
+    Critically, no animation restart occurs.
+
+B4. Interruption correctness (paper proof)
+
+    Case I — cold open, panel M: state transitions
+    neutral → expanded at t=0.
+      - New rule applies: opacity target 1, transform
+        target (0). Transition: 260ms eased with 260ms
+        delay.
+      - t=0..260   : browser holds opacity at 0 (delay
+                     phase), transform at 6px.
+      - t=260..520 : browser eases opacity 0→1 and
+                     transform 6px→0 over 260ms.
+      Matches R01 §7 exactly.
+
+    Case II — warm swap N→M: N flips expanded→collapsed at
+    t=0, M flips collapsed→expanded at t=0.
+      - N: base rule re-applies. Current opacity 1
+        (panel was fully faded in). Transition: 180ms
+        linear. Opacity 1→0 over 180ms.
+      - M: expanded rule applies. Current opacity 0.
+        Transition: 260ms eased with 260ms delay.
+        Opacity stays 0 for 260ms (delay), then 0→1
+        over 260ms.
+      - Observed: N fades out over 180ms; M is
+        invisible until t=260 then fades in. During
+        t=0..180, only N is fading (M is still 0).
+        During t=180..260, both are at their terminal
+        invisible values. During t=260..520, M is
+        fading in and N is fully out.
+      - No flash, no flicker, no gap of neutral.
+
+    Case III — rapid swap N→M→N within 80ms total:
+      - t=0:   N flips expanded→collapsed.
+               N's opacity transitions from 1 toward 0,
+               180ms linear. At t=80 it's at ~0.56.
+               M flips collapsed→expanded. M's opacity
+               transition is in its 260ms delay phase;
+               opacity stays 0.
+      - t=80:  N flips BACK to expanded. The expanded
+               rule re-applies. Transition: 260ms eased
+               with 260ms delay. Browser sees current
+               opacity 0.56 (not 0, not 1). Target: 1.
+               Delay 260ms, then ease 0.56→1 over 260ms.
+               M flips back to collapsed. Base rule
+               re-applies. Transition: 180ms linear.
+               Current 0, target 0. No-op transition.
+      - t=340: N's delay ends. Opacity begins transitioning
+               0.56→1 over 260ms.
+      - t=600: N is fully visible.
+      - Net: no flicker, no restart from 0, no spike to
+        1. Total latency from N's original show to N's
+        recover is ~340ms delay + 260ms eased = 600ms,
+        but the user sees a smooth monotonic path from
+        0.56 back to 1. This is acceptable (much better
+        than the keyframe case which would have jumped
+        to opacity 1 at t=80 then fallen to 0).
+
+    Case III illustrates the delay's one remaining cost:
+    under a rapid flicker back to a panel, the body
+    reappearance is deferred by the delay. This is
+    deliberate — R01 prescribed the delay so content
+    doesn't render into a narrow frame. Under warm-swap
+    N→M→N both panels' flex-basis transitions are also
+    in-flight; the width is roughly correct throughout,
+    and the delay is honest about "wait for width."
+
+B5. Anti-pattern to reject
+
+    Do NOT use `transition: all var(--d-something)`. `all`
+    transitions every property that changes, including
+    properties the browser internally mutates (content-box
+    width under flex-basis, for instance). This can produce
+    subtle double-animation artifacts. Name the properties
+    explicitly: opacity and transform.
+
+    Do NOT use CSS @property with transitionable custom
+    properties as a hack to get interpolation. Transitions
+    on opacity and transform are the canonical mechanism
+    and compositor-friendly.
+
+    Do NOT animate `visibility` or `display`. Neither is
+    animatable across their semantic range; `display:none`
+    cannot transition to `display:block`. Use opacity +
+    pointer-events as we already do.
+
+---
+
+§C — PANEL.TSX CHANGES
+
+C1. is-animating class scoping (fix for C9)
+
+    CURRENT (Panel.tsx lines 25-31):
+
+      useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        el.classList.add("is-animating");
+        const t = setTimeout(() => el.classList.remove("is-animating"), 540);
+        return () => { clearTimeout(t); el.classList.remove("is-animating"); };
+      }, [state]);
+
+    This adds is-animating on every state change and
+    holds it for 540ms. Under a 5-tab rapid swap this
+    fires five times, each with its own timer. The
+    compositor ends up with will-change:flex-basis held
+    on multiple panels for up to 540ms after the last
+    swap settles. Five concurrent will-change hints
+    cost compositor memory and defeat the point of
+    scoping.
+
+    TARGET: is-animating applies only when this panel's
+    flex-basis is ACTUALLY in flight — i.e., when state
+    just changed AND the CSS transition is running. On
+    every state change is-animating is (re-)added with a
+    fresh timer; the timer's duration must match the
+    longest transition the panel can run. That duration
+    is `--d-accordion` (420ms). The current 540ms was a
+    hand-tuned overestimate; tighten it to 420ms and
+    drop the coupling to the old keyframe budget.
+
+    REPLACEMENT:
+
+      useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        el.classList.add("is-animating");
+        // Match --d-accordion. Read from CSS if you want to
+        // stay token-driven:
+        //   const cs = getComputedStyle(document.documentElement);
+        //   const ms = parseInt(cs.getPropertyValue("--d-accordion")) || 420;
+        // For simplicity and test determinism, hard-code 420
+        // here and pair with the tokens.css value.
+        const t = setTimeout(() => el.classList.remove("is-animating"), 420);
+        return () => { clearTimeout(t); el.classList.remove("is-animating"); };
+      }, [state]);
+
+    This is technically the same pattern (per-panel timer
+    on every state change) but shorter. The deeper
+    correctness claim — "only the panels actually
+    animating have is-animating" — is already guaranteed
+    because only panels whose `state` changed get a state
+    prop change; React won't re-run the effect on
+    unchanged props.
+
+    OPTIONAL tighter scoping (implement if straightforward):
+    use a transitionend listener to remove is-animating
+    when the browser actually completes (or cancels) the
+    flex-basis transition:
+
+      useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        el.classList.add("is-animating");
+
+        let fallbackTimer: number | null = null;
+        const onTransitionEnd = (e: TransitionEvent) => {
+          if (e.target !== el) return;            // ignore
+                                                  // descendant
+                                                  // transitions
+          if (e.propertyName !== "flex-basis") return;
+          el.classList.remove("is-animating");
+        };
+        el.addEventListener("transitionend", onTransitionEnd);
+
+        // Safety net: if transitionend never fires (rare,
+        // but possible under tab visibility changes or
+        // interrupted transitions that don't emit the event
+        // in some engines), remove the class after
+        // --d-accordion + a safety margin.
+        fallbackTimer = window.setTimeout(
+          () => el.classList.remove("is-animating"),
+          420 + 80
+        );
+
+        return () => {
+          el.removeEventListener("transitionend", onTransitionEnd);
+          if (fallbackTimer) clearTimeout(fallbackTimer);
+          el.classList.remove("is-animating");
+        };
+      }, [state]);
+
+    The transitionend-driven variant is preferred
+    because it guarantees will-change drops the moment
+    the compositor is done with the flex-basis
+    transition, reducing the window where unused
+    will-change hints cost memory. Adopt this variant
+    unless test flakes appear on Safari (Safari has
+    historically been less reliable about emitting
+    transitionend on cancelled transitions; if so, fall
+    back to the simpler timer).
+
+C2. Thread pinned, intentTarget, onHoverLeave
+
+    Extend the Panel Props:
+
+      type Props = {
+        panel: PanelDef;
+        state: "collapsed" | "neutral" | "expanded";
+        onActivate: () => void;
+        onFocusInto: () => void;
+        onHover?: () => void;
+        onHoverLeave?: () => void;     // NEW
+        pinned?: boolean;              // NEW — true iff this
+                                        // panel is currently
+                                        // the pinned one.
+        intentTarget?: boolean;        // NEW — true iff
+                                        // P01's intentTarget
+                                        // equals this panel
+                                        // (coldDwell phase).
+        children: ReactNode;
+      };
+
+    In the returned <section>, wire:
+
+      onMouseEnter={onHover}
+      onMouseLeave={onHoverLeave}
+      data-state={state}
+      data-pinned={pinned ? "true" : "false"}
+      data-intent-target={intentTarget ? "true" : "false"}
+
+    The data-pinned and data-intent-target attributes are
+    present even when false so CSS can select on them
+    without handling "absent" as a third state.
+
+C3. Do NOT change the spine/body split, the body content
+    mounting, or any other layout.
+
+    R01's "body always mounted" invariant is preserved
+    verbatim. The hover choreography does not add or
+    remove DOM; it only changes the CSS motion layer.
+
+---
+
+§D — ACCORDION.TSX — PROPAGATION OF NEW PROPS
+
+D1. The props pinned/intentTarget/onHoverLeave come from
+    P01's hook. In Accordion.tsx, inside the map over
+    `list`:
+
+      {list.map((p, i) => {
+        const panelIndex = p.index;  // 1-based
+        const visualState: "expanded" | "collapsed" | "neutral" =
+          state.mode === "neutral"
+            ? "neutral"
+            : state.mode === "expanded" && state.index === panelIndex
+              ? "expanded"
+              : "collapsed";
+
+        return (
+          <Panel
+            key={p.id}
+            panel={p}
+            state={visualState}
+            onActivate={() => handlers.onPin(panelIndex)}      // see P03
+            onFocusInto={() => setFocusIndex(panelIndex)}
+            onHover={() => handlers.onPanelEnter(panelIndex)}
+            onHoverLeave={() => handlers.onPanelLeave(panelIndex)}
+            pinned={pinned && pinnedIndex === panelIndex}
+            intentTarget={intentTarget === panelIndex}
+          >
+            …
+          </Panel>
+        );
+      })}
+
+    pinned and pinnedIndex come from the hook's return
+    (§B3 of P01). intentTarget is the hook's intentTarget
+    field compared to this panel's index.
+
+    The `onActivate` rewiring to handlers.onPin belongs
+    to P03; write a TODO comment in P02's landing commit
+    if P03 has not yet landed, so the line is easy to
+    find:
+
+      onActivate={() => handlers.onPin(panelIndex)}  // P03 will add ESC-unpin and re-click-unpin semantics.
+
+D2. Root-level onMouseLeave:
+
+    On the root <div className="accordion" ...>:
+
+      onMouseLeave={handlers.onAccordionLeave}
+
+    This is required by P01 §E3 and lands here (in P02)
+    to keep Accordion.tsx in one coherent edit pass. If
+    P01 was implemented as spec'd, this line should
+    already be present; if it's missing, add it and
+    update P01's acceptance checklist retroactively.
+
+---
+
+§E — TOKENS.CSS — EXTRACT MOTION CONSTANTS
+
+E1. Add to the :root block, adjacent to --d-accordion:
+
+    /* R01+08: panel-body motion constants. --d-panel-body-in
+       is the fade-in duration; --d-panel-body-in-delay is
+       the pre-roll that lets the flex-basis transition
+       progress past ~62% before content appears;
+       --d-panel-body-out is the linear fade-out for
+       collapsed/neutral. Changing these changes R01's
+       content reveal timing; handle with care. */
+    --d-panel-body-in:        260ms;
+    --d-panel-body-in-delay:  260ms;
+    --d-panel-body-out:       180ms;
+    --ease-panel-body-in:     var(--ease-accordion);
+
+E2. Add to the @media (prefers-reduced-motion: reduce)
+    block:
+
+    --d-panel-body-in:        0ms;
+    --d-panel-body-in-delay:  0ms;
+    --d-panel-body-out:       0ms;
+
+    --ease-panel-body-in is untouched because its easing
+    is irrelevant when duration is 0.
+
+E3. Do NOT rename --d-accordion or --ease-accordion; R01
+    references them by name. If any existing file queries
+    these via getComputedStyle, the rename would break it.
+
+---
+
+§F — GLOBALS.CSS — FULL PATCH (AUTHORITATIVE)
+
+F1. Remove lines 119-140 of the current globals.css (the
+    .panel-body rules and the two @keyframes).
+
+F2. Insert in their place:
+
+    /* R01+08: .panel-body uses transitions on opacity and
+       transform so rapid hover swaps retarget from current
+       computed values rather than restarting from keyframe
+       origin. Durations and easing preserved from R01. */
+    .panel-body {
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition:
+        opacity   var(--d-panel-body-out) linear 0ms,
+        transform var(--d-panel-body-out) linear 0ms;
+    }
+    .panel[data-state="expanded"] .panel-body {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      transition:
+        opacity   var(--d-panel-body-in) var(--ease-panel-body-in) var(--d-panel-body-in-delay),
+        transform var(--d-panel-body-in) var(--ease-panel-body-in) var(--d-panel-body-in-delay);
+    }
+
+F3. The @media (prefers-reduced-motion: reduce) block
+    needs amendment. CURRENT:
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel { transition: none; }
+        .panel-body { animation: none; opacity: 1; transform: none; pointer-events: auto; }
+        .panel[data-state="collapsed"] .panel-body,
+        .panel[data-state="neutral"]   .panel-body { opacity: 0; pointer-events: none; }
+        .spine-content { transition: none; }
+      }
+
+    REPLACEMENT (animations now gone; we kill the
+    transition and set static final values instead):
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel { transition: none; }
+        .panel-body {
+          transition: none;
+          opacity: 1;
+          transform: none;
+          pointer-events: auto;
+        }
+        .panel[data-state="collapsed"] .panel-body,
+        .panel[data-state="neutral"]   .panel-body {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .spine-content { transition: none; }
+      }
+
+    Semantics unchanged from R01: in reduced-motion mode,
+    everything snaps instantly to its end state. This is
+    equivalent to what the previous keyframe-animation
+    `animation: none` did; the new rules are the
+    transition-based equivalent.
+
+F4. The .spine-content block (lines 142-150) is correct
+    as-is. Verify that:
+
+      .spine-content {
+        opacity: 1;
+        transition: opacity 180ms linear;
+      }
+      .panel[data-state="expanded"] .spine-content {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+    still applies verbatim. This is R02's label-fade-in-
+    place. Under rapid hover swap, the transition on
+    opacity retargets from current (not from 1 or 0) and
+    is itself interruption-safe. No change required. Keep
+    the rule; P02 adds a test in P04 that verifies the
+    retargeting (no snap to 0 or 1 on swap).
+
+F5. Optional affordance — intent underline (implement if
+    straightforward; skip if it adds risk):
+
+      /* 08: during coldDwell, the dwelling panel's spine
+         shows a 1px accent rule at the baseline so the
+         user gets visual confirmation that the hover is
+         "arming" the expansion. Fades in over --d-fast;
+         fades out the moment intent-target flips off. */
+      .panel[data-intent-target="true"] .panel-spine {
+        box-shadow: inset 0 -1px 0 0 var(--accent);
+        transition: box-shadow var(--d-fast) var(--ease);
+      }
+      .panel[data-intent-target="false"] .panel-spine {
+        box-shadow: none;
+        transition: box-shadow var(--d-fast) var(--ease);
+      }
+
+    Rationale: the cold-dwell period (120ms) is short
+    enough that a visual affordance is mostly decorative,
+    but it gives the user a "yes, I'm seeing your hover"
+    signal during the wait. If the affordance reads as
+    visual noise in review, drop it — it is
+    non-load-bearing. P03 decides on a11y implications
+    (the underline is not announced to screen readers
+    and must not be the only pin indicator).
+
+    If kept, gate it under the same hover media query as
+    the rest of the hover behavior (so touch devices
+    never see the underline):
+
+      @media not ((hover: hover) and (pointer: fine) and (min-width: 768px)) {
+        .panel[data-intent-target="true"] .panel-spine {
+          box-shadow: none;
+        }
+      }
+
+F6. Do NOT add a CSS rule for [data-pinned="true"] in
+    this prompt. That is P03's territory (it decides the
+    pinned visual — likely a 1px accent notch different
+    from the intent underline).
+
+---
+
+§G — VERIFICATION (manual, before handing to P04)
+
+G1. Visual: open the dev server. Hover panel 1 for >120ms;
+    it should expand smoothly over 420ms. After it's
+    expanded, hover panel 2. Observe: panel 1 fades out
+    over 180ms; panel 2's body appears with the 260ms
+    delay followed by the 260ms eased fade-in. No visible
+    gap of neutral. No jump to opacity 1 on either panel.
+
+G2. Rapid swap: hover 1→2→3→4→5 with cursor dragged over
+    the accordion in ~300ms. Observe: no expansions happen
+    during the traversal (coldDwell never reaches 120ms
+    on any panel while cold). This verifies P01.
+
+G3. Mid-animation swap: hover panel 1 for 150ms (fully
+    warm; panel 1 is mid-fade-in, opacity ~0.4). Without
+    pausing, hover panel 2. Observe: panel 1's opacity
+    should monotonically decrease from ~0.4 to 0 over
+    180ms. It should NOT spike to 1 at any frame. Panel
+    2's opacity stays 0 for 260ms then rises to 1. Use
+    DevTools "Rendering > Paint flashing" to confirm the
+    paint happens smoothly (no large invalidation bursts
+    at the swap moment).
+
+G4. Mid-animation re-entry: hover panel 1 for 150ms;
+    immediately hover panel 2 for 50ms; immediately hover
+    panel 1 again. Observe: panel 1's opacity should
+    smoothly return to 1 with NO intermediate jump. Panel
+    2 never becomes visible (it was still in its 260ms
+    delay when the cursor left).
+
+G5. Reduced-motion: set
+    matchMedia("(prefers-reduced-motion: reduce)").
+    Hover panel 1. Observe: panel 1 appears instantly,
+    no transition. Hover panel 2. Panel 1 disappears
+    instantly; panel 2 appears instantly. This is
+    consistent with R01's reduced-motion semantics.
+
+G6. Pin (requires P03 for full behavior, but the visual
+    propagation can be checked now): set data-pinned=
+    "true" manually via devtools on a panel. No visible
+    change (F6: P02 does not style it). Later, P03's
+    styling will attach.
+
+G7. will-change hygiene: during a single expansion, open
+    DevTools > Rendering > "Layer borders" and "Paint
+    flashing". Observe: only the actively-animating panel
+    has a compositor layer (indicated by an orange
+    border). After 420ms the layer collapses. No layer
+    persists on a panel after its transition completes.
+
+---
+
+§H — ACCEPTANCE (this prompt)
+
+    [ ] globals.css no longer contains @keyframes
+        operator-panel-in or operator-panel-out.
+    [ ] globals.css .panel-body uses `transition:` on
+        opacity and transform; no `animation:`.
+    [ ] .panel-body in the base rule has opacity:0,
+        transform:translateY(6px), pointer-events:none.
+    [ ] .panel[data-state="expanded"] .panel-body has
+        opacity:1, transform:translateY(0),
+        pointer-events:auto.
+    [ ] tokens.css contains --d-panel-body-in (260ms),
+        --d-panel-body-in-delay (260ms),
+        --d-panel-body-out (180ms),
+        --ease-panel-body-in (var(--ease-accordion)).
+    [ ] Reduced-motion media block collapses the three
+        --d-panel-body-* to 0ms.
+    [ ] Panel.tsx accepts pinned, intentTarget,
+        onHoverLeave props and surfaces data-pinned and
+        data-intent-target attributes.
+    [ ] Panel.tsx is-animating is scoped via
+        transitionend (or 420ms timer) rather than 540ms.
+    [ ] Accordion.tsx passes pinned, pinnedIndex-compare,
+        intentTarget, and handlers.onPanelLeave to each
+        Panel.
+    [ ] Accordion.tsx root <div> has
+        onMouseLeave={handlers.onAccordionLeave}.
+    [ ] Visual G1-G4 checks pass by eye (P04's Playwright
+        tests will automate them).
+    [ ] No regressions to R01's click-driven expansion
+        choreography (click a spine; panel opens with
+        420ms width transition, body fades in starting
+        at t=260, reaching full at t=520).
+    [ ] No regressions to R02's spine label fade-in-place
+        (hover a panel; label fades 1→0 over 180ms with
+        no translate/rotate/scale).
+    [ ] Bundle delta: CSS only. JS delta ≤ +0.2KB gzip
+        from Panel.tsx additions (the transitionend
+        listener, data-attribute props). Hard budget
+        ≤ 0.3KB.
+
+---
+
+§I — NOTES FOR P03 / P04
+
+I1. P03 will add CSS for `[data-pinned="true"]` on the
+    panel or the spine (TBD in P03; likely a 1px left-
+    edge accent). P02 reserved the attribute; P03 styles
+    it.
+
+I2. P03 will re-wire onActivate from handlers.onPin
+    (current: already pointed at onPin in this prompt's
+    D1 example) to include ESC-unpin and re-click-unpin
+    in Accordion.tsx's keyboard handlers. P02 does not
+    touch the keyboard path.
+
+I3. P04's rapid-swap Playwright test depends on:
+      - the tokens being readable via
+        getComputedStyle(document.documentElement)
+        .getPropertyValue("--d-panel-body-in") → "260ms"
+      - the data-state attribute being synchronously
+        updated on state change (it is — Panel.tsx sets
+        it inline from props)
+      - the transitionend event firing on flex-basis
+        completion (it does under normal browser
+        conditions; Safari edge-cases are handled by the
+        safety-net timer).
+
+I4. This prompt does NOT add the "intent underline"
+    affordance to the acceptance checklist of §H. If
+    F5 is implemented, P04's test file r01_r02_
+    invariants.test.ts should add a smoke check that
+    [data-intent-target="true"] renders a box-shadow and
+    that it clears when the attribute flips. If F5 is
+    skipped, the hook's intentTarget return is unused
+    from CSS but remains available to a future suite
+    (e.g., a keyboard-driven preview mode).
+
+I5. Future work (out of scope): if a subsequent reviewer
+    argues the 260ms delay feels like latency under warm
+    swap, consider a [data-state-was-expanded="true"]
+    attribute on the accordion root that reduces
+    --d-panel-body-in-delay to 0 on warm-swap transitions
+    only. This is a motion refinement, not a correctness
+    fix; do not bundle it with P02.
+
+---
+
+END P02. Motion layer is interrupt-safe. Proceed to P03 —
+PIN / KEYBOARD / TOUCH / A11Y.

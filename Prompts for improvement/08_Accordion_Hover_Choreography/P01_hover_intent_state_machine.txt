@@ -1,0 +1,747 @@
+P01 — HOVER-INTENT STATE MACHINE
+====================================
+
+ROLE: You are a senior TypeScript/React engineer
+implementing the hover-intent state machine for the
+accordion. This prompt ships the pure logic (a framework-
+agnostic finite state machine expressed as a React hook)
+and wires it into src/components/shell/Accordion.tsx. It
+does NOT touch CSS (P02's job) or add pin semantics (P03's
+job) or write tests (P04's job), beyond a minimal
+hoverIntent.test.tsx unit test for the hook's pure logic.
+
+This prompt solves the hover-intent deficiencies C1, C2,
+C4, C10, and C11 (flicker under rapid horizontal sweeps,
+leave-gap still collapses the panel, unpinning surprise,
+focus-loss during swap, and screen-reader churn). C3, C5,
+C6, C7, C8, and C9 are addressed in P02 and P03.
+
+---
+
+§A — FILES
+
+Create:
+
+    src/lib/accordion/hoverIntent.ts        — the hook
+    src/lib/accordion/types.ts              — shared types
+    tests/accordion/hover_intent.test.tsx   — unit tests
+
+Modify:
+
+    src/components/shell/Accordion.tsx      — consume hook
+    src/styles/tokens.css                   — add two
+                                              --d-hover-*
+                                              tokens
+
+No other files are touched in this prompt.
+
+
+---
+
+§B — THE FINITE STATE MACHINE (behavioral spec)
+
+B1. States
+
+    type Phase =
+      | "idle"          // no panel expanded; no dwell timer
+      | "coldDwell"     // cursor over a panel; dwell timer
+                        // running; nothing expanded yet
+      | "warm"          // a panel is expanded (hover or
+                        // pin); cursor is inside the
+                        // accordion region
+      | "leaving";      // cursor has left the accordion
+                        // region; leave-tolerance timer
+                        // running; if it fires, phase→idle
+
+    The "phase" is a field on state; it is distinct from
+    the Accordion component's `state` union ({ mode:
+    "neutral" } | { mode: "expanded"; index: number }) —
+    the Accordion state tracks WHICH panel is expanded,
+    the hoverIntent phase tracks WHY.
+
+B2. Inputs (the hook's events)
+
+    onPointerEnter(index: number)
+      — cursor entered panel at index.
+
+    onPointerLeave(index: number)
+      — cursor left panel at index (but may still be
+        inside the accordion — wait to see if another
+        panel's onPointerEnter fires).
+
+    onAccordionLeave()
+      — cursor left the accordion root element entirely.
+        Fires on the root <div className="accordion">'s
+        onPointerLeave, which bubbles from any descendant
+        so it only fires when the cursor exits the
+        accordion's bounding box.
+
+    onPin(index: number)
+      — external call: click or Enter pinned this panel.
+        Pin behavior is spec'd in P03; hoverIntent only
+        needs to KNOW it happened (hover no longer
+        drives state; phase becomes "warm" with a pinned
+        flag).
+
+    onUnpin()
+      — external: ESC or re-click of pinned unpinned it.
+
+    onFocusInside(index: number | null)
+      — external: the browser's focus is on a descendant
+        of panel at index (or null if nothing is focused
+        inside any panel). Used as a "keep-open" predicate:
+        a panel with focus inside is never collapsed by
+        leave-tolerance.
+
+B3. Outputs (what the hook emits)
+
+    The hook returns:
+
+      {
+        activeIndex: number | null,   // the panel that
+                                      // the accordion
+                                      // should currently
+                                      // render as
+                                      // expanded. null =
+                                      // neutral.
+        intentTarget: number | null,  // the panel the
+                                      // user is currently
+                                      // dwelling on (may
+                                      // differ from
+                                      // activeIndex
+                                      // during coldDwell).
+        phase: Phase,
+        handlers: {
+          onPanelEnter(i): void,
+          onPanelLeave(i): void,
+          onAccordionLeave(): void,
+          onPin(i): void,
+          onUnpin(): void,
+          onFocusInside(i: number | null): void,
+        }
+      }
+
+    Accordion.tsx reads `activeIndex` and uses it exactly
+    where it currently reads `state.index` to decide
+    `visualState`. The existing state union is preserved
+    as an adapter:
+
+      const accordionState =
+        activeIndex == null
+          ? { mode: "neutral" as const }
+          : { mode: "expanded" as const, index: activeIndex };
+
+    This keeps the Accordion→Panel contract stable. The
+    hook owns the nuance; the existing rendering code
+    sees just a derived `activeIndex`.
+
+    `intentTarget` is surfaced so P02 can render an optional
+    "intent underline" affordance on the dwelling panel's
+    spine. If P02 chooses not to render it, the value is
+    harmlessly unused.
+
+B4. Transitions
+
+    All timers are cleared on any transition unless
+    otherwise noted. Durations reference tokens; see §D.
+
+    (idle)
+      onPanelEnter(i) →  phase="coldDwell"; intentTarget=i;
+                          start dwellTimer(COLD_DWELL_MS);
+                          activeIndex unchanged (null).
+      onPin(i)        →  phase="warm"; pinned=true;
+                          pinnedIndex=i; activeIndex=i;
+                          intentTarget=null.
+      onFocusInside(i)→  if i != null: phase="warm";
+                          activeIndex=i; intentTarget=null.
+                          Otherwise no-op.
+
+    (coldDwell, intentTarget=i)
+      onPanelEnter(j) if j != i  →  intentTarget=j;
+                          reset dwellTimer(COLD_DWELL_MS);
+                          activeIndex unchanged (null).
+      onPanelLeave(i) →  phase="idle"; clear dwellTimer;
+                          intentTarget=null.
+      dwellTimer fires →  phase="warm"; activeIndex=i;
+                          intentTarget=null.
+      onAccordionLeave()→ phase="idle"; clear dwellTimer;
+                          intentTarget=null.
+      onPin(j)        →  phase="warm"; pinned=true;
+                          pinnedIndex=j; activeIndex=j;
+                          clear dwellTimer;
+                          intentTarget=null.
+
+    (warm, pinned=false, activeIndex=i)
+      onPanelEnter(j) if j != i  →  activeIndex=j;
+                          (no dwell; warm-swap is
+                          instant, per 00_INDEX §D2).
+      onPanelLeave(i) →  nothing (still warm; other
+                          panel may fire enter, or
+                          accordion may fire leave).
+      onAccordionLeave()→ if focusInsideIndex == i:
+                            no-op (focus keeps open).
+                          else:
+                            phase="leaving";
+                            start leaveTimer(LEAVE_MS).
+      onPin(j)        →  pinned=true; pinnedIndex=j;
+                          activeIndex=j.
+      onFocusInside(j)→  track focusInsideIndex = j;
+                          no phase change unless leaving
+                          (see below).
+
+    (warm, pinned=true, activeIndex=i (= pinnedIndex))
+      onPanelEnter(j)  →  no-op (hover disabled while
+                          pinned, per 00_INDEX §D4).
+      onPanelLeave(i)  →  no-op.
+      onAccordionLeave()→ no-op (pinned stays open even
+                          when cursor fully leaves).
+      onUnpin()        →  pinned=false; phase="warm" if
+                          cursor is currently over any
+                          panel (use last-known
+                          hoveredIndex if available;
+                          default to keep activeIndex=i
+                          until cursor moves); otherwise
+                          phase="leaving";
+                          start leaveTimer(LEAVE_MS).
+      onPin(j) if j != i →  pinnedIndex=j; activeIndex=j.
+      onPin(i)         →  unpin (re-click on pinned
+                          toggles off); route to onUnpin.
+
+    (leaving, activeIndex=i)
+      leaveTimer fires →  if focusInsideIndex == i:
+                            stay at phase="warm"; do not
+                            collapse. Clear timer.
+                          else:
+                            phase="idle"; activeIndex=null.
+      onPanelEnter(j)  →  clear leaveTimer;
+                          if j == i:
+                            phase="warm";  // re-entered
+                                           // the same
+                                           // panel
+                          else:
+                            phase="warm"; activeIndex=j;
+                            // swap to the newly entered
+                            // panel without passing
+                            // through idle.
+      onAccordionLeave()→  no-op (already leaving).
+      onPin(j)         →  clear leaveTimer; pinned=true;
+                          pinnedIndex=j; activeIndex=j;
+                          phase="warm".
+      onFocusInside(j) →  if j != null: clear leaveTimer;
+                          phase="warm"; activeIndex=j.
+
+B5. Invariants (MUST HOLD in every reachable state)
+
+    I1. At most one of dwellTimer and leaveTimer is
+        scheduled at any time.
+    I2. If phase == "warm" and pinned == false and
+        cursor is outside the accordion and no descendant
+        has focus, a leaveTimer IS scheduled (otherwise
+        the panel would stay expanded indefinitely).
+        Equivalent: if that precondition holds, phase
+        actually equals "leaving" — the named transition
+        fires immediately.
+    I3. activeIndex ∈ { null, 1, 2, 3, 4, 5, 6 } where 6
+        is only reachable when PANEL_LOG is showing
+        (>=1680px).
+    I4. intentTarget != null implies phase == "coldDwell".
+    I5. Transitions never produce activeIndex jumping
+        to null between two expanded values. A swap
+        (N→M) is a single transition, not two (N→null
+        then null→M). This matters for the CSS layer:
+        the "null" intermediate would cause all five
+        panels to flex: 1 1 0 and produce a full-
+        neutral flash.
+    I6. The hook is a pure function of its inputs plus
+        an internal timer clock; same sequence of inputs
+        at the same times always produces the same
+        sequence of outputs. (The only non-determinism
+        is the timer clock, which tests mock.)
+
+
+---
+
+§C — THE HOOK IMPLEMENTATION
+
+C1. Signature
+
+    // src/lib/accordion/hoverIntent.ts
+    import { useEffect, useReducer, useRef, useCallback } from "react";
+    import type { Phase, ActiveTarget, PinState } from "./types";
+
+    export interface HoverIntentConfig {
+      panelCount: number;           // 5 or 6
+      coldDwellMs?: number;         // default: read from
+                                    // CSS var --d-hover-
+                                    // intent-cold at mount.
+      leaveMs?: number;             // default: CSS var
+                                    // --d-hover-intent-
+                                    // leave.
+      enabled?: boolean;            // default: true.
+                                    // When false (e.g.,
+                                    // (hover: none)),
+                                    // all handlers no-op
+                                    // and activeIndex is
+                                    // driven by external
+                                    // pin calls only.
+      initialActiveIndex?: number | null;
+      onActiveChange?: (idx: number | null) => void;
+                                    // called each time
+                                    // activeIndex
+                                    // changes. The
+                                    // caller uses this
+                                    // to debounce hash
+                                    // sync (§E).
+    }
+
+    export interface HoverIntentResult {
+      activeIndex: number | null;
+      intentTarget: number | null;
+      phase: Phase;
+      pinned: boolean;
+      pinnedIndex: number | null;
+      handlers: {
+        onPanelEnter: (i: number) => void;
+        onPanelLeave: (i: number) => void;
+        onAccordionLeave: () => void;
+        onPin: (i: number) => void;
+        onUnpin: () => void;
+        onFocusInside: (i: number | null) => void;
+      };
+    }
+
+    export function useHoverIntent(config: HoverIntentConfig): HoverIntentResult;
+
+C2. Internal state shape
+
+    interface Internal {
+      phase: Phase;
+      activeIndex: number | null;
+      intentTarget: number | null;
+      pinned: boolean;
+      pinnedIndex: number | null;
+      focusInsideIndex: number | null;
+      lastHoveredIndex: number | null;   // used by
+                                          // onUnpin
+                                          // transition.
+    }
+
+    Action union:
+      | { type: "ENTER"; i: number }
+      | { type: "LEAVE"; i: number }
+      | { type: "ACCORDION_LEAVE" }
+      | { type: "PIN"; i: number }
+      | { type: "UNPIN" }
+      | { type: "FOCUS_INSIDE"; i: number | null }
+      | { type: "DWELL_TIMEOUT" }
+      | { type: "LEAVE_TIMEOUT" }
+
+    The reducer is a pure function mapping (Internal,
+    Action) → Internal plus a TimerCommand:
+
+      | { kind: "none" }
+      | { kind: "scheduleDwell"; ms: number }
+      | { kind: "scheduleLeave"; ms: number }
+      | { kind: "cancel" }
+
+    Timers are scheduled via setTimeout in a useEffect
+    that runs on every reducer dispatch and reconciles
+    the desired TimerCommand against the currently-
+    scheduled timer. This keeps the reducer itself pure
+    and test-friendly.
+
+C3. Timer reconciliation
+
+    A ref holds { dwell: number | null, leave: number | null }.
+    Each dispatched command:
+      - "none":              leave timers as-is.
+      - "scheduleDwell":     clearTimeout(dwell); clearTimeout(leave);
+                             dwell = setTimeout(() =>
+                               dispatch({ type: "DWELL_TIMEOUT" }),
+                               ms);
+                             leave = null.
+      - "scheduleLeave":     same pattern but for leave.
+      - "cancel":            clearTimeout(both); null out refs.
+
+    On unmount: cancel both timers. Invariant I1 is
+    maintained here.
+
+C4. Reduced-motion path
+
+    If the media query `prefers-reduced-motion: reduce`
+    matches at mount, override coldDwellMs and leaveMs
+    to 0. The state machine still runs; all dwells and
+    leaves fire synchronously on their triggering action.
+    This preserves behavior (hover does open, leave
+    does close, pins do pin) but without the timing
+    discipline — consistent with R01 §7's principle that
+    reduced-motion collapses durations without removing
+    functionality.
+
+    Listen to `matchMedia('(prefers-reduced-motion: reduce)')
+    .addEventListener('change', …)` so a mid-session
+    preference change is honored.
+
+C5. No pointer:coarse / hover:none
+
+    When config.enabled === false, every handler returns
+    immediately without dispatching. The hook still
+    tracks pin/unpin (those are click-driven, not
+    hover-driven, so they remain active on touch
+    devices).
+
+    Accordion.tsx computes enabled at runtime:
+
+      const prefersHover =
+        typeof window !== "undefined" &&
+        window.matchMedia(
+          "(hover: hover) and (pointer: fine) and (min-width: 768px)"
+        ).matches;
+
+      const { activeIndex, handlers, … } = useHoverIntent({
+        panelCount: list.length,
+        enabled: prefersHover,
+        initialActiveIndex: initialExpandedIndex,
+        onActiveChange: debouncedOnActiveChange,  // see §E
+      });
+
+
+---
+
+§D — TIMING TOKENS
+
+In src/styles/tokens.css, add under the existing
+`:root` block (adjacent to --d-accordion):
+
+    /* R01+08: hover-intent debounce tokens. Cold dwell
+       prevents accidental opens when the cursor passes
+       over the accordion; leave-tolerance prevents
+       flickery closes on brief cursor dips. */
+    --d-hover-intent-cold:  120ms;
+    --d-hover-intent-leave: 200ms;
+
+And under the existing `@media (prefers-reduced-motion:
+reduce)` block:
+
+    --d-hover-intent-cold:  0ms;
+    --d-hover-intent-leave: 0ms;
+
+The hook reads these via getComputedStyle(document.
+documentElement).getPropertyValue('--d-hover-intent-
+cold') at mount and parses to a number (strip "ms"
+suffix). This keeps a single source of truth in
+tokens.css; the hook never hard-codes timings.
+
+If the reader returns "" (SSR, or CSS not loaded yet),
+fall back to the hook's config.coldDwellMs argument or
+the hard-coded default 120ms.
+
+
+---
+
+§E — ACCORDION.TSX WIRING
+
+E1. Replace the existing `onHover` handler with the hook's
+    `onPanelEnter`. Do NOT keep the immediate
+    expand(p.index) call. The hook owns the decision of
+    when to flip activeIndex.
+
+E2. Wire onMouseLeave on the <Panel> prop (P02 will
+    thread it through Panel.tsx) to call
+    handlers.onPanelLeave(p.index).
+
+E3. Wire onMouseLeave on the root <div
+    className="accordion"> to call handlers.onAccordionLeave().
+    This fires when the cursor leaves the accordion's
+    bounding box entirely.
+
+E4. Wire an onFocus / onBlur at the accordion root that
+    tracks which panel index contains document.activeElement.
+    Implementation:
+
+      function handleFocusChange(e: FocusEvent) {
+        const active = document.activeElement;
+        if (!active || !rootRef.current?.contains(active)) {
+          handlers.onFocusInside(null);
+          return;
+        }
+        // Walk up from activeElement to find the nearest
+        // panel section (id="panel-body-XX") and read its
+        // panel index.
+        let node: Element | null = active;
+        while (node && node !== rootRef.current) {
+          const idAttr = (node as HTMLElement).id ?? "";
+          const match = /^panel-body-(\d{2})$/.exec(idAttr);
+          if (match) {
+            handlers.onFocusInside(parseInt(match[1], 10));
+            return;
+          }
+          node = node.parentElement;
+        }
+        handlers.onFocusInside(null);
+      }
+
+      useEffect(() => {
+        const root = rootRef.current;
+        if (!root) return;
+        root.addEventListener("focusin",  handleFocusChange);
+        root.addEventListener("focusout", handleFocusChange);
+        return () => {
+          root.removeEventListener("focusin",  handleFocusChange);
+          root.removeEventListener("focusout", handleFocusChange);
+        };
+      }, []);
+
+    Use focusin/focusout (not focus/blur) because they
+    bubble — focus/blur do not.
+
+E5. Derive state from activeIndex:
+
+      const state: State =
+        activeIndex == null
+          ? { mode: "neutral" }
+          : { mode: "expanded", index: activeIndex };
+
+    Remove the local `useState<State>` — activeIndex is
+    now the source of truth. The `focusIndex` variable
+    for keyboard navigation stays as a separate
+    useState (it tracks which panel the keyboard would
+    activate, not which is currently expanded, and
+    those diverge during hover-driven swaps).
+
+E6. Debounce setHash and BroadcastChannel postMessage:
+
+      const settledActiveRef = useRef<number | null>(initialExpandedIndex ?? null);
+      const debounceRef = useRef<number | null>(null);
+
+      const debouncedOnActiveChange = useCallback((idx: number | null) => {
+        if (debounceRef.current != null) clearTimeout(debounceRef.current);
+        debounceRef.current = window.setTimeout(() => {
+          if (settledActiveRef.current === idx) return;
+          settledActiveRef.current = idx;
+          setHash(idx);
+          if (localOriginRef.current) {
+            channelRef.current?.postMessage(
+              idx == null
+                ? { type: "neutral" }
+                : { type: "expand", idx }
+            );
+          }
+        }, 80);  // 80ms: short enough to feel responsive
+                 // in the URL bar; long enough to absorb
+                 // a 5-tab rapid traversal.
+      }, [setHash]);
+
+    Rationale: the FSM may flip activeIndex five times in
+    ~300ms during a rapid swap. Each flip should NOT
+    produce a history.replaceState call and a
+    BroadcastChannel message. The debounce coalesces
+    them: only the settled target's hash is written.
+    80ms < 120ms (cold dwell) < 200ms (leave tolerance),
+    so it never collides with legitimate intent timing.
+
+E7. Preserve all useHotkey wiring (lines 78-87 in the
+    existing Accordion.tsx):
+      - ArrowRight/ArrowLeft: focusIndex ±1.
+      - Escape: collapseToNeutral — now maps to
+        handlers.onUnpin() THEN, if not pinned, leaves
+        the FSM to the leaveTimer. Actually: per 00_INDEX
+        §G, ESC unpins AND collapses to neutral. The
+        cleanest wiring:
+          Escape → handlers.onUnpin();
+                   handlers.onAccordionLeave();
+        The latter starts a leaveTimer which fires at
+        LEAVE_MS=200ms (or 0ms in reduced-motion). For an
+        immediate collapse on ESC, the user likely wants
+        instant; override by dispatching a synthetic
+        LEAVE_TIMEOUT action directly (add to the hook
+        API as `handlers.forceIdle()`), OR by
+        temporarily passing leaveMs=0 for this path.
+        Simpler: add handlers.forceIdle() to the hook
+        surface. It sets phase=idle, activeIndex=null,
+        intentTarget=null, cancels all timers, and
+        clears the pin flag. Bind ESC to forceIdle.
+      - Enter: expand(focusIndex) — now maps to
+        handlers.onPin(focusIndex). Pin semantics per
+        P03.
+      - 1-6: expand(N) — now maps to
+        handlers.onPin(N). Pin.
+
+E8. Preserve the initial expansion on mount:
+
+    If initialExpandedIndex != null, call
+    handlers.onPin(initialExpandedIndex) once on mount.
+    This makes the initial panel appear pinned so a
+    stray cursor doesn't cause it to close. If the user
+    prefers hover-openness from boot, they can unpin
+    with ESC or by clicking. (Alternative: start in
+    activeIndex = initialExpandedIndex with pinned =
+    false. This would cause the boot panel to close
+    the moment the user moves the cursor. Rejected —
+    too surprising at t=0.)
+
+    R01 §8 asked for "the initial expansion of panel 01
+    should use the SAME 420ms choreography." This still
+    holds: the pin fires on mount, Accordion.tsx derives
+    expanded, CSS transitions in on first paint. Verify
+    by comparing to R01's first-load boot video.
+
+
+---
+
+§F — TYPES FILE
+
+Create src/lib/accordion/types.ts:
+
+    export type Phase = "idle" | "coldDwell" | "warm" | "leaving";
+
+    export type ActiveTarget =
+      | { kind: "none" }
+      | { kind: "hover"; index: number }
+      | { kind: "pin"; index: number };
+
+    export interface PinState {
+      pinned: boolean;
+      pinnedIndex: number | null;
+    }
+
+    Re-exported from hoverIntent.ts for convenience:
+
+      export type { Phase, ActiveTarget, PinState };
+
+
+---
+
+§G — MINIMAL UNIT TESTS (this prompt's own coverage)
+
+In tests/accordion/hover_intent.test.tsx, write:
+
+  G1. "idle + ENTER(1) → coldDwell, intentTarget=1,
+      dwellTimer scheduled"
+      Use jest.useFakeTimers(); advance 119ms → still
+      coldDwell; advance 1ms more → phase="warm",
+      activeIndex=1.
+
+  G2. "coldDwell on 1 + ENTER(2) → coldDwell, intentTarget=2,
+      dwellTimer reset"
+      Advance 100ms after ENTER(1) (not yet expanded),
+      ENTER(2), advance 119ms (still cold), advance 1ms
+      (now warm on 2, never visited state warm on 1).
+
+  G3. "coldDwell + LEAVE → idle"
+      ENTER(1), advance 50ms, LEAVE(1). No dwellTimer
+      fires; phase goes to idle immediately.
+
+  G4. "warm on 1 + ENTER(2) → warm on 2 (instant swap)"
+      After the dwell fires for 1, ENTER(2) flips
+      activeIndex to 2 with zero delay. No dwellTimer
+      scheduled.
+
+  G5. "warm on 1 + ACCORDION_LEAVE (no focus inside)
+      → leaving, leaveTimer scheduled; after 200ms,
+      → idle"
+      Verify leave timer respects LEAVE_MS token.
+
+  G6. "leaving on 1 + ENTER(1) → warm on 1 (timer
+      canceled)"
+      Verify re-entry cancels leave.
+
+  G7. "leaving on 1 + ENTER(2) → warm on 2 (NO idle
+      intermediate)"
+      The FSM must swap directly without transiting idle.
+      Snapshot the sequence of activeIndex values the
+      reducer produces; assert it is [1, 2] not [1,
+      null, 2]. This is invariant I5.
+
+  G8. "warm on 1 + PIN(2) → pinned on 2, hover disabled"
+      After pin, ENTER(3) has no effect on activeIndex.
+      Unpin, ENTER(3) now swaps.
+
+  G9. "focus inside 1 + ACCORDION_LEAVE → no collapse"
+      leaveTimer fires after 200ms; because focusInsideIndex
+      == activeIndex, phase stays warm; activeIndex=1.
+
+  G10. "reduced-motion: dwell 0ms, leave 0ms"
+       With prefersReducedMotion=true, ENTER(1) flips
+       activeIndex in the same tick; ACCORDION_LEAVE
+       collapses in the same tick.
+
+Each test pins the hook's internal clock with fake
+timers. The reducer is tested separately as a pure
+function (simpler assertions) for G1-G8; the useEffect-
+based timer reconciliation gets its own integration
+test using @testing-library/react-hooks or
+@testing-library/react's renderHook.
+
+
+---
+
+§H — BUNDLE BUDGET (for P04)
+
+  hoverIntent.ts + types.ts         ≤ 2.0KB gzip
+  Accordion.tsx delta vs current    ≤ 0.5KB gzip
+  tokens.css delta                  ≤ 0.1KB gzip
+  Total P01 bundle delta            ≤ 2.6KB gzip
+
+P04 will assert these with bundle_budget.ts; overshoots
+are FAILs.
+
+
+---
+
+§I — ACCEPTANCE (this prompt)
+
+  [ ] src/lib/accordion/hoverIntent.ts exports
+      useHoverIntent conforming to §C1.
+  [ ] src/lib/accordion/types.ts exports Phase,
+      ActiveTarget, PinState.
+  [ ] Accordion.tsx consumes the hook, preserves the
+      existing State derivation, and no longer calls
+      expand() synchronously on mouseenter.
+  [ ] tokens.css contains --d-hover-intent-cold (120ms)
+      and --d-hover-intent-leave (200ms), with
+      reduced-motion overrides to 0ms.
+  [ ] hover_intent.test.tsx tests G1-G10 pass.
+  [ ] No regressions to R01's click-open flow:
+      clicking a spine still expands the panel via
+      the existing onActivate handler (which P03 will
+      repoint to handlers.onPin).
+  [ ] ESC still collapses (via handlers.forceIdle
+      binding).
+  [ ] Invariants I1-I6 hold in every reducer path
+      exercised by the tests.
+
+
+---
+
+§J — NOTES FOR P02 / P03 / P04
+
+J1. P02 consumes the hook's `intentTarget` if it elects
+    to render a pre-open visual affordance (optional).
+    If P02 skips this, intentTarget is simply unused.
+
+J2. P03 owns the pin UI layer (aria-pressed on
+    PanelSpine, ESC wiring, click→onPin replacement).
+    This prompt's Accordion.tsx changes stop at wiring
+    the hook; the pin's click handler wiring is P03.
+
+J3. P04's Playwright tests drive REAL cursor motion,
+    not simulated pointer events. They need the
+    --d-hover-intent-cold / --d-hover-intent-leave
+    tokens in CSS so the tests can read them and
+    compute their wait durations.
+
+J4. The hook is framework-agnostic in spirit (the
+    reducer is pure), but it ships as a React hook
+    (useReducer + useEffect) because that is the
+    Accordion's host environment. If a future suite
+    wants to reuse the FSM elsewhere (e.g., a
+    command palette with hover-preview), extract
+    the reducer to a plain function that the React
+    hook wraps. Out of scope for now.
+
+
+---
+
+END P01. Hook logic ships. Proceed to P02 — MOTION
+COORDINATION.

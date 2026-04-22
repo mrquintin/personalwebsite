@@ -1,0 +1,866 @@
+P04 — DECISION POLICY GATES
+=============================
+
+ROLE: Continuing as the senior TypeScript/React engineer on the
+Coherence Engine suite. This prompt implements MODE 4, the
+Decision Policy Gates — a step-through of the six-gate policy
+that converts a scored application into one of three verdicts:
+pass, fail, manual_review.
+
+Read P01, P02, and P03 before starting. This prompt
+depends on the chassis from P01 and the domain parameters from P03.
+
+---
+
+WHAT THIS MODE HAS TO COMMUNICATE
+
+CE4 describes the decision_policy_spec.md implementation:
+
+  - Six gates, FIXED ORDER:
+        1. quality_gate
+        2. compliance_gate
+        3. anti_gaming_gate
+        4. portfolio_gate
+        5. coherence_gate
+        6. confidence_gate
+    Ordering is load-bearing — hard blockers fire before
+    expensive scoring.
+
+  - For each gate, a verdict of pass | fail | manual_review with
+    reason codes.
+
+  - The coherence gate uses CSreq = CSd0 + αd · log_2(S/Sdmin)
+    + R(S, Π), with R a sum of seven named terms
+    (r_utilization, r_domain_count, r_pipeline, r_domain_usd,
+    r_liquidity, r_drawdown, r_regime) clamped to [0, 0.35].
+
+  - Conservative enforcement: the coherence gate compares
+    CSobserved (= CSci95.lower, from P03) against CSreq, not
+    the point estimate.
+
+  - The confidence gate fires on CI width.
+
+The mode has to make this deterministic, step-through, and
+auditable.
+
+
+---
+
+GROUNDING — VERBATIM CONSTANTS
+
+Gate order (MUST not be reordered):
+
+    ["quality_gate", "compliance_gate", "anti_gaming_gate",
+     "portfolio_gate", "coherence_gate", "confidence_gate"]
+
+Quality gate thresholds (CE4 §4.1, defaults):
+
+    founder_words_min        = 400
+    turns_min                = 20
+    mean_confidence_min      = 0.70
+    low_confidence_ratio_max = 0.15
+    topic_coverage_min       = 0.60
+
+Compliance gate (CE4 §4.2):
+
+    compliance_status = "clear"            → pass
+    compliance_status = "review_required"  → manual_review
+    compliance_status = "blocked"          → fail
+
+Anti-gaming gate (CE4 §4.3):
+
+    anti_gaming_score < anti_gaming_warn_min      → pass
+    anti_gaming_warn_min <= score < anti_gaming_max → manual_review
+    anti_gaming_score >= anti_gaming_max          → fail
+
+    Use the defaults (authored for the fixtures):
+        anti_gaming_warn_min = 0.35
+        anti_gaming_max      = 0.60
+
+Portfolio gate (CE4 §4.4) — conjunction of three hard checks:
+
+    S <= S_max
+    projected_domain_exposure <= domain_hard_cap
+    projected_dry_powder_post_check >= min_liquidity_floor
+
+Defaults used in fixtures:
+
+    S_max                  = $500,000
+    domain_hard_cap        = 0.30  (of NAV)
+    min_liquidity_floor    = 0.08  (dry-powder ratio)
+
+Coherence gate (CE4 §3 + §4.5):
+
+    CSreq(S, d, Π) = CSd0 + αd · log_2(S / Sdmin) + R(S, Π)
+    R ∈ [0, 0.35]
+    Pass if CSobserved >= CSreq
+    Reason code: COHERENCE_BELOW_THRESHOLD on fail.
+
+Domain parameter table (from P03, reused):
+
+    market_economics   CSd0 = 0.18  γd = 2.0   αd = 0.25     (= 1/(2γd), exact)
+    governance         CSd0 = 0.20  γd = 2.2   αd ≈ 0.227    (= 1/(2γd); code uses 0.2273)
+    public_health      CSd0 = 0.22  γd = 2.4   αd ≈ 0.208    (= 1/(2γd); code uses 0.2083)
+    Sdmin for all three = $50,000
+    Note: αd is derived from αd = 1/(2γd) per CE4 §3.1. The
+    prose table uses the three-decimal rounded form matching
+    CE4 §3.1 line 160 ("≈ 0.227", "≈ 0.208"); the runtime
+    constant in domainParameters.ts stores the four-decimal
+    derived value (0.2273, 0.2083) so that
+    CSreq = CSd0 + αd·log_2(S/Sdmin) is computed from the
+    closed form rather than a display rounding. Both forms
+    round to the same three-decimal displayed number; the
+    fixture-integrity check (P06 B2) asserts
+    |αd_stored − 1/(2γd)| < 1e-6 per domain.
+    Ranges from CE4 §3.1 (NOT to be exceeded without a v2 policy):
+        CSd0 ∈ [0.05, 0.40]
+        γd   ∈ [1.0, 5.0]
+        Sdmin ∈ [10000, 250000]
+
+R TERMS (CE4 §3.2) — verbatim step-function contributions:
+
+    r_utilization     +0.01 at utilization >= 0.88
+                      +0.01 at utilization >= 0.93
+                      +0.01 at utilization >= 0.97
+    r_domain_count    +0.015 once >=25 passes committed in this domain
+    r_pipeline        +0.01 once >=40 open in the pipeline
+    r_domain_usd      +0.005 at 0.28 of capacity
+                      +0.005 at 0.36
+    r_liquidity       +0.005 when post-request headroom < 0.08
+                      +0.005 when post-request headroom < 0.05
+    r_drawdown        +0.01 at drawdown >= 0.12
+                      +0.01 at drawdown >= 0.22
+    r_regime          +0.015 in "stress"
+                      +0.01  in "defensive"
+
+R = sum of the above, clamped to [0, 0.35].
+
+Confidence gate (CE4 §4.6):
+
+    Pass if (CSci95.upper − CSci95.lower) < ci_width_max
+    Defaults used in fixtures: ci_width_max = 0.20.
+    Borderline: pass but width > ci_width_warn = 0.14
+                → manual_review (fixture dependent).
+
+Decision artifact contains every one of the above as an audit
+field (CE4 §5). In P04 the artifact preview is a stub; P05
+owns the full artifact inspector.
+
+
+---
+
+A) FILE LAYOUT
+
+    src/components/panels/hivemind/CoherenceEngine/Experience/DecisionPolicyGates/
+        index.tsx
+        ApplicationPicker.tsx
+        GatePipeline.tsx                     — six-gate pipeline view
+        GateCard.tsx                         — per-gate card
+        CSReqDecomposition.tsx               — CSreq formula + breakdown
+        RTermLedger.tsx                      — the seven R terms
+        DecisionStub.tsx                     — pass / fail / manual_review summary
+
+    src/lib/coherenceEngine/decisionInputs.ts
+    src/lib/coherenceEngine/gateEval.ts       — pure helpers for rendering verdicts
+
+    src/stores/coherenceEngineExperience.ts
+        — add GatesSlice to the store.
+
+A2. Store addition
+
+    export type GateKey =
+      | "quality_gate"
+      | "compliance_gate"
+      | "anti_gaming_gate"
+      | "portfolio_gate"
+      | "coherence_gate"
+      | "confidence_gate";
+
+    export type GateVerdict = "pass" | "fail" | "manual_review" | "pending";
+
+    export interface GatesSlice {
+      activeApplicationId: string;    // default first decisionInput
+      stepperIndex: number;           // 0..6; 0 = before first gate, 6 = after last
+      autoPlay: boolean;              // default false
+      rDetailExpanded: boolean;       // default false
+      activeRegime: "normal" | "defensive" | "stress";
+                                      // default: the authored portfolio_state.regime
+                                      // of the active input. Reset to the new input's
+                                      // authored regime on setActiveApplication.
+                                      // Details: §C8c.
+    }
+
+    Store actions:
+
+      setActiveApplication(id: string): void;
+      stepForward(): void;           // increments stepperIndex up to 6
+      stepBackward(): void;          // decrements to 0
+      resetPipeline(): void;         // stepperIndex = 0
+      toggleAutoPlay(): void;        // advances 1 gate every 900ms until 6 or toggled off
+      toggleRDetail(): void;
+      setActiveRegime(regime: "normal" | "defensive" | "stress"): void;
+
+    autoPlay uses setTimeout, NOT setInterval. Each tick schedules
+    the next. On stepperIndex === 6 or toggleAutoPlay to false,
+    the timeout is cleared.
+
+
+---
+
+B) FIXTURES
+
+B1. Five DecisionInput fixtures
+
+    src/lib/coherenceEngine/decisionInputs.ts
+
+    The DecisionInput shape matches CE4 §2 exactly:
+
+       export interface DecisionInput {
+         application_id: string;          // "app_..." ULID-ish
+         founder_id: string;              // "fnd_..."
+         requested_check_usd: number;
+         domain_primary: DomainKey;
+         domain_mix: Array<{ domain: DomainKey; weight: number }>;
+         coherence_superiority: number;                 // CS point
+         coherence_superiority_ci95: { lower: number; upper: number };
+         transcript_quality_score: number;              // 0..1
+         transcript_quality_detail?: {
+           founder_words: number;
+           turns: number;
+           mean_confidence: number;
+           low_confidence_ratio: number;
+           topic_coverage: number;
+         };
+         anti_gaming_score: number;                     // 0..1 gaming strength (NOT the multiplier a)
+         compliance_status: "clear" | "review_required" | "blocked";
+         portfolio_state: PortfolioState;
+         policy_version: "decision-policy-v1.0.0";
+       }
+
+       export interface PortfolioState {
+         utilization: number;              // 0..1
+         domain_count_in_primary: number;  // integer
+         open_pipeline_count: number;
+         domain_usd_fraction: number;      // 0..1 of capacity
+         post_request_headroom: number;    // 0..1
+         drawdown: number;                 // 0..1
+         regime: "normal" | "defensive" | "stress";
+       }
+
+    FIVE FIXTURES:
+
+       "app-01-pass"       clean pitch in market_economics;
+                           modest check ($150k); passes all six gates.
+
+       "app-02-manual"     governance pitch with borderline anti-
+                           gaming score (0.42, in warn band); other
+                           gates pass; OVERALL verdict =
+                           manual_review from anti-gaming.
+
+       "app-03-fail-coh"   public_health pitch with mediocre CS
+                           (+0.05) and large check ($350k). The
+                           coherence gate fails because CS_observed
+                           < CSreq (log-scale term + portfolio
+                           R push CSreq up).
+
+       "app-04-fail-port"  market_economics pitch that would over-
+                           concentrate the fund in the domain
+                           (projected_domain_exposure > cap).
+                           Portfolio gate fails BEFORE coherence is
+                           evaluated, demonstrating ordering.
+
+       "app-05-manual-ci"  governance pitch that would otherwise
+                           pass but has a wide CI (width = 0.17,
+                           above ci_width_warn of 0.14 but below
+                           ci_width_max of 0.20) → confidence gate
+                           returns manual_review.
+
+    Each fixture's DecisionInput + the outcomes are precomputed
+    and stored in a `GateRunResult` struct:
+
+       export interface GateRunResult {
+         inputId: string;
+         perGate: Array<{
+           gate: GateKey;
+           verdict: GateVerdict;
+           reasonCodes: string[];
+           detail: Record<string, unknown>;
+         }>;
+         overall: GateVerdict;            // last non-pass verdict encountered,
+                                          // or "pass" if all pass
+         csReq: {
+           domainBase: number;             // CSd0
+           logScaleTerm: number;           // αd · log_2(S/Sdmin)
+           rTotal: number;                 // R(S, Π)
+           rBreakdown: Record<RTermKey, number>;
+           csReq: number;                  // sum
+           csObserved: number;             // CSci95.lower
+           margin: number;                 // csObserved - csReq
+         };
+         ciWidth: number;                   // upper - lower
+         artifactHashStub: string;          // sha256 truncated to 12 chars; full artifact in P05
+       }
+
+       export type RTermKey =
+         | "r_utilization"
+         | "r_domain_count"
+         | "r_pipeline"
+         | "r_domain_usd"
+         | "r_liquidity"
+         | "r_drawdown"
+         | "r_regime";
+
+    GateRunResults are precomputed and committed alongside the
+    fixtures. P04 does NOT evaluate the gates at runtime; it
+    walks the precomputed result to render. (Reasoning: rendering
+    must be deterministic and identical to what the real backend
+    would produce; re-evaluating at render time invites drift.)
+
+B2. Reason codes
+
+    A minimal reason-code vocabulary, authored to match typical
+    spec practice:
+
+        QUALITY_BELOW_MIN_WORDS
+        QUALITY_BELOW_MIN_TURNS
+        QUALITY_ASR_CONFIDENCE_LOW
+        QUALITY_LOW_CONFIDENCE_RATIO_HIGH
+        QUALITY_TOPIC_COVERAGE_LOW
+
+        COMPLIANCE_REVIEW_REQUIRED
+        COMPLIANCE_BLOCKED
+
+        ANTI_GAMING_WARN_BAND
+        ANTI_GAMING_ABOVE_MAX
+
+        PORTFOLIO_CHECK_OVER_MAX
+        PORTFOLIO_DOMAIN_HARD_CAP
+        PORTFOLIO_LIQUIDITY_FLOOR
+
+        COHERENCE_BELOW_THRESHOLD
+        CONFIDENCE_INTERVAL_WARN
+        CONFIDENCE_INTERVAL_ABOVE_MAX
+
+    Reason codes are authored constants. P06's lint asserts
+    each fixture's reasonCodes is a subset of this vocabulary.
+
+B3. Domain params reuse
+
+    This mode imports DOMAIN_PARAMS from
+    src/lib/coherenceEngine/domainParameters.ts (P03's file).
+    Do NOT re-declare.
+
+
+---
+
+C) UI
+
+C1. Layout
+
+    WIDE (>= 960):
+        THREE-zone grid:
+          top 20%    — ApplicationPicker (horizontal 5-button row)
+                       + current input summary (requested_check_usd,
+                       primary domain, CS point, CI width, compliance)
+          middle 50% — GatePipeline (six gate cards laid out horizontally,
+                       connected by arrows showing the ordering)
+          bottom 30% — CSReqDecomposition (left) + RTermLedger (right)
+                       + DecisionStub (bottom-right corner)
+
+    STANDARD (640-960):
+        Vertical stack; ApplicationPicker stays horizontal; the six
+        gate cards become a vertical pipeline with verdicts on
+        the right.
+
+    NARROW (<640):
+        Fully stacked; gate cards collapse to one-line summaries
+        with a tap-to-expand detail.
+
+C2. ApplicationPicker.tsx
+
+    Five buttons with short labels:
+
+        [PASS]    [MANUAL (AG)]    [FAIL (COH)]    [FAIL (PORT)]    [MANUAL (CI)]
+
+    Under each, the application_id in small type. Keys 1-5
+    select. Active button underlined.
+
+    The selected input summary renders to the right of the
+    picker at WIDE, below it at smaller sizes:
+
+        app_01  |  $150,000  |  market_economics  |  CS = +0.xx
+                |  CI width = 0.xx  |  compliance: clear
+
+    The summary is not interactive.
+
+C3. GatePipeline.tsx
+
+    Six cards, rendered in order:
+
+        [1. QUALITY] → [2. COMPLIANCE] → [3. ANTI-GAMING] → [4. PORTFOLIO] → [5. COHERENCE] → [6. CONFIDENCE]
+
+    Each card is initially in "pending" state (dashed outline,
+    neutral color). When stepperIndex >= the card's 1-based
+    position, the card flips to its verdict state:
+
+        pass            → solid outline, active terminal color
+        manual_review   → solid outline, amber warning color
+        fail            → solid outline, red error color
+        pending         → dashed outline, grey
+
+    Between cards, the arrow shows the direction of evaluation.
+    When a gate verdict is non-pass, the arrows DOWNSTREAM of
+    that gate remain dashed: in a real run the pipeline halts
+    after the first non-pass, so the remaining gates do not
+    run. Subtle but load-bearing: this visually renders the
+    "fixed order is load-bearing" claim from CE4 §4.
+
+    Playback controls at the top of the pipeline:
+
+        [◀]   [▶]   [▶▶]   [⟲]
+
+    mapped to stepBackward, stepForward, toggleAutoPlay,
+    resetPipeline. Autoplay shows a subtle progress indicator
+    ticking per gate.
+
+    Keyboard:
+        SPACE          toggle autoplay
+        ARROW RIGHT    step forward
+        ARROW LEFT     step backward
+        HOME           reset
+        END            jump to stepperIndex = 6
+
+    aria-live: each step fires an announcement
+    "Gate N of 6, {gate}, verdict: {verdict}. {reason codes or
+    brief detail}."
+
+C4. GateCard.tsx
+
+    Card contents (top to bottom):
+
+        N. GATE_NAME                       verdict chip
+        key detail line (one sentence)
+        reason codes (if non-pass)
+        a "?" button that opens a gate-specific explainer drawer
+
+    Key detail line per gate:
+
+        quality_gate:
+          "score 0.xx  (founder_words, turns, confidence_mean,
+           low_conf_ratio, topic_coverage)"
+        compliance_gate:
+          "status: clear | review_required | blocked"
+        anti_gaming_gate:
+          "score 0.xx  (warn band 0.35 <= . < 0.60; fail >= 0.60)"
+        portfolio_gate:
+          "S <= S_max  | domain_exposure <= cap  | headroom >= floor"
+          (three inline checks; green/red dots per sub-check)
+        coherence_gate:
+          "CS_obs {+|-}0.xx  vs  CSreq = {+|-}0.xx  (margin
+           {+|-}0.xx)"
+        confidence_gate:
+          "CI width 0.xx  (warn 0.14, max 0.20)"
+
+    Click "?" opens a drawer with the gate-specific verbatim
+    rule from CE4. The drawer also includes a small cross-link
+    to openInMode("cosine", "stage:difference") for the
+    coherence_gate drawer (because coherence superiority
+    mechanics depend on the geometry covered there) and
+    openInMode("compare", "pitch:<active pitch matching>") for
+    further context.
+
+C5. CSReqDecomposition.tsx
+
+    For the currently-focused input (shown regardless of
+    stepperIndex):
+
+        CSreq = CSd0 + αd · log_2(S / Sdmin) + R(S, Π)
+
+        CSd0              = 0.xx       (domain = market_economics)
+        αd                = 0.xx
+        log_2(S/Sdmin)    = log_2(150000 / 50000) = log_2(3) ≈ 1.585
+        αd · log_2(...)   = +0.xxx
+        R                 = +0.xxx     (see ledger →)
+        ─────────────────────────
+        CSreq             = +0.xxx
+
+        CS_observed        = +0.xxx
+        margin (obs−req)   = {+|−}0.xxx   (green if positive, red otherwise)
+
+    A pedagogical note:
+
+        "A 4× larger check requires αd · log_2(4) = 2αd extra
+         coherence superiority. A 16× check requires one full
+         additional unit. Source: CE4 §3.1."
+
+C6. RTermLedger.tsx
+
+    Seven rows, one per R term. Each row:
+
+        term_name        value    triggered_step    basis
+        r_utilization    +0.0x    "at 0.88/0.93/0.97"
+                                  current utilization = 0.xx
+        r_domain_count   +0.0x    ">=25 passes in domain"
+                                  current count = N
+        r_pipeline       ...
+        r_domain_usd     ...
+        r_liquidity      ...
+        r_drawdown       ...
+        r_regime         ...
+        ─────────────────────────────────────────
+        R (unclamped)    +0.0x
+        R (clamped [0, 0.35])  +0.0x
+
+    Rows that did not trigger render at 0.000 in grey; rows that
+    triggered render in the active color. Clicking a row flips
+    the rDetailExpanded state and shows the step-function in
+    full text from CE4 §3.2.
+
+    The footer line explicitly shows the clamp:
+
+        "R clamped to [0, 0.35] per CE4 §3.2. An unclamped value
+         above 0.35 cannot be deployed under decision-policy-v1;
+         it requires bumping the policy series to v2."
+
+C7. DecisionStub.tsx
+
+    A 1-line badge + short artifact-hash stub for the currently
+    selected application:
+
+        PASS    artifact_hash: 7f3b2a1...
+        MANUAL  artifact_hash: 92eab40...
+        FAIL    artifact_hash: 15a9c3d...
+
+    Tapping the badge calls openInMode("audit", "artifact:<id>")
+    to hand off to P05.
+
+
+---
+
+C8) REGIME SELECTOR — PEDAGOGICAL EXTENSION
+    (migrated from 03_Interactive_Experiences/I02; the "view this
+    application in nominal vs. stressed regime" affordance of the
+    original grand-vision Hivemind demo belongs here, in the mode
+    that actually renders CSreq decomposition.)
+
+C8a. Motivation
+
+    r_regime is the single R-term with the largest categorical
+    swing: 0.000 (normal) → 0.010 (defensive) → 0.015 (stress).
+    On a borderline application, flipping the regime alone can
+    push CSreq past CS_observed and flip the coherence_gate
+    verdict. Exposing this toggle to the viewer concretizes the
+    "portfolio regime matters" claim from CE4 §3.2 without a
+    separate fixture switch; it lets the SAME pitch be examined
+    under three different environmental conditions in place.
+
+C8b. Fixture extension
+
+    Each of the five DecisionInput fixtures (B1) carries a
+    `regimeVariants` field:
+
+        export interface RegimeVariant {
+          portfolio_state: PortfolioState;
+          gateRunResult: GateRunResult;
+        }
+
+        export interface DecisionInputWithVariants extends DecisionInput {
+          regimeVariants: Record<"normal" | "defensive" | "stress", RegimeVariant>;
+        }
+
+    The variant for the fixture's AUTHORED regime
+    (portfolio_state.regime) is byte-identical to the top-level
+    GateRunResult — NOT redundantly stored. The other two
+    variants are precomputed with the same rule pipeline applied
+    to a portfolio_state whose `regime` field is changed and
+    whose other fields are unchanged. All precomputation happens
+    at build time in a small node script
+    (src/lib/coherenceEngine/regimeVariants.ts) that emits a
+    typed constant; no runtime math.
+
+    Across all five fixtures this adds ten extra GateRunResult
+    payloads. Data-weight impact is specified in F2 below.
+
+C8c. Store extension
+
+    Extend GatesSlice (A2):
+
+        export interface GatesSlice {
+          ...existing fields...
+          activeRegime: "normal" | "defensive" | "stress";
+        }
+
+    Default: whatever the active DecisionInput's authored
+    portfolio_state.regime is. Switching applications resets
+    activeRegime to the new active input's authored regime
+    (NOT carried across switches — that would create a
+    combinatorial comparison burden the UI doesn't explain).
+
+    New store action:
+
+        setActiveRegime(regime: "normal" | "defensive" | "stress"): void;
+
+    The rendered GateRunResult is always
+    `activeInput.regimeVariants[activeRegime].gateRunResult`.
+    GatePipeline, GateCard, CSReqDecomposition, RTermLedger, and
+    DecisionStub all select from this path, NOT from the
+    top-level fixture. (Without this indirection, the regime
+    selector is a no-op.)
+
+C8d. UI
+
+    RegimeSelector.tsx — a three-button pill group rendered to
+    the right of ApplicationPicker in WIDE, below the picker in
+    STANDARD and NARROW. Buttons, left to right:
+
+        [NORMAL]    [DEFENSIVE]    [STRESS]
+
+    Label is the regime name in small-caps mono; under each
+    label, the r_regime contribution in monospace: "+0.000",
+    "+0.010", "+0.015". The authored (fixture-origin) regime
+    renders with a small "·" marker above the label to ground
+    the viewer in where the fixture "naturally" lives.
+
+    Keyboard: N/D/S select normal/defensive/stress respectively
+    (mnemonic, no modifier). ESC does NOT leave the regime; only
+    switching applications resets it.
+
+    When activeRegime changes, the affected view updates
+    synchronously:
+      - RTermLedger: r_regime row animates (if
+        reducedMotion=false) from its old value to its new
+        value; other rows do NOT re-animate since they are
+        unchanged (respect R01 — avoid gratuitous motion).
+      - CSReqDecomposition: R total row and CSreq row update;
+        margin row updates and its sign-color (green/red)
+        re-renders; the "margin" value flips chrome if verdict
+        changes.
+      - GatePipeline: if the new regime causes coherence_gate
+        to change verdict (or causes a downstream cascade), the
+        affected card(s) transition to their new verdict chip
+        AND the pipeline halt point is recomputed. Dashed
+        downstream cards stay dashed; newly-blocked cards
+        become dashed; newly-reached cards become pending until
+        stepperIndex advances past them. (stepperIndex is NOT
+        reset on regime change.)
+      - DecisionStub: overall verdict + artifact hash stub
+        re-render from the new variant's GateRunResult.
+
+    aria-live announce on regime change:
+        "Regime set to {regime}. r_regime {prev} → {next}.
+         Coherence gate verdict: {verdict}."
+
+C8e. Banned visual affordances
+
+    - No "compare side-by-side" multi-regime overlay. That is a
+      different (worthwhile) pedagogical feature, but it belongs
+      in a later prompt (P05 Audit mode owns multi-artifact
+      comparison) and dilutes P04's single-application focus.
+    - No persistent indicator of "you have changed the regime
+      from authored" — the regime buttons themselves carry the
+      authored-regime marker; adding a banner implies the user
+      has strayed from a canonical run, which is the opposite
+      of the intended "portfolio regime matters" framing.
+    - No autoplay across regimes.
+
+C8f. Fixture construction hint
+
+    When authoring regimeVariants, the most pedagogically clear
+    fixture is app-01-pass (nominal: pass): at stress, the added
+    r_regime of 0.015 should still keep the margin positive but
+    narrow it visibly — this teaches "even clean passes are
+    regime-sensitive" without dramatizing the point. For
+    app-03-fail-coh (nominal: fail), the DEFENSIVE variant can
+    be authored to flip the coherence_gate to pass (margin
+    positive by 0.003-0.005), making the mechanism legible. The
+    STRESS variant should preserve or deepen the fail. For the
+    other three, the regime swing should move the margin by an
+    amount visible in the ledger but not flip verdicts, so the
+    user sees that the tool respects gradations, not just
+    boolean outcomes.
+
+    Author-approved variants must be committed to the fixture
+    module. An integrity check (P06 §B extension) asserts that
+    every variant's
+        gateRunResult.csReq.rBreakdown.r_regime
+    is consistent with the variant's portfolio_state.regime per
+    CE4 §3.2 step-function (normal=0.000, defensive=0.010,
+    stress=0.015) to 1e-9 tolerance.
+
+C8g. Bundle & acceptance deltas
+
+    See F2 below (data budget bumped to ≤11KB gzip to absorb 10
+    extra GateRunResults). See H below (added acceptance items
+    H14-H18) for regime selector acceptance.
+
+
+---
+
+D) STATE TRANSITIONS
+
+D1. Step-through
+
+    Stepping forward FROM stepperIndex i to i+1 applies the (i+1)-th
+    gate's verdict visually. If the verdict is non-pass, further
+    forward steps only visually advance through the "not-run"
+    (pending-ish) dashed cards — they display verdict "—" and a
+    caption "gate not reached in this run". The reason code
+    "pipeline halted by gate N" is exposed in the detail drawer
+    of any downstream gate.
+
+D2. Application switch resets stepperIndex to 0.
+
+D3. Autoplay
+
+    When autoplay is true and stepperIndex < 6, schedule a
+    setTimeout of 900ms that increments stepperIndex by 1.
+    Autoplay stops automatically on stepperIndex === 6 or on
+    reaching a non-pass verdict (optional — see acceptance).
+
+
+---
+
+E) PROSE LINT NOTES
+
+E1. Required microcopy (verbatim, rendered exactly once each):
+
+    "Ordering is load-bearing."             (above the GatePipeline)
+    "R clamped to [0, 0.35] per CE4 §3.2."  (in RTermLedger footer)
+    "Conservative enforcement: CS_observed = CS_ci95.lower."
+                                            (in CSReqDecomposition)
+    "A passed application produces an escalation packet; a human
+     partner reads and decides whether to meet. The policy never
+     invests." (once, above or below the DecisionStub; from CE4 §12)
+
+E2. Banned phrases:
+
+    "AI-driven", "machine-learned decisions", "our algorithm",
+    "best-in-class", "state-of-the-art", "next-level".
+
+    The word "algorithm" is acceptable in the literal sense
+    (e.g., "the iteration algorithm") but NOT as a marketing
+    noun.
+
+E3. "manual_review" renders as all-lowercase in UI copy to
+    match the backend string (per CE4 §1). The badge visual
+    may use "MANUAL" for brevity, but the reason code text
+    and fixture JSON previews MUST be the snake_case form.
+
+
+---
+
+F) BUNDLE AND PERFORMANCE
+
+F1. Code budget: Gates mode <= 10KB gzip
+    (includes RegimeSelector.tsx per §C8d; the component is ~0.4KB
+    gzip and fits inside the existing code budget without raising it.)
+F2. Data budget:
+    decisionInputs.ts (5 inputs + gate-run results + artifacts +
+        2 regime-variant GateRunResults per fixture per §C8b)
+        <= 11KB gzip (bumped from 8KB to absorb 10 extra
+        precomputed variant payloads; each variant is ~0.3KB
+        gzip due to shared schema and only r_regime / CSreq /
+        margin differing)
+    gateEval.ts (pure helpers)           <= 1KB gzip
+    reason-codes vocabulary              inline
+
+F3. No runtime financial math; log_2, division, etc are used but
+    no external libraries. Math.log2 is fine.
+
+F4. No polling; autoplay via setTimeout chain (see D3).
+
+
+---
+
+G) CROSS-MODE INTERACTIONS
+
+G1. openInMode("gates", refId)
+
+    Valid refIds:
+        "app:<id>"                 — sets activeApplicationId
+        "gate:<gate-key>"          — sets stepperIndex to that gate's
+                                     position (1-based); focuses the
+                                     card
+        "artifact:<id>"            — equivalent to app:<id>, then
+                                     advances stepperIndex to 6 and
+                                     scrolls DecisionStub into view
+
+G2. Links OUT
+
+    From coherence_gate explainer drawer:
+        openInMode("cosine", "stage:difference")
+        openInMode("compare", "baseline")
+
+    From DecisionStub:
+        openInMode("audit", "artifact:<id>")
+
+
+---
+
+H) ACCEPTANCE CHECKLIST FOR P04
+
+  [ ] GatesSlice added to store; setActiveApplication,
+      stepForward, stepBackward, resetPipeline, toggleAutoPlay,
+      toggleRDetail all work.
+  [ ] Five application fixtures mount; the user can switch via
+      1-5.
+  [ ] Six gate cards render in the fixed order
+      quality/compliance/anti-gaming/portfolio/coherence/
+      confidence.
+  [ ] Step-through visibly halts on the first non-pass gate —
+      downstream cards stay dashed.
+  [ ] CSReqDecomposition displays CSd0, αd, the log-scale term,
+      R, CSreq, CS_observed, margin. The formula renders via
+      build-time SVG, not client KaTeX.
+  [ ] RTermLedger displays all seven terms with the CE4 §3.2
+      step-functions; the clamp [0, 0.35] is called out.
+  [ ] DecisionStub shows overall verdict and the artifact-hash
+      stub; clicking routes to AUDIT mode.
+  [ ] Autoplay SPACE toggle works; autoplay cancels on
+      stepperIndex === 6 and optionally on non-pass.
+  [ ] aria-live announcements fire on each gate step with
+      verdict and reason codes.
+  [ ] Fixture integrity: for each fixture, csReq.domainBase +
+      csReq.logScaleTerm + csReq.rTotal == csReq.csReq (within
+      1e-9); csReq.margin == csObserved − csReq (byte-exact);
+      rTotal is within [0, 0.35]; domain params read via
+      DOMAIN_PARAMS import from P03.
+  [ ] No "AI-driven" or "our algorithm" in prose (P06 will
+      enforce).
+  [ ] Bundle: mode code <=10KB gzip; data <=12KB gzip (11KB
+      decisionInputs + regime variants, 1KB gateEval).
+
+  Regime Selector (per §C8):
+  [ ] RegimeSelector.tsx renders three pill buttons next to
+      ApplicationPicker (right of, at WIDE; below, at
+      STANDARD/NARROW).
+  [ ] Default activeRegime equals the active input's authored
+      portfolio_state.regime. Switching application resets
+      activeRegime accordingly.
+  [ ] N/D/S keys select normal/defensive/stress.
+  [ ] On regime change: RTermLedger's r_regime row updates;
+      CSReqDecomposition's R and CSreq and margin rows update;
+      GatePipeline re-evaluates halt point; DecisionStub updates
+      overall verdict and artifact hash stub.
+  [ ] Selected GateRunResult is sourced from
+      activeInput.regimeVariants[activeRegime], NOT recomputed
+      at runtime.
+  [ ] reducedMotion=true: r_regime row updates with no scale
+      animation; numerical value change is still visible.
+  [ ] aria-live announce fires on regime change with the
+      template in §C8d.
+  [ ] At least one fixture (recommend app-03-fail-coh per §C8f)
+      has a precomputed variant that FLIPS the coherence_gate
+      verdict under a different regime; this is the legibility
+      proof for the whole affordance.
+  [ ] Regime variants build-script
+      (src/lib/coherenceEngine/regimeVariants.ts) is the sole
+      source of variant data; decisionInputs.ts imports, does
+      not hand-author variants.
+
+
+---
+
+END P04.
+Proceed to P05 (Decision Artifact & Honest Ledger) once P04 is
+approved.

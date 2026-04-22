@@ -1,0 +1,679 @@
+P03 — FOUR FAILURES MAP
+========================
+
+Prerequisites: P01 (chassis); P02 is not required but is
+assumed to be the second completed mode when shipping in order.
+This prompt delivers MODE 3 — FOUR FAILURES MAP.
+
+The Four Failures Map is the firm's self-portrait inside the product.
+It answers the fourth teaching question from the INDEX: why is the
+firm behind Hivemind shaped the way it is? Guide I §2 names four
+structural failures of the consulting industry (hiring, analysis,
+accountability, theatrics). Guide I §5 and §6 describe the firm-
+side composition and hiring procedure. Guide I §4 lists the Seven
+Core Beliefs. The Four Failures Map ties all three together: for
+each failure, it shows (a) the industry's behavior, (b) the
+structural response inside The Nash Lab, and (c) the belief(s)
+from the seven-belief statement that underwrite that response.
+
+
+----------------------------------------------------------------------
+PART A — WHY THIS MODE EXISTS
+----------------------------------------------------------------------
+
+A1. The firm is legible only through its rejections. Describing
+    The Nash Lab by listing its teams ("we have a CS team, a
+    research team, a compliance team, and an executive team")
+    is correct but uninteresting. The pedagogically valuable move
+    is to explain each team as a structural answer to a specific
+    industry failure. That framing is load-bearing to Guide I §2
+    and §5 and is how the firm describes itself internally.
+
+A2. The Seven Core Beliefs (Guide I §4) are the firm's hiring
+    filter ("if you disagree with any of these, it will be
+    difficult for you to align yourself with the company's
+    mission"). The mode surfaces them as a drawer attached to the
+    whole map, not as an afterthought: the beliefs are what make
+    the four responses coherent as a single posture.
+
+A3. This mode is the only place in the HVM experience where the
+    FIRM is the subject. Modes 1, 2, 4, 5 are about the PRODUCT.
+    Keeping that distinction tight matters because Hivemind's
+    honesty posture (Guide I §3) rests on the firm doing one
+    narrow thing — curating the peer-reviewed KB — and not
+    impersonating the product in its own marketing.
+
+
+----------------------------------------------------------------------
+PART B — THE FOUR FAILURES AND THE FOUR RESPONSES
+----------------------------------------------------------------------
+
+Every entry below is grounded verbatim or paraphrased from Guide I.
+Where a field is marked VERBATIM, the authored copy in the fixture
+must match the Guide's phrasing word-for-word; where it is marked
+PARAPHRASE, the implementer may tighten for the panel but must not
+change the meaning.
+
+B1. FAILURE I — HIRING.
+
+    INDUSTRY BEHAVIOR (VERBATIM from Guide I §2):
+        "Selection based on network, nepotism, and conformity —
+         not problem-solving ability."
+
+    SPECIFIC MECHANISMS (PARAPHRASE):
+        - "First piece of advice" to aspiring consultants: network
+          for an internal referral.
+        - Recruitment concentrated at a handful of prestigious
+          schools whose admissions are not pure merit tests.
+        - The result: reproduction of a social class, not a filter
+          for analytic ability.
+
+    STRUCTURAL RESPONSE (Guide I §6): BLIND EXAMS, NO RESUMES.
+        - Hiring is split into three populations (consultants,
+          academics, engineers); each solved by a different blind
+          procedure.
+        - Consultants: five-hour problem set (math, philosophy,
+          case analysis) + strategy-game tournaments (Go, Hex,
+          Backgammon, Othello, Chess) as low-variance measurement
+          of competitive strategic reasoning under time pressure.
+        - Academics: executive selection OR consultant-body vote
+          OR director of academic hiring (executive-confirmed),
+          criterion = contribution to the peer-reviewed KB.
+        - Engineers: same exam format as consultants with different
+          weights; split into core SWE and forward-deployed.
+        - No credential filter before the exam. Applicants are not
+          asked where they went to school.
+
+    CORE BELIEFS ENGAGED:
+        - Belief 4 (networking structure is inefficient, not
+          conducive to aligned hiring).
+        - Belief 5 ("play the man, not the game" is accurate
+          but not something to be proud of).
+
+    FIRM-SIDE ARTIFACT: no single team; the hiring procedure itself
+    is the artifact. Referenced from the consultants / academics /
+    engineers populations described in Guide I §5 and §6.
+
+B2. FAILURE II — ANALYSIS.
+
+    INDUSTRY BEHAVIOR (VERBATIM from Guide I §2):
+        "Arbitrary teams run on vague intuition, leaving no
+         transferable principles and fostering client dependency."
+
+    SPECIFIC MECHANISMS (PARAPHRASE):
+        - Recent-graduate teams deliver advice under their own
+          unpredictable judgment.
+        - Organizational heuristics (MECE, etc.) are "better
+          described as theatrical than theoretical".
+        - Nothing learned on one engagement is rigorously encoded
+          and carried to the next.
+
+    STRUCTURAL RESPONSE:
+        - PEER-REVIEWED KNOWLEDGE BASE (Guide I §3, §5.2): the
+          analytical content comes from a centralized, peer-
+          reviewed strategic KB, not from whichever juniors were
+          staffed.
+        - ADVERSARIAL THEORY NETWORK (Guide II): multi-agent
+          system, each agent carrying a different framework,
+          critiquing and revising each other's conclusions before
+          output.
+
+    CORE BELIEFS ENGAGED:
+        - Belief 1 (business problems reduce to a small set of
+          underlying illnesses; KB compounding is valuable).
+        - Belief 2 (AI is capable of meritocratic analysis under
+          provided principles).
+        - Belief 6 (the scientific method works; peer review is
+          not decoration).
+
+    FIRM-SIDE ARTIFACT: the STRATEGIC RESEARCH TEAM (Guide I §5.2).
+        - Pure academics: develop and curate the peer-reviewed KB.
+        - Forward-deployed academics: embedded with clients, one
+          per client, as personal theory assistants. They observe
+          which frameworks the client's problems stress and feed
+          that back into the research agenda.
+        - This team structurally replaces the "junior consultant
+          on engagement" role.
+
+B3. FAILURE III — ACCOUNTABILITY.
+
+    INDUSTRY BEHAVIOR (VERBATIM from Guide I §2):
+        "Mutual scapegoating between firms and CEOs turns
+         consulting's actual value into blame deflection."
+
+    SPECIFIC MECHANISMS (PARAPHRASE):
+        - The consultant-client relationship is structurally win-
+          lose: success is shared credit; failure becomes the
+          firm blaming execution and the client blaming advice.
+        - Many engagements are hired less for the recommendation
+          than for political cover the brand name provides.
+
+    STRUCTURAL RESPONSE:
+        - CLIENT-INFRASTRUCTURE DEPLOYMENT (Guide I §7, §3):
+          Hivemind runs natively on the client's servers; data
+          stays with the client.
+        - AUDIT TRAIL (Guide I §3, §8): every agent utterance,
+          critique, and revision is logged into an immutable
+          trail that survives the engagement.
+        - EXPLICIT DISCLAIMER (Guide I §7, §8): the firm
+          disclaims responsibility for the conclusions the client
+          draws. Engagements include an upfront clause that
+          Hivemind's purpose is to surface rigorous analysis, not
+          to guarantee outcomes; failure modes become updates to
+          the KB.
+        - The KB-as-feedback loop: because the KB is centralized
+          and peer-reviewed, "admit failure and update the
+          methodology" has a well-defined referent in The Nash
+          Lab that it does not in a traditional firm.
+
+    CORE BELIEFS ENGAGED:
+        - Belief 7 (honesty is the best policy).
+        - Belief 3 (consulting's core offer is external problem-
+          solving, and the industry has lost its way).
+
+    FIRM-SIDE ARTIFACT: the COMPLIANCE TEAM (Guide I §5.3)
+    plus the AUDIT TRAIL as a product-level artifact.
+        - Compliance team tracks regulatory change and updates
+          the practicality network's KB so that Hivemind never
+          tells clients to do things that are illegal, fraudulent,
+          or unworkable.
+        - The audit trail itself is owned by the client, not the
+          firm; this is the fiduciary backbone of the
+          accountability claim.
+
+B4. FAILURE IV — THEATRICS.
+
+    INDUSTRY BEHAVIOR (VERBATIM from Guide I §2):
+        "Managerial jargon feigns prestige while obscuring
+         clarity, deepening dependency."
+
+    SPECIFIC MECHANISMS (PARAPHRASE):
+        - Dense, buzzword-laden deliverables produced under the
+          implicit rule that impression is a component of value.
+        - "The most visible failure and, arguably, the least
+          fundamental — but it compounds the other three".
+
+    STRUCTURAL RESPONSE:
+        - DIRECT OUTPUT, NO SLIDE-DECK THEATER. Hivemind's
+          deliverable is the clustered-recommendation set with
+          preserved per-framework rationales (Guide II §3) and
+          an immutable audit trail, not a PowerPoint with
+          pyramidal arguments.
+        - FORWARD-DEPLOYED ROLES as translators, not presenters:
+          FDEs and FDAs observe client use and feed frictions
+          back into product and research; they are not slide-deck
+          producers.
+        - Public commitment to plain language: the Hivemind
+          product pitch and core-beliefs document are written
+          without the managerial vocabulary the firm critiques.
+
+    CORE BELIEFS ENGAGED:
+        - Belief 7 (honesty is the best policy).
+        - Belief 4 (networking structure is inefficient —
+          theatrics is part of that networking performance).
+
+    FIRM-SIDE ARTIFACT: the CS TEAM (Guide I §5.1).
+        - Software engineers build and maintain Hivemind.
+        - Forward-deployed engineers embed with clients, one per
+          client, to observe how the product is actually used and
+          convert frictions into engineering work.
+
+B5. THE EXECUTIVE TEAM.
+
+    Guide I §5.4 names a fourth team: the executive team, which
+    oversees the other three and tunes the fundamental Hivemind
+    workflow design where necessary. It is not paired one-to-one
+    with a failure. The map surfaces it as a fifth card below the
+    four failure cards, labelled "EXECUTIVE", with a short
+    description matching Guide I §5.4 verbatim or near-verbatim:
+
+        "Oversees the other three teams and tunes the fundamental
+         Hivemind workflow design where necessary. Owns product
+         strategy, firm-side calibration (e.g., revising the
+         similarity threshold used in solution aggregation), and
+         capital."
+
+    The fifth calibration responsibility — prompt engineering —
+    is described in Guide I §5 as "an open organizational
+    question" and should be displayed as such on the executive
+    card, not resolved into one arrangement.
+
+
+----------------------------------------------------------------------
+PART C — WHAT THE USER SEES
+----------------------------------------------------------------------
+
+C1. Layout.
+
+    WIDE (hostWidthPx >= 960):
+        Four FailureCards arranged in a 2×2 grid, each with the
+        failure label (I/II/III/IV), its verbatim one-liner, and
+        a short "RESPONSE:" row naming the structural response
+        in caps. A fifth compact EXECUTIVE card sits below the
+        grid, full-width and shorter.
+        Each card has an EXPAND affordance (chevron or +) that
+        opens a ResponsePanel drawer.
+
+    STANDARD (640-960):
+        Four cards stacked in a 2×2 grid if there's room; else
+        a single column. Same expansion behavior.
+
+    NARROW (<640):
+        Single column; cards are full-width; expansion inline
+        below each card.
+
+    Above the grid, a single-line header:
+        "FOUR STRUCTURAL FAILURES, FOUR STRUCTURAL RESPONSES"
+
+    Below the grid (and the EXECUTIVE card), a single-line link
+    button:
+        "OPEN THE SEVEN CORE BELIEFS"
+    which opens a PrinciplesDrawer.
+
+    Note on identifying refIds for product cross-references: the
+    event ids referenced by productCrossRef.refId are stable
+    TranscriptEvent.id values from the DEFAULT theater run
+    (DEFAULT_THEATER_RUN_ID from P01 C2, i.e., "suff3-feas55-v1").
+    The fixture author finds them by opening theaterScript.ts and
+    selecting an event whose type matches the intended hint:
+        Failure II   -> any event with type === "cluster_formed"
+                        where contributingAgentIds.length >= 2
+        Failure III  -> any event with type === "output" OR a
+                        mid-transcript event whose metadata is
+                        representative
+        Failure IV   -> the event with type === "output"
+    P06's assertCrossReferences verifies resolution at build time.
+
+C2. FailureCard.
+
+    Front face (collapsed):
+        - Roman numeral + name (mono 20px + serif 18px).
+        - VERBATIM one-liner from Guide I §2 (serif 13px).
+        - "RESPONSE:" + short structural-response label (mono 11px
+          uppercase, e.g., "BLIND EXAMS, NO RESUMES").
+        - Expand chevron (aria-expanded).
+
+    Expanded (ResponsePanel inline or modal drawer, see C3):
+        - INDUSTRY BEHAVIOR section (VERBATIM one-liner, then
+          SPECIFIC MECHANISMS list).
+        - STRUCTURAL RESPONSE section (full response description,
+          multi-paragraph).
+        - FIRM TEAM / ARTIFACT section (named team + paragraph).
+        - CORE BELIEFS ENGAGED section (list of belief numbers with
+          a short inline quote; clicking a belief opens the
+          PrinciplesDrawer to that belief).
+        - A "WHERE IT SURFACES IN THE PRODUCT" footer: one-line
+          cross-reference into another mode via openInMode. For
+          example:
+              Failure II -> openInMode("theater", "<event-id-of-
+              a-cluster-formed-event>") with hint "see the Monitor
+              cluster two theory rationales side-by-side".
+              Failure III -> openInMode("audit", "<event-id>")
+              with hint "see the immutable audit trail".
+              Failure IV -> openInMode("theater", "<event-id-of-
+              output>") with hint "the product's deliverable is
+              the clustered output itself, not a slide deck".
+              Failure I -> no product cross-reference; the card's
+              cross-link opens the PrinciplesDrawer at beliefs 4
+              and 5 instead.
+
+C3. Expansion behavior.
+
+    WIDE: the ResponsePanel opens as a right-side drawer that
+    slides over the right half of the mode body. The 2×2 grid
+    stays visible on the left so the user can switch between
+    failures without closing the drawer.
+
+    STANDARD and NARROW: the ResponsePanel opens INLINE beneath
+    the card; clicking another card collapses the open one and
+    opens the new one. Only one failure expanded at a time below
+    WIDE.
+
+    A close affordance (X button + ESC key) collapses.
+
+C4. The EXECUTIVE card.
+
+    Full-width, not a failure; labelled "TEAM — EXECUTIVE" with
+    a short body (from B5). It does NOT have an expansion; the
+    card is itself the full description. This asymmetry is
+    intentional: the executive team is not a structural
+    response, it is the firm's self-governance layer.
+
+C5. The PrinciplesDrawer (Seven Core Beliefs).
+
+    Opens as a modal drawer from the right at WIDE; full-screen
+    at NARROW. Shows seven numbered entries, each with:
+        - Belief number (mono, large).
+        - VERBATIM belief text from Guide I §4.
+        - One-line commentary noting which of the four responses
+          it underwrites (e.g., belief 6 -> Response II).
+        - A compact "LOAD-BEARING" chip on beliefs 1 and 6
+          (Guide I §4 flags these two as load-bearing for the
+          whole product thesis).
+
+    The drawer header reads:
+        "SEVEN CORE BELIEFS (THE NASH LAB)"
+
+    With a caption (verbatim from Guide I §4):
+        "If you disagree with any of these principles, it will
+         be difficult for you to align yourself with the
+         company's mission."
+
+    A small footer note (paraphrase) acknowledges that beliefs 1
+    and 6 are explicitly load-bearing for the product thesis
+    (belief 1: business problems reduce to a small set of
+    underlying causes; belief 6: the scientific method works).
+
+C6. What the user controls.
+
+    - Expand any failure card.
+    - Click any core-belief cross-reference in a response panel
+      to open the PrinciplesDrawer at that belief.
+    - Click a product cross-reference to jump to another mode.
+    - Open and close the PrinciplesDrawer directly from the
+      bottom-of-map link.
+
+C7. What the user CANNOT do.
+
+    - Reorder the failures. I, II, III, IV is Guide I's order and
+      the pedagogical order.
+    - Edit the beliefs. The PrinciplesDrawer is read-only.
+    - Add a sixth team card. Guide I §5 lists four teams and one
+      open organizational question (prompt engineering); the map
+      reflects that exactly.
+
+
+----------------------------------------------------------------------
+PART D — FILES, COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+D1. src/components/projects/hivemind/Experience/FourFailuresMap/
+
+    FailureCard.tsx
+        Props:
+            failure: FailureEntry;
+            expanded: boolean;
+            onToggle(): void;
+            viewport: "narrow" | "standard" | "wide";
+        Render: collapsed face (per C2). Expanded inline at
+        NARROW/STANDARD via aria-controlled region; expansion
+        at WIDE is handled by parent via <ResponsePanel />.
+
+    ResponsePanel.tsx
+        Props:
+            failure: FailureEntry;
+            onClose(): void;
+            onOpenBelief(n: 1|2|3|4|5|6|7): void;
+            onOpenMode(target: Mode, refId: string): void;
+        Render: the four sections in C2 expanded form; close
+        button at top-right; focus trap inside panel; ESC closes.
+
+    ExecutiveCard.tsx
+        Props:
+            executive: ExecutiveEntry;
+        Render: the asymmetric card described in C4. No expansion.
+
+    PrinciplesDrawer.tsx
+        Props:
+            open: boolean;
+            initialBelief: 1|2|3|4|5|6|7 | null;
+            beliefs: CoreBelief[];
+            onClose(): void;
+        Render: modal drawer (right-side at WIDE, full-screen at
+        NARROW). Keyboard: ESC closes; Tab cycles through
+        beliefs; focus returns to opener on close.
+
+D2. src/lib/hivemind/failures.ts
+
+    export interface FailureEntry {
+      id: "hiring" | "analysis" | "accountability" | "theatrics";
+      roman: "I" | "II" | "III" | "IV";
+      name: string;                          // "HIRING" etc.
+      oneLinerVerbatim: string;              // Guide I §2 verbatim
+      industryMechanisms: string[];          // Guide I §2 paraphrase
+      responseLabel: string;                 // short caps label
+      responseBody: string;                  // full description
+      firmArtifact: {
+        label: string;                       // e.g., "STRATEGIC RESEARCH TEAM"
+        body: string;                        // from Guide I §5.x
+      };
+      beliefsEngaged: Array<1|2|3|4|5|6|7>;
+      productCrossRef: {
+        mode: Mode;
+        refId: string;
+        hint: string;
+      } | null;                              // null for failure I
+    }
+
+    export interface ExecutiveEntry {
+      label: "EXECUTIVE";
+      body: string;                          // Guide I §5.4 verbatim-near
+      openOrgQuestion: string;               // Guide I §5 paragraph on
+                                             //   prompt engineering
+    }
+
+    export const FAILURES: FailureEntry[];   // exactly 4, in I,II,III,IV order
+    export const EXECUTIVE: ExecutiveEntry;
+
+D3. src/lib/hivemind/beliefs.ts
+
+    export interface CoreBelief {
+      number: 1|2|3|4|5|6|7;
+      verbatim: string;                      // Guide I §4 verbatim
+      underwrites: Array<"I"|"II"|"III"|"IV"> | "hiring-filter";
+      loadBearing: boolean;                  // true for 1 and 6
+    }
+
+    export const BELIEFS: CoreBelief[];      // exactly 7, in 1..7 order
+
+D4. State slice (augments P01's store).
+
+    interface FailuresState {
+      expandedFailureId: FailureEntry["id"] | null;
+      principlesOpen: boolean;
+      initialBelief: 1|2|3|4|5|6|7 | null;
+    }
+
+    interface HivemindExperienceState {
+      // ...
+      failures: FailuresState;
+      toggleFailure(id: FailureEntry["id"]): void;
+      openPrinciples(belief: 1|2|3|4|5|6|7 | null): void;
+      closePrinciples(): void;
+    }
+
+D5. openInMode hook-up (from P01 shared state).
+
+    openInMode("failures", refId):
+        - If refId is a FailureEntry id, toggleFailure sets
+          expandedFailureId = refId.
+        - If refId is "executive", no expansion (card is inline).
+        - If refId is "beliefs", opens PrinciplesDrawer with
+          initialBelief = null.
+        - If refId matches "belief-{n}", opens PrinciplesDrawer
+          with initialBelief = n.
+
+
+----------------------------------------------------------------------
+PART E — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+E1. Failure labels (VERBATIM).
+
+    I.   HIRING
+    II.  ANALYSIS
+    III. ACCOUNTABILITY
+    IV.  THEATRICS
+
+    Ordering I through IV is fixed.
+
+E2. Failure one-liners (VERBATIM from Guide I §2 — any deviation
+    is a prose-lint failure, ship-blocking):
+
+    I:   "Selection based on network, nepotism, and conformity —
+          not problem-solving ability."
+    II:  "Arbitrary teams run on vague intuition, leaving no
+          transferable principles and fostering client dependency."
+    III: "Mutual scapegoating between firms and CEOs turns
+          consulting's actual value into blame deflection."
+    IV:  "Managerial jargon feigns prestige while obscuring
+          clarity, deepening dependency."
+
+E3. Response labels (short mono-caps):
+
+    I:   "BLIND EXAMS, NO RESUMES"
+    II:  "PEER-REVIEWED KB + ADVERSARIAL THEORY NETWORK"
+    III: "CLIENT-INFRA DEPLOYMENT + AUDIT TRAIL + DISCLAIMER"
+    IV:  "DIRECT OUTPUT, NO SLIDE-DECK THEATER"
+
+E4. Core-beliefs drawer caption (VERBATIM from Guide I §4):
+
+    "If you disagree with any of these principles, it will be
+     difficult for you to align yourself with the company's
+     mission."
+
+E5. Executive-card body (VERBATIM or near-verbatim from Guide I
+    §5.4):
+
+    "Oversees the other three teams and tunes the fundamental
+     Hivemind workflow design where necessary. Owns product
+     strategy, firm-side calibration (e.g., revising the
+     similarity threshold used in solution aggregation), and
+     capital."
+
+    And the open-question footer (VERBATIM-paraphrase):
+
+    "Prompt engineering — the practice of ensuring that
+     theoretical and regulatory documents are written so that
+     generation-time retrieval uses them well — is either a
+     standalone team or a responsibility absorbed by the
+     executive team. This is an open organizational question."
+
+E6. What the mode must not say.
+
+    - "Disrupt", "disruptive innovation", "world-class talent",
+      "Tier-1 firm", or any language borrowed from the industry
+      the firm is diagnosing. Using MBA-consulting jargon in the
+      mode that critiques MBA-consulting jargon is self-defeating.
+    - "We'll never fail" / "we guarantee outcomes" / "we promise
+      ROI". The firm explicitly disclaims outcome responsibility
+      (Guide I §7, §8).
+    - "Big Four", "MBB". Name no competitor firms. The diagnosis
+      is structural, not a brand attack.
+    - "Revolutionary", "world-changing", "we reinvented strategy".
+      Guide I §8 is explicit that the firm's posture is rigor
+      without the ivory tower, not self-promotion.
+
+E7. Cross-reference hint microcopy (VERBATIM):
+
+    Failure II -> theater:
+        "See two theory agents converge on the same action for
+         different reasons — one cluster, two preserved rationales."
+
+    Failure III -> audit:
+        "See the immutable audit trail: every utterance, critique,
+         revision, and score, owned by the client, not the firm."
+
+    Failure IV -> theater:
+        "The deliverable is the clustered-recommendation set
+         itself — no slide deck, no pyramid, no buzzword layer."
+
+
+----------------------------------------------------------------------
+PART F — ACCEPTANCE FOR P03
+----------------------------------------------------------------------
+
+  [ ] ModeTabBar tab 3 (FOUR FAILURES) is enabled and mounts
+      FourFailuresMap.
+  [ ] Four FailureCards render in I,II,III,IV order; one-liners
+      match E2 verbatim; response labels match E3 verbatim.
+  [ ] Fifth EXECUTIVE card renders below the 2×2 grid.
+  [ ] Expand behavior: WIDE opens ResponsePanel as a right-side
+      drawer with grid still visible; STANDARD/NARROW expand
+      inline; only one inline expansion at a time.
+  [ ] ResponsePanel contains all four sections in C2 in order:
+      industry behavior, structural response, firm artifact,
+      beliefs engaged. Product cross-reference footer appears for
+      Failures II/III/IV.
+  [ ] Clicking a belief chip inside a ResponsePanel opens the
+      PrinciplesDrawer at that belief; focus moves into the
+      drawer.
+  [ ] PrinciplesDrawer lists seven beliefs in 1..7 order,
+      verbatim; beliefs 1 and 6 carry the LOAD-BEARING chip;
+      header and caption match E4 and E5 verbatim.
+  [ ] openInMode("failures", failureId) from other modes
+      lands with that failure expanded.
+  [ ] openInMode("failures", "belief-{n}") opens drawer at
+      belief n.
+  [ ] Cross-reference links from Failures II/III/IV into theater/
+      audit navigate correctly and pass the refId.
+  [ ] Keyboard: Tab cycles cards; Enter expands; ESC closes
+      drawer and panel; Shift+Tab returns focus to opener on
+      drawer close.
+  [ ] aria-live announces on expand ("Failure II expanded.
+      Structural response: peer-reviewed KB and adversarial
+      theory network."), on drawer open ("Seven core beliefs
+      opened at belief 6."), and on cross-mode navigation
+      ("Navigating to audit timeline.").
+  [ ] reducedMotion: drawers do not slide; they fade; no scale
+      transforms.
+  [ ] Prose lint (P06) passes; all VERBATIM strings compared
+      byte-exact against the Guide I source strings in P06's
+      fixture-integrity test.
+  [ ] No links outside the experience (no external Wikipedia
+      links, no competitor firm references).
+  [ ] Bundle gzip: FourFailuresMap code <=6KB; fixture data
+      <=4KB.
+
+
+----------------------------------------------------------------------
+PART G — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+G1. DO NOT sanitize the failure one-liners. Guide I §2's language
+    is deliberately sharp: "nepotism", "theatrical", "scapegoating",
+    "managerial jargon feigns prestige". Softening these to
+    "selection based on network effects" or "presentational
+    ambiguity" would destroy the diagnostic weight. The VERBATIM
+    constraint in E2 is ship-blocking.
+
+G2. DO NOT add a fifth failure. The firm commits to four, and the
+    whole architecture of responses hinges on four. Adding a
+    fifth would misrepresent the thesis.
+
+G3. The product cross-references are one-way from the map into
+    other modes. The modes do not link back into the map by
+    default. If a user jumps from Failure II into the theater
+    and wants to return, the browser back behavior + the tab
+    bar's FOUR FAILURES tab suffice. Do not build a "return to
+    map" breadcrumb.
+
+G4. DO NOT show the failures as gradations ("Failure IV is the
+    least fundamental" etc.). Guide I §2 does note that
+    theatrics is the least fundamental of the four, but that
+    ordering commentary is internal reasoning; the map shows all
+    four as coequal structural problems. The commentary can be
+    included as a small serif italic line at the bottom of
+    Failure IV's ResponsePanel, prefaced with "Guide I §2 notes
+    that theatrics is 'arguably the least fundamental — but it
+    compounds the other three.'"
+
+G5. The EXECUTIVE card asymmetry is intentional. Do not "fix" it
+    by making executive a fifth failure. The firm has four
+    failures it is answering; the executive team exists because
+    any firm has a governance layer. Treating governance as a
+    structural answer to a diagnosed failure would overclaim.
+
+G6. The PrinciplesDrawer caption ("If you disagree with any of
+    these principles...") is harsh in the tonality Guide I
+    deliberately adopts. Keep it. Softening to "we look for
+    alignment with these values" is a prose-lint failure and a
+    misrepresentation of the firm's hiring posture.
+
+G7. Belief 6 ("the scientific method works") is the most
+    philosophically load-bearing claim the firm makes. It is
+    what makes the peer-review layer more than window-dressing.
+    Do not bury it. The LOAD-BEARING chip is mandatory.
+
+
+End of P03.

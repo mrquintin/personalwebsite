@@ -1,0 +1,495 @@
+M02 — CHASSIS: VERTICAL ACCORDION & DVH
+================================================
+
+PURPOSE
+-------
+Rewrite the shell layer (Accordion.tsx, Panel.tsx, PanelSpine.tsx,
+globals.css) so the narrow viewport (<640 px) is a single-scroll
+page with a vertical accordion, not a crushed horizontal one.
+This is sequencing-critical: no other prompt in this suite can
+land until M02 is in.
+
+
+SCOPE
+-----
+Touches:
+  src/components/shell/Accordion.tsx
+  src/components/shell/Panel.tsx
+  src/components/shell/PanelSpine.tsx
+  src/app/globals.css
+  src/styles/tokens.css (add two new tokens)
+
+Does NOT touch:
+  src/components/panels/*.tsx
+  any src/app/*/page.tsx
+  any experience interior
+  08 hover choreography (the desktop path is untouched)
+
+
+§A  TOKENS — NEW
+================
+
+Add to tokens.css under the existing :root block:
+
+  /* mobile chassis — used by the narrow-viewport vertical
+     accordion. Kept here (not inlined) so the mobile-media
+     branches reference the same values deterministically. */
+  --mobile-header-h:   56px;   /* collapsed-panel header row */
+  --mobile-gutter:     16px;   /* narrow-mode body padding */
+
+Rationale for adding tokens: the existing --toprail-h exists;
+--keycap-size exists; --statusbar-h is referenced in
+globals.css:165 but does NOT exist (M01 A8). Remove the
+--statusbar-h reference in globals.css (M02 §C1 below).
+
+
+§B  ACCORDION.TSX — CHANGES
+===========================
+
+B1 — Remove inline height:100vh; replace with
+     className-driven mobile-aware height.
+     BEFORE (line 90-100, per audit):
+
+       <div className="accordion" role="tablist" ...
+            style={{ display: "flex", height: "100vh",
+                     width: "100%", background: "var(--bg-1)" }}>
+
+     AFTER:
+
+       <div className="accordion" role="tablist" ...
+            style={{ width: "100%", background: "var(--bg-1)" }}>
+
+     The accordion's `display`, `height`, and `flex-direction`
+     now live in globals.css `.accordion` (see §C1 below).
+     This removes the inline/override fight that audit A1+A2
+     identified.
+
+B2 — Breakpoint change: mobile-media boundary moves to 640 px.
+     The existing CSS override at `@media (max-width: 767px)`
+     is replaced by `@media (max-width: 639px)`. This aligns
+     with the I01 canonical threshold (<640 NARROW) and closes
+     the dead band audit A5 identified.
+
+     Corollary: the hover-wiring guard at Accordion.tsx:114
+     remains as-is (`min-width: 768px`), because the
+     compact-width band 640–767 px is a tablet/phablet zone
+     where tap is preferred to hover even though the layout
+     is horizontal. This is a DELIBERATE asymmetry: layout
+     flips at 640 px, hover-choreography activates at 768 px.
+     Document this on the line immediately above the
+     matchMedia check as a comment.
+
+B3 — Focus management on expand().
+     After setState({ mode: "expanded", index: idx }), on the
+     next tick (requestAnimationFrame), move focus to the
+     panel body. Target: the first focusable child of
+     `#panel-body-${list[idx-1].id}`, or the body element
+     itself if none exists. Skip this if focus is already
+     inside that subtree (e.g., keyboard already tabbed in).
+
+     Reasoning: audit F2. On mobile this also ensures
+     screen-reader cursor lands on the expanded content
+     without the user having to swipe past four collapsed
+     headers first.
+
+B4 — announce() on expand / collapse.
+     Push a terse message to #operator-aria-live:
+       expand:   `${panel.title} panel opened`
+       collapse: `${panel.title} panel closed`
+     Gated on a user-initiated change (do not announce on
+     BroadcastChannel-received state; the other tab has
+     its own announcement).
+     Reasoning: audit F5.
+
+B5 — Hash scroll on expand, narrow only.
+     When hostWidthPx < 640 (compute once on mount via
+     matchMedia) AND the expand() was user-initiated, after
+     the focus move scroll the panel's HEADER into view:
+
+       headerEl.scrollIntoView({ block: "start",
+         behavior: reducedMotion ? "auto" : "smooth" });
+
+     This is critical for the single-scroll page model: the
+     user taps a header, the header snaps to the top, the
+     expanded body flows below. Without this, the user's
+     tap point can remain mid-screen and the expanded body
+     may be invisible until manual scroll.
+
+B6 — Keyboard shortcuts on narrow.
+     Keys 1–5 remain bound to expand(1..5). Arrow Left/Right
+     (Accordion.tsx:78–79) should switch to Arrow Up/Down
+     on narrow, because the list is now vertical. Detect
+     via matchMedia at the useHotkey registration site.
+     If this complicates the existing useHotkey API, accept
+     the deferral — users with hardware keyboards on mobile
+     are a vanishing case; mark as NICE-TO-HAVE in M09.
+
+
+§C  PANEL.TSX — CHANGES
+=======================
+
+C1 — Remove the inline flex values (lines 43–44) on the
+     section element. Move flex-basis / minWidth / minHeight
+     logic entirely into globals.css, selector
+     `.panel[data-state="..."]`, split into a desktop branch
+     (default) and a narrow branch (inside the media query).
+     Rationale: audit A2.
+
+     BEFORE:
+       style={{
+         flex: state === "expanded" ? "1 1 0" :
+               state === "neutral"  ? "1 1 0" : "0 0 80px",
+         minWidth: state === "collapsed" ? 56 : 80,
+         ...
+       }}
+
+     AFTER:
+       style={{ background: "var(--bg-1)",
+                borderRight: "var(--border-hair)",
+                height: "100%",
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "row" }}
+
+     Move:
+       .panel[data-state="expanded"] { flex: 1 1 0; min-width: 80px; }
+       .panel[data-state="neutral"]  { flex: 1 1 0; min-width: 80px; }
+       .panel[data-state="collapsed"]{ flex: 0 0 80px; min-width: 56px; }
+     into globals.css alongside the existing .panel transition.
+
+C2 — Remove overflow: hidden on the outer section WHEN narrow.
+     On desktop, the horizontal collapse relies on
+     overflow:hidden to clip the body while flex-basis
+     animates. On narrow, there is no flex-basis animation;
+     collapse/expand drives HEIGHT, and overflow:hidden on
+     the section is WHAT MAKES the height animation work.
+     So: KEEP overflow:hidden, but swap the animated property.
+
+     Desktop (>= 640 px): transition flex-basis (existing).
+     Narrow  (< 640 px):  transition max-height on the
+                          .panel-body from 0 (closed) to a
+                          large value (open). The section
+                          grows with its body.
+
+     Implementation: see §C4 below.
+
+C3 — Replace overflow:auto on .panel-body (line 77) with
+     overflow: visible on narrow. Desktop keeps overflow:auto
+     (the existing scroll-inside-panel is desktop's idiom).
+
+     Move the style out of the inline style and into the CSS
+     selector so it can vary per media query:
+
+       .panel-body { padding: var(--s-6); }
+       @media (max-width: 639px) {
+         .panel-body { padding: var(--mobile-gutter); overflow: visible; }
+         .panel[data-state="expanded"] .panel-body {
+           /* no max-height cap; let page-scroll handle it */
+         }
+         .panel[data-state="collapsed"] .panel-body,
+         .panel[data-state="neutral"]   .panel-body {
+           max-height: 0;
+           padding-top: 0; padding-bottom: 0;
+           /* pointer-events already handled by existing rule */
+         }
+       }
+
+     Rationale: audit A3. The page becomes the scroller.
+
+C4 — Height-based choreography on narrow, width-based on
+     desktop. Inside the @media (max-width: 639px) branch,
+     add:
+
+       .panel {
+         height: auto;
+         min-height: var(--mobile-header-h);
+         transition:
+           /* max-height on the body, not the section, because
+              auto-height is not directly transitionable */
+           none;
+       }
+       .panel .panel-body {
+         transition: max-height var(--d-accordion) var(--ease-accordion),
+                     padding var(--d-accordion) var(--ease-accordion);
+       }
+
+     Note that max-height can't animate to "auto"; we use a
+     generous cap (e.g., 8000px) on the expanded state. This
+     is the standard pattern for accordion content transitions
+     and is well-understood.
+
+     For prefers-reduced-motion: reduce, set transition: none
+     on .panel-body — mirroring the existing pattern at
+     globals.css:152.
+
+C5 — touch-action on the spine button.
+     The button element in PanelSpine.tsx receives a new CSS
+     rule:
+
+       .panel-spine { touch-action: manipulation; }
+
+     Eliminates the 300 ms tap delay and double-tap-zoom
+     on iOS Safari. Audit C4.
+
+
+§D  PANELSPINE.TSX — CHANGES
+============================
+
+D1 — Do not stack letters when rendered horizontally.
+     Current implementation (line 14):
+
+       const titleStack = panel.title.toUpperCase().split("").join("\n");
+
+     This produces "P\nU\nR\nP\nO\nS\nE\nL\nE\nS\nS..." and
+     relies on white-space: pre + writing-mode manipulation.
+     On narrow, globals.css:183 un-rotates but does NOT
+     remove the newlines, producing a 19-line-tall "P/U/R/P/..."
+     column inside the mobile header (audit A4).
+
+     Replace with a conditional render driven by a CSS-native
+     hook: render the title as plain horizontal text, and use
+     CSS `writing-mode: vertical-rl` on the container to
+     stack vertically on desktop. Specifically:
+
+       <span className="spine-title" aria-hidden="true">
+         {panel.title.toUpperCase()}
+       </span>
+
+     with globals.css:
+       .spine-title {
+         writing-mode: vertical-rl;
+         text-orientation: upright;
+         letter-spacing: 0.04em;
+         line-height: 1.1;
+       }
+       @media (max-width: 639px) {
+         .spine-title {
+           writing-mode: horizontal-tb;
+           text-orientation: mixed;
+           letter-spacing: 0.12em;
+         }
+       }
+
+     This correctly renders "PURPOSELESS EFFICIENCY" as a
+     vertical-upright column on desktop (via CSS, with
+     natural letter separation) and as a standard horizontal
+     word on mobile.
+
+D2 — Header layout on narrow.
+     On narrow, the spine becomes a full-width row containing
+     the title (left) and an open/closed chevron (right).
+     Add the chevron as:
+
+       <span className="spine-chevron" aria-hidden="true">
+         {expanded ? "−" : "+"}
+       </span>
+
+     Style (narrow only):
+       .panel-spine { display: flex; justify-content: space-between;
+                      align-items: center; padding: 0 var(--mobile-gutter); }
+       .spine-chevron { font-family: var(--font-mono);
+                        color: var(--fg-mute);
+                        transition: transform var(--d-fast) var(--ease); }
+
+     On desktop the chevron is display:none (it's an accordion
+     in name only; the active-panel state is visually obvious
+     via expansion). On narrow the chevron is the affordance
+     communicating openability to a user who hasn't seen the
+     page expand on tap yet.
+
+D3 — Minimum touch target.
+     Ensure .panel-spine has `min-height: 44px` at all widths,
+     `min-height: var(--mobile-header-h)` (56 px) on narrow.
+     Both exceed Apple HIG 44×44. Audit C1.
+
+
+§E  GLOBALS.CSS — FULL REWRITE OF THE MOBILE SECTION
+====================================================
+
+Replace the existing block (lines 160–187, the `@media
+(max-width: 767px)` block) with the following. Breakpoint
+changes to 639 per §B2.
+
+  /* ----- accordion narrow viewport (<640px): vertical single-scroll ----- */
+  @media (max-width: 639px) {
+    .accordion {
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      min-height: 100dvh;
+    }
+    .accordion .panel {
+      width: 100%;
+      border-right: none;
+      border-bottom: var(--border-hair);
+      height: auto;
+      min-height: var(--mobile-header-h);
+      flex: 0 0 auto;
+      flex-direction: column;
+      overflow: hidden; /* clips the max-height-animated body */
+    }
+    .accordion .panel:last-of-type { border-bottom: none; }
+
+    .accordion .panel-spine {
+      flex-direction: row;
+      height: var(--mobile-header-h);
+      width: 100%;
+      justify-content: space-between;
+      padding: 0 var(--mobile-gutter);
+      gap: var(--s-4);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .accordion .panel-spine .spine-title {
+      writing-mode: horizontal-tb;
+      text-orientation: mixed;
+      letter-spacing: 0.12em;
+      white-space: normal;
+    }
+
+    .accordion .panel-body {
+      padding: var(--mobile-gutter);
+      overflow: visible;
+      transition: max-height var(--d-accordion) var(--ease-accordion),
+                  padding var(--d-accordion) var(--ease-accordion),
+                  opacity 180ms linear;
+    }
+    .accordion .panel[data-state="expanded"] .panel-body {
+      max-height: 8000px;
+    }
+    .accordion .panel[data-state="collapsed"] .panel-body,
+    .accordion .panel[data-state="neutral"]   .panel-body {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  @media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+    .accordion .panel-body { transition: none; }
+  }
+
+
+§F  SHELL.TSX — MINOR CHANGES
+=============================
+
+F1 — The <main> paddingTop logic currently skips var(--toprail-h)
+     on isLanding. On narrow, the TopRail takes its full height
+     and content should sit beneath it. Keep the landing
+     exception but verify the TopRail is still visible and
+     tappable. If not, remove the paddingTop:0 special-case
+     for isLanding on narrow:
+
+       paddingTop: isLanding
+         ? 0
+         : "var(--toprail-h)",
+
+     becomes:
+
+       paddingTop: (isLanding && typeof window !== "undefined"
+                    && window.matchMedia("(min-width: 640px)").matches)
+         ? 0
+         : "var(--toprail-h)",
+
+     Alternative (preferred — no runtime check): drive
+     via CSS so SSR is clean:
+
+       style={{ paddingTop: isLanding ? "var(--landing-top, 0)" : "var(--toprail-h)" }}
+       /* landing-top: 0 on desktop, toprail height on narrow */
+
+     And in globals.css:
+       @media (max-width: 639px) {
+         :root { --landing-top: var(--toprail-h); }
+       }
+
+F2 — Skip-link visibility. The existing anchor at Shell.tsx:19
+     is sr-only + absolute top/left 0. Add a `:focus-visible`
+     rule in globals.css that surfaces it visually:
+
+       .skip-link:focus-visible {
+         position: fixed;
+         inset: auto;
+         top: var(--s-3);
+         left: var(--s-3);
+         width: auto; height: auto;
+         padding: var(--s-2) var(--s-4);
+         background: var(--accent); color: var(--bg-0);
+         font-family: var(--font-mono); font-size: var(--t-sm-size);
+         z-index: calc(var(--z-palette) + 2);
+         clip: auto; clip-path: none;
+       }
+
+     Tag the anchor with className="sr-only skip-link" so the
+     focus rule can find it. Audit F3.
+
+
+§G  ACCORDION STATE — NEUTRAL STATE ON NARROW
+=============================================
+
+On desktop, "neutral" is a legitimate third state (all panels
+share width equally) and is what a visitor sees if they navigate
+without expanding anything. On narrow, "neutral" renders as
+five collapsed-size headers with no expanded body — a list of
+five entries, which is coherent.
+
+However, `initialExpandedIndex = 1` (the default from
+Accordion.tsx:16) is preserved. On narrow, this means the
+About panel is expanded at page-load. This is the right
+default: a visitor hitting the landing page on mobile sees
+About content immediately, not a list of five inert headers.
+
+Do NOT add a narrow-only override changing the default to
+neutral. The expanded-by-default-on-narrow pattern is
+preserved.
+
+
+§H  PERFORMANCE BUDGET
+======================
+
+This chassis rewrite's delta:
+
+  - Accordion.tsx: net −2 lines (inline style object shrinks);
+  - Panel.tsx: net −6 lines (inline flex logic removed);
+  - PanelSpine.tsx: net +3 lines (chevron + spine-title span);
+  - globals.css: net +20 lines (rewritten mobile block + new
+    skip-link rule); +~1 KB unminified, ~0.4 KB after gzip.
+  - tokens.css: +2 tokens.
+
+  Total shell-bundle delta: < 1 KB gzip.
+
+  Runtime cost: replaces inline-style objects with CSS rules,
+  slightly REDUCING per-render style work.
+
+
+ACCEPTANCE FOR M02
+------------------
+[ ] No inline 100vh in Accordion.tsx.
+[ ] No inline flex values in Panel.tsx.
+[ ] .panel-body on narrow has overflow: visible (not auto).
+[ ] No max-width: 767px media query remains; replaced with 639.
+[ ] --statusbar-h reference removed from globals.css.
+[ ] --mobile-header-h, --mobile-gutter tokens exist in tokens.css.
+[ ] Spine title renders horizontally on narrow, vertical-upright
+    on desktop, via CSS (not via string manipulation).
+[ ] Chevron visible on narrow collapsed header; hidden on desktop.
+[ ] touch-action: manipulation on .panel-spine.
+[ ] -webkit-tap-highlight-color: transparent on .panel-spine.
+[ ] Expand moves focus to first-focusable inside the panel body
+    on the next animation frame; gated on user-initiated expand.
+[ ] Expand announces `${title} panel opened` via #operator-aria-live.
+[ ] On narrow, expand scrolls the header to block:start; gated on
+    user-initiated expand; behavior "auto" under reducedMotion.
+[ ] At 375×667 iPhone 13 mini, the landing page loads with About
+    expanded; tapping another header collapses About and expands
+    the tapped panel; the page is a single scroll column.
+[ ] At 320×568 iPhone SE, the landing page is usable with no
+    horizontal overflow.
+[ ] At 768×1024 iPad portrait, the page renders in desktop
+    horizontal mode (the accordion is NOT vertical); verified
+    the 640–767 compact band works as a horizontal accordion
+    without the mobile CSS engaging.
+[ ] @media (prefers-reduced-motion: reduce) disables the
+    max-height transition on narrow.
+[ ] 08 hover choreography is unaffected at widths >= 768 px
+    (regression test: reopen 08/P04 ship-gate checks).

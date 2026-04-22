@@ -1,0 +1,1567 @@
+P05 — MODE 4, THE REFUSAL PANEL
+=================================
+
+ROLE: You are implementing MODE 4 of the Theseus Deep experience.
+The Refusal Panel is the mode that answers the 00_INDEX's Q4:
+"what happens when a publication candidate fails rigor?" The
+answer it must demonstrate, interactively, is refusal — not as
+an error state, not as a 400-variant pass, but as a first-class
+output of the firm's machinery. The mode renders the rigor
+gate's nine declared checks as an animated sequence, surfaces
+the six-layer aggregator's UNRESOLVED output as its own verdict
+on one of the four authored PublicationCandidates, and exposes
+the founder-override path — permanent, public, ledger-recorded
+— as the system's one escape hatch from the gate.
+
+This mode is the most rhetorically load-bearing of the five.
+The entire Theseus firm rests on the claim that refusal is a
+signal rather than a failure, and a visitor who leaves the
+Theseus panel believing anything else has left with a
+misapprehension. The mode is arranged to prevent that
+misapprehension by literalizing it: REFUSE and UNRESOLVED are
+rendered at the same visual and semantic level of the UI as
+PASS, and the sidebar's overrides-ledger makes the cost of
+bypassing refusal visible.
+
+Read P01, P02, P03, and P04 first. This prompt
+assumes the chassis, OrdersSlice, ReflectionSlice, and
+SeveritySlice are in place and that sources.ts already carries
+the keys enumerated in P01–P04.
+
+---
+
+GROUNDING
+
+All content in this mode is grounded in:
+
+  TH1 §5     — "What Theseus is not"; the anchor that the rigor
+               gate runs nine checks, founder overrides are
+               public and ledger-recorded, and the 100%-pass
+               rate inference.
+  TH4 §2.3   — the six-layer coherence subpackage (nli,
+               argumentation, probabilistic, geometry,
+               information, judge) and the aggregator's
+               deliberately-conservative UNRESOLVED output.
+  TH5 §3     — the six-layer coherence stack rendered in its
+               pipeline role.
+  TH5 §8     — the adversarial challenge subsystem (four
+               states: pending, addressed, fallen, fatal) —
+               fallen unaddressed challenges block the
+               adversarial-status check.
+  TH5 §10    — the peer-review swarm (seven reviewer roles) —
+               feeds the peer-review-completeness check.
+  TH5 §11    — decay policies (fixed-interval, evidence-
+               changed, method-version-bump, embedding-drift,
+               outcome-observed, calibration-regression) —
+               feeds the freshness check.
+  TH5 §12    — the rigor gate itself: the nine declared
+               checks, verdict states, override discipline,
+               and the 100%-pass-rate inference.
+
+The canonical nine-check list, taken verbatim from TH5 §12
+and stored byte-identically in sources.ts under the key
+TH5_SEC_12_NINE_CHECKS:
+
+    "Nine declared checks run in parallel. Representative
+    checks:
+    • Provenance completeness — the cascade path from
+      publication conclusion back to source artifacts is
+      unbroken.
+    • Calibrated confidence — the conclusion's confidence is
+      within calibration-appropriate bounds for the
+      producing method.
+    • Peer review completeness — all major and blocker
+      findings have been rebutted.
+    • Freshness — no supporting claim is stale or retired at
+      submission time.
+    • Adversarial status — no unaddressed fallen challenges
+      exist for this conclusion.
+    • Cascade soundness — no cycles in the evidence graph;
+      single-point-of-failure nodes are disclosed if present.
+    • Method signatures — every method in the chain is
+      registered, versioned, and its code has a valid
+      signature against the registry.
+    • Publication conditions — if present, are machine-
+      readable and loaded into the public site's metadata
+      for the conclusion.
+    • Corpus hash — the hash of the corpus state at
+      publication is recorded and pinned to the publication
+      entry."
+                                                    (TH5 §12)
+
+The 100%-pass-rate inference, rendered verbatim in the
+persistent footer, stored under
+TH5_SEC_12_HUNDRED_PERCENT_ANCHOR:
+
+    "The monthly refusal rate is published on /methodology/
+    rigor/. A 100% pass rate for multiple consecutive months
+    would be evidence that the gate is too weak, not that
+    the firm is flawless."
+                                                    (TH5 §12)
+
+The UNRESOLVED discipline, verbatim, stored under
+TH4_SEC_2_3_UNRESOLVED_DISCIPLINE:
+
+    "The aggregator is deliberately conservative: when
+    layers disagree past a threshold, the output is
+    unresolved rather than a point verdict. unresolved is a
+    first-class output in every downstream consumer, not an
+    error state."
+                                                    (TH4 §2.3)
+
+The six-layer names are TH4 §2.3's exact labels:
+
+    nli.py              — NLI (entail / neutral / contradict)
+    argumentation.py    — Dung-style admissibility
+    probabilistic.py    — joint satisfiability
+    geometry.py         — embedding-geometry test
+    information.py      — compressibility / entropy
+    judge.py            — LLM-as-judge
+
+These names are shown in the SixLayerAggregator sub-panel
+(§D item F). They are NOT conflated with any CE-suite
+vocabulary; cross-reference is governed by the 00_INDEX
+RELATIONSHIP TO PRIOR SUITES block.
+
+---
+
+§A — FILE LAYOUT
+
+Create the following new files under the RefusalPanel subtree
+declared in 00_INDEX §FILE MANIFEST. Rooted at
+src/components/panels/theseus/Experience/RefusalPanel/ :
+
+    RefusalPanel/
+        index.tsx                    — mode root; composes the
+                                       two-pane layout.
+        CandidatePicker.tsx          — renders the 4 candidate
+                                       cards; sets
+                                       activeCandidateId.
+        NineCheckPipeline.tsx        — animated 9-row pipeline;
+                                       each row: check name,
+                                       status glyph
+                                       (PASS / CONDITION /
+                                       FAIL / REFUSED-PENDING),
+                                       reason code, optional
+                                       pointer-back to Mode 2
+                                       or Mode 3.
+        GateVerdictTile.tsx          — PASS / PASS_WITH_
+                                       CONDITIONS / REFUSE.
+        OverrideControl.tsx          — "Override as Founder"
+                                       button; opens the
+                                       justification modal;
+                                       confirms and appends
+                                       to overrides ledger.
+        OverridesLedger.tsx          — the append-only ledger
+                                       sidebar.
+        SixLayerAggregator.tsx       — compact sub-panel; six
+                                       layer rows with per-
+                                       layer verdicts; shows
+                                       UNRESOLVED verdict on
+                                       F4.
+        UnresolvedReadout.tsx        — the distinct verdict
+                                       tile for UNRESOLVED;
+                                       renders the TH4 §2.3
+                                       discipline excerpt
+                                       verbatim.
+
+Augment (do not rewrite) these existing files:
+
+    src/lib/theseus/publicationCandidates.ts
+        - Declare the full fixture array (see §C).
+    src/lib/theseus/sources.ts
+        - Add TH5_SEC_12_NINE_CHECKS,
+          TH5_SEC_12_HUNDRED_PERCENT_ANCHOR,
+          TH4_SEC_2_3_UNRESOLVED_DISCIPLINE.
+    src/lib/theseus/typeGuards.ts
+        - Add assertPublicationCandidate and
+          assertPublicationCandidateArray (see §J).
+    src/stores/theseusExperience.ts
+        - Add RefusalSlice (see §B).
+
+No other file is touched. The Refusal tab in ModeTabBar (from
+P01) already exists; activating it renders RefusalPanel/
+index.tsx.
+
+---
+
+§B — STORE SLICE
+
+Augment src/stores/theseusExperience.ts with RefusalSlice:
+
+    type CheckId =
+      | "provenance"
+      | "calibrated_confidence"
+      | "peer_review"
+      | "freshness"
+      | "adversarial_status"
+      | "cascade_soundness"
+      | "method_signatures"
+      | "publication_conditions"
+      | "corpus_hash";
+
+    type CheckStatus =
+      | "PASS"
+      | "CONDITION"
+      | "FAIL"
+      | "REFUSED_PENDING";
+
+    type GateVerdict =
+      | "PASS"
+      | "PASS_WITH_CONDITIONS"
+      | "REFUSE";
+
+    type SixLayerVerdict =
+      | "coherent"
+      | "incoherent"
+      | "unresolved";
+
+    interface OverrideRecord {
+      candidateId: string;
+      justification: string;         // 50-2000 chars;
+                                     //   enforced in
+                                     //   OverrideControl
+      overriddenAt: number;          // Date.now() at the
+                                     //   moment the user
+                                     //   clicks confirm
+      overrodeVerdict: GateVerdict;  // the verdict that was
+                                     //   overridden (never
+                                     //   "PASS")
+      sessionId: string;             // the ExperienceHost
+                                     //   session id; from I01
+    }
+
+    interface RefusalSliceState {
+      activeCandidateId: string | null;       // null = picker
+      pipelineCursor: number;                 // 0..9; 9 = done
+      pipelineAutoAdvance: boolean;           // default true
+      overridesLedger: OverrideRecord[];      // append-only;
+                                              //   never
+                                              //   truncated by
+                                              //   any action
+                                              //   in this slice
+      overrideDraftJustification: Record<     // per-candidate
+        string, string>;                      //   draft
+      overrideModalOpen: boolean;
+      aggregatorExpanded: Record<             // whether the
+        string, boolean>;                     //   per-candidate
+                                              //   six-layer
+                                              //   sub-panel
+                                              //   is expanded
+    }
+
+    interface RefusalSliceActions {
+      pickCandidate(candidateId: string): void;
+      advancePipeline(): void;               // cursor++ up to 9
+      setPipelineAutoAdvance(v: boolean): void;
+      resetPipeline(candidateId: string): void;
+                                            // cursor -> 0
+      openOverrideModal(): void;
+      updateOverrideDraft(s: string): void;
+      confirmOverride(): void;              // appends to
+                                            //   overridesLedger
+                                            //   if the gate
+                                            //   verdict is
+                                            //   REFUSE or
+                                            //   PASS_WITH_
+                                            //   CONDITIONS;
+                                            //   no-op when
+                                            //   verdict is
+                                            //   PASS; closes
+                                            //   modal.
+      cancelOverride(): void;
+      toggleAggregator(candidateId: string): void;
+    }
+
+Initial state:
+
+    {
+      activeCandidateId: null,
+      pipelineCursor: 0,
+      pipelineAutoAdvance: true,
+      overridesLedger: [],
+      overrideDraftJustification: {},
+      overrideModalOpen: false,
+      aggregatorExpanded: {},
+    }
+
+overridesLedger is APPEND-ONLY. No action in the slice removes
+or rewrites entries. Changing modes or clearing other slices
+preserves the ledger in full. This is the intentional mirror
+of the production architecture's "Founder overrides are public
+and ledger-recorded; every override lives on the public
+site's /methodology/overrides/ page with full justification,
+forever" (TH5 §12). The comment block at the top of the slice
+definition MUST cite this passage.
+
+Cross-slice coupling:
+  - confirmOverride's behavior depends on the active
+    candidate's authored gateVerdict — read from
+    selectActiveCandidate — not from any transient UI state.
+  - When pickCandidate is called with a candidate whose id
+    references a Severity fixture (see F3 below), no state is
+    mutated in SeveritySlice. The cross-mode pointer is a
+    render-only nav affordance in the NineCheckPipeline row
+    for the adversarial_status check.
+
+State selectors:
+
+    selectActiveCandidate(state): PublicationCandidate | null
+    selectPipelineProgress(candidateId):
+      { cursor: number; totalChecks: 9;
+        complete: boolean; verdicts: CheckOutcome[] }
+    selectOverrideCount(candidateId): number
+    selectOverrideCountTotal(): number
+
+---
+
+§C — PUBLICATION CANDIDATE FIXTURES
+
+Declare the full authored array in
+src/lib/theseus/publicationCandidates.ts. The shape:
+
+    export interface CheckOutcome {
+      id: CheckId;
+      status: CheckStatus;
+      reasonCode: string;                 // compact enum-like
+                                          //   string, e.g.
+                                          //   "OK",
+                                          //   "FALLEN_UNADDR"
+      rationale: string;                  // authored; 1-4
+                                          //   sentences
+      sourceAnchor: string;               // e.g. TH5_SEC_8_
+      crossModeRef: {                     // optional nav hint
+        mode: "reflection" | "severity" | "fixedpoint";
+        refId: string;                    // thesis id,
+                                          //   fixture id, etc.
+      } | null;
+    }
+
+    export interface SixLayerOutcome {
+      layerId:
+        | "nli" | "argumentation" | "probabilistic"
+        | "geometry" | "information" | "judge";
+      verdict: "entail" | "neutral" | "contradict"
+        | "admissible" | "rejected"
+        | "satisfiable" | "unsatisfiable"
+        | "close" | "distant"
+        | "compressible" | "incompressible"
+        | "coherent" | "incoherent"
+        | "disagrees_other_layers";
+      // authored numeric placeholder; never computed live
+      confidence: number;
+      rationale: string;                  // 1-2 sentences
+    }
+
+    export interface PublicationCandidate {
+      id: string;
+      title: string;                      // ≤80 chars
+      oneLineSummary: string;             // ≤180 chars
+      submittedByRole: "founder" | "research_team"; // authored
+      checkOutcomes: CheckOutcome[];      // length === 9,
+                                          //   one per CheckId
+      gateVerdict: GateVerdict;
+      gateVerdictRationale: string;       // 2-5 sentences
+      sixLayerAggregator: {
+        runOnClaimId: string;             // authored stable id
+        runOnClaimText: string;           // 1-2 sentences
+        layerOutcomes: SixLayerOutcome[]; // length === 6
+        aggregatorVerdict: SixLayerVerdict;
+        aggregatorRationale: string;      // 2-4 sentences
+      };
+      productionNote: string;             // authored short
+                                          //   pointer to the
+                                          //   production
+                                          //   module(s)
+    }
+
+The four authored fixtures. VERBATIM for publicationCandidates.ts :
+
+-----------------------------------------------------------
+
+F1 — CLEAN PASS (all nine checks PASS)
+  id: "f1_clean_pass"
+  title: "Firm-tier conclusion: consumer-credit default rate is
+          regime-dependent, not secular"
+  oneLineSummary:
+    "A principle-level claim that the recent rise in default
+    rates is attributable to the post-2022 credit tightening
+    rather than a secular deterioration of underwriting
+    standards."
+  submittedByRole: "research_team"
+  checkOutcomes:
+    [
+      { id: "provenance", status: "PASS",
+        reasonCode: "FULL_CASCADE",
+        rationale:
+          "Cascade path from publication conclusion back to
+          source artifacts is unbroken. 14 supporting claims,
+          each ledger-linked to a transcript or external
+          dataset; no orphan nodes.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "calibrated_confidence", status: "PASS",
+        reasonCode: "WITHIN_BOUNDS",
+        rationale:
+          "Stated confidence 0.72 is within the producing
+          method's historical ±0.05 calibration band on
+          matched problem classes.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "peer_review", status: "PASS",
+        reasonCode: "NO_BLOCKERS",
+        rationale:
+          "All seven reviewer roles returned; no blocker or
+          major findings remain unaddressed.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "freshness", status: "PASS",
+        reasonCode: "FRESH",
+        rationale:
+          "No supporting claim is stale or retired; every
+          object's decay policy has been re-validated within
+          the policy's interval.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "adversarial_status", status: "PASS",
+        reasonCode: "NO_FALLEN_UNADDRESSED",
+        rationale:
+          "Three structured challenges generated; two
+          addressed in the companion memo, one fallen and
+          demoted to open-tier; no unaddressed fallen
+          challenges remain for this firm-tier conclusion.",
+        sourceAnchor: "TH5_SEC_8_ADVERSARIAL_TARGETS",
+        crossModeRef: null },
+      { id: "cascade_soundness", status: "PASS",
+        reasonCode: "NO_CYCLES_NO_SPOFS",
+        rationale:
+          "No cycles in the evidence graph; no
+          single-point-of-failure nodes; cascade structure
+          audited by cascade_soundness_check().",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "method_signatures", status: "PASS",
+        reasonCode: "ALL_SIGNED",
+        rationale:
+          "Every method in the chain is registered, versioned,
+          and signs against the current registry manifest.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "publication_conditions", status: "PASS",
+        reasonCode: "NONE_REQUIRED",
+        rationale:
+          "No publication conditions attached; field is
+          explicitly the empty object, which is a PASS for
+          this check.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "corpus_hash", status: "PASS",
+        reasonCode: "PINNED",
+        rationale:
+          "Corpus hash at submission is pinned to the
+          publication entry; counterfactual replay is
+          available against this hash.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null }
+    ]
+  gateVerdict: "PASS"
+  gateVerdictRationale:
+    "All nine checks returned PASS. The rigor gate emits a
+    PASS verdict with no conditions. Publication proceeds.
+    Consistent with the 00_INDEX Q4 answer: PASS is one of
+    three canonical verdict states, NOT the default state.
+    The monthly refusal rate would regress toward zero if
+    every candidate looked like this one, which is exactly
+    the 'evidence that the gate is too weak' condition
+    flagged in TH5 §12."
+  sixLayerAggregator:
+    {
+      runOnClaimId: "f1_claim_principal",
+      runOnClaimText:
+        "Consumer-credit default rates rose because the 2022
+        tightening doubled realized short-term funding
+        costs for non-prime originators, not because
+        underwriting standards secularly deteriorated.",
+      layerOutcomes: [
+        { layerId: "nli", verdict: "entail", confidence: 0.82,
+          rationale:
+            "Supporting claims entail the principal with no
+            contradictions." },
+        { layerId: "argumentation", verdict: "admissible",
+          confidence: 0.79,
+          rationale:
+            "Grounded extension includes the principal; no
+            defeating arguments survive." },
+        { layerId: "probabilistic", verdict: "satisfiable",
+          confidence: 0.86,
+          rationale:
+            "Claim set is jointly satisfiable under multiple
+            coherent probability assignments." },
+        { layerId: "geometry", verdict: "close",
+          confidence: 0.74,
+          rationale:
+            "Embedding-geometry: supporting and principal
+            cluster within the expected similarity cone." },
+        { layerId: "information", verdict: "compressible",
+          confidence: 0.81,
+          rationale:
+            "Claim set compresses; redundancy within
+            expected band; no entropy spike." },
+        { layerId: "judge", verdict: "coherent",
+          confidence: 0.77,
+          rationale:
+            "LLM-as-judge returns coherent; no disagreement-
+            with-other-layers flag." }
+      ],
+      aggregatorVerdict: "coherent",
+      aggregatorRationale:
+        "Six layers agree on the coherent side; aggregator
+        returns coherent within expected confidence bounds.
+        This is not a 'forced' agreement — each layer ran
+        independently and produced its own verdict."
+    }
+  productionNote:
+    "Analog: noosphere/noosphere/rigor_gate/ with a
+    pass-verdict emitter; ledger entry signed Ed25519 and
+    Merkle-chained (TH4 §2.2)."
+
+-----------------------------------------------------------
+
+F2 — PASS_WITH_CONDITIONS (freshness degrades)
+  id: "f2_pass_with_conditions"
+  title: "Firm-tier conclusion: method-attribution analysis of
+          2023 technology forecasts"
+  oneLineSummary:
+    "A method-attribution analysis that concludes analogical
+    reasoning produced the worst Brier scores on technology
+    forecasts in 2023."
+  submittedByRole: "research_team"
+  checkOutcomes:
+    [
+      { id: "provenance", status: "PASS",
+        reasonCode: "FULL_CASCADE",
+        rationale:
+          "Cascade back to source artifacts is unbroken.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "calibrated_confidence", status: "PASS",
+        reasonCode: "WITHIN_BOUNDS",
+        rationale:
+          "Confidence 0.61 is within the method's
+          ±0.04 calibration band for this problem class.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "peer_review", status: "PASS",
+        reasonCode: "NO_BLOCKERS",
+        rationale:
+          "All major findings rebutted; no blockers
+          outstanding.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "freshness", status: "CONDITION",
+        reasonCode: "DECAY_EVIDENCE_CHANGED",
+        rationale:
+          "Two supporting claims decayed on the
+          evidence-changed policy: a mid-2024 replication
+          project altered the base-rate assumption for one
+          forecast class. The attached publication condition
+          requires a calibration-weight revalidation within
+          45 days of publication or the conclusion is demoted
+          to open tier. Machine-readable; parser-compatible
+          with the public site's metadata.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "adversarial_status", status: "PASS",
+        reasonCode: "NO_FALLEN_UNADDRESSED",
+        rationale:
+          "Five structured challenges generated; four
+          addressed, one fallen and demoted; none remains
+          unaddressed at firm tier.",
+        sourceAnchor: "TH5_SEC_8_ADVERSARIAL_TARGETS",
+        crossModeRef: null },
+      { id: "cascade_soundness", status: "PASS",
+        reasonCode: "NO_CYCLES_NO_SPOFS",
+        rationale:
+          "Cascade graph is acyclic; one disclosed SPoF
+          (the 2023 Metaculus corpus snapshot) is flagged
+          in the publication metadata.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "method_signatures", status: "PASS",
+        reasonCode: "ALL_SIGNED",
+        rationale:
+          "Method signatures verify against the registry at
+          submission time.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "publication_conditions", status: "CONDITION",
+        reasonCode: "FRESHNESS_REVALIDATION_45D",
+        rationale:
+          "One attached condition: the 45-day revalidation
+          obligation inherited from the freshness
+          CONDITION above. Machine-readable; emitted into
+          the publication's metadata record.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "corpus_hash", status: "PASS",
+        reasonCode: "PINNED",
+        rationale:
+          "Corpus hash pinned; counterfactual replay
+          available.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null }
+    ]
+  gateVerdict: "PASS_WITH_CONDITIONS"
+  gateVerdictRationale:
+    "Seven checks PASS; two return CONDITION (freshness
+    degraded on evidence-changed; publication_conditions
+    carries the 45-day revalidation). Gate verdict is
+    PASS_WITH_CONDITIONS. The conditions are machine-
+    readable and attach to the public metadata; if the
+    revalidation is not performed within 45 days, the
+    conclusion auto-demotes to open tier via the decay
+    subsystem (TH5 §11 evidence-changed / calibration-
+    regression policies)."
+  sixLayerAggregator:
+    {
+      runOnClaimId: "f2_claim_principal",
+      runOnClaimText:
+        "Analogical-reasoning-based 2023 technology forecasts
+        produced the firm's worst Brier scores, at 0.38
+        versus 0.19 for empirical-grounding-based
+        forecasts.",
+      layerOutcomes: [
+        { layerId: "nli", verdict: "entail", confidence: 0.68,
+          rationale:
+            "Supporting method-attribution claims entail the
+            principal." },
+        { layerId: "argumentation", verdict: "admissible",
+          confidence: 0.71,
+          rationale:
+            "Grounded extension includes the principal." },
+        { layerId: "probabilistic", verdict: "satisfiable",
+          confidence: 0.74,
+          rationale:
+            "Joint satisfiability holds under coherent
+            probability assignments." },
+        { layerId: "geometry", verdict: "close",
+          confidence: 0.66,
+          rationale:
+            "Embeddings cluster within expected cone." },
+        { layerId: "information", verdict: "compressible",
+          confidence: 0.72,
+          rationale:
+            "Compression acceptable; modest redundancy." },
+        { layerId: "judge", verdict: "coherent",
+          confidence: 0.69,
+          rationale:
+            "LLM-as-judge returns coherent; no disagreement
+            flag." }
+      ],
+      aggregatorVerdict: "coherent",
+      aggregatorRationale:
+        "Six layers agree on the coherent side. The
+        freshness CONDITION is upstream of the aggregator's
+        verdict and does not affect it; aggregator confidence
+        is somewhat lower than F1's because the corpus
+        snapshot precedes the 2024 replication update."
+    }
+  productionNote:
+    "Analog: noosphere/noosphere/rigor_gate/ attaches the
+    machine-readable condition set to the publication entry;
+    decay subsystem (TH5 §11) enforces the 45-day
+    revalidation obligation."
+
+-----------------------------------------------------------
+
+F3 — REFUSE (unaddressed adversarial challenge)
+  id: "f3_refuse_adversarial"
+  title: "Firm-tier conclusion: Company X has a durable moat
+          driven by network effects"
+  oneLineSummary:
+    "Investment-style firm-tier conclusion attributing
+    Company X's retention to network effects. The Reflection
+    Lab's reflected antithesis across the MOAT-MECHANISM
+    axis produced a structurally-coherent switching-costs
+    counter-argument; the challenge is classified FALLEN and
+    has not been addressed in any companion memo."
+  submittedByRole: "founder"
+  checkOutcomes:
+    [
+      { id: "provenance", status: "PASS",
+        reasonCode: "FULL_CASCADE",
+        rationale:
+          "Cascade back to NRR data and competitor NRR
+          series is unbroken.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "calibrated_confidence", status: "CONDITION",
+        reasonCode: "AT_BAND_EDGE",
+        rationale:
+          "Stated confidence 0.78 sits at the upper edge of
+          the method's calibration band (±0.06). CONDITION
+          rather than FAIL: the confidence is not
+          uncalibrated, but it is at the edge of what the
+          method has historically earned.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "peer_review", status: "PASS",
+        reasonCode: "NO_BLOCKERS",
+        rationale:
+          "All major findings rebutted; the adversarial-
+          literature reviewer flagged the switching-costs
+          alternative, which is tracked in the adversarial
+          subsystem (see adversarial_status below).",
+        sourceAnchor: "TH5_SEC_10_PEER_REVIEW",
+        crossModeRef: null },
+      { id: "freshness", status: "PASS",
+        reasonCode: "FRESH",
+        rationale:
+          "All supporting claims fresh.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "adversarial_status", status: "FAIL",
+        reasonCode: "FALLEN_UNADDRESSED",
+        rationale:
+          "A reflection-generated challenge — 'Company X's
+          retention is explained by switching costs, not
+          network effects' — is in state FALLEN (scored high
+          in the six-layer stack against the original
+          conclusion) and is not ADDRESSED in any companion
+          memo. TH5 §8 declares this a blocker-equivalent
+          for adversarial-status. The refusal reason
+          therefore cites the Mode 2 reflection directly.",
+        sourceAnchor: "TH5_SEC_8_ADVERSARIAL_TARGETS",
+        crossModeRef: {
+          mode: "severity",
+          refId:
+            "f1_moat_net_retention.f1_alt_switching_costs"
+        } },
+      { id: "cascade_soundness", status: "PASS",
+        reasonCode: "NO_CYCLES_NO_SPOFS",
+        rationale:
+          "Cascade graph acyclic; no SPoFs.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "method_signatures", status: "PASS",
+        reasonCode: "ALL_SIGNED",
+        rationale:
+          "All methods registered and signed.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "publication_conditions", status: "REFUSED_PENDING",
+        reasonCode: "UPSTREAM_FAIL",
+        rationale:
+          "Not evaluated independently because the
+          adversarial_status check is FAIL; downstream
+          checks return REFUSED_PENDING by convention.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "corpus_hash", status: "PASS",
+        reasonCode: "PINNED",
+        rationale:
+          "Corpus hash pinned.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null }
+    ]
+  gateVerdict: "REFUSE"
+  gateVerdictRationale:
+    "Any blocker fails the submission outright (TH5 §12).
+    The adversarial_status check is FAIL: a fallen
+    reflection-generated challenge has not been addressed
+    in any companion memo, which TH5 §8 treats as a signal
+    that the conclusion has not yet met severity. Refusal
+    is the correct verdict. The refusal is not a quality
+    judgment on the conclusion's substance — it is a
+    judgment that the conclusion has not yet passed the
+    adversarial stress test the firm's own process
+    requires. The override path is available; see the
+    sidebar ledger for consequences."
+  sixLayerAggregator:
+    {
+      runOnClaimId: "f3_claim_principal",
+      runOnClaimText:
+        "Company X's three-year-consecutive NRR ≥ 110%
+        across three regulatory regimes is attributable to
+        network effects on the customer-value axis.",
+      layerOutcomes: [
+        { layerId: "nli", verdict: "entail", confidence: 0.64,
+          rationale:
+            "Supporting NRR data entails the principal at
+            moderate confidence." },
+        { layerId: "argumentation", verdict: "admissible",
+          confidence: 0.61,
+          rationale:
+            "Grounded extension includes the principal; one
+            admissible defeater (switching costs) is in the
+            argument graph but not yet rebutted." },
+        { layerId: "probabilistic", verdict: "satisfiable",
+          confidence: 0.70,
+          rationale:
+            "Joint satisfiability holds under plausible
+            priors." },
+        { layerId: "geometry", verdict: "close",
+          confidence: 0.58,
+          rationale:
+            "Embedding-geometry: within the cone, but the
+            reflected-antithesis vector sits close enough
+            to trigger the contradiction-geometry flag." },
+        { layerId: "information", verdict: "compressible",
+          confidence: 0.66,
+          rationale:
+            "Compression acceptable." },
+        { layerId: "judge", verdict: "coherent",
+          confidence: 0.62,
+          rationale:
+            "LLM-as-judge returns coherent on the
+            conclusion alone; does NOT attempt to arbitrate
+            the unresolved adversarial challenge." }
+      ],
+      aggregatorVerdict: "coherent",
+      aggregatorRationale:
+        "Six layers agree on the coherent side for the
+        conclusion taken in isolation; the aggregator
+        would return coherent IF the adversarial challenge
+        were absent. But the gate refuses upstream of the
+        aggregator — the adversarial_status check fails
+        before aggregator output is considered. This is
+        by design: aggregator-coherent conclusions still
+        need to have survived challenge to merit
+        publication."
+    }
+  productionNote:
+    "Analog: noosphere/noosphere/adversarial.py emits the
+    fallen challenge; rigor_gate/ refuses; the challenge
+    sits in the 'fallen' state with a pointer to the
+    reflection-based generator (TH3 §5). The override
+    path appends to the public overrides ledger — the
+    mode's sidebar mirrors that ledger here."
+
+-----------------------------------------------------------
+
+F4 — REFUSE (UNRESOLVED aggregator verdict)
+  id: "f4_refuse_unresolved"
+  title: "Firm-tier conclusion: methodology X is reliable on
+          ideological coherence scoring"
+  oneLineSummary:
+    "A methodology-evaluation conclusion where the six-layer
+    aggregator materially disagrees across layers on the
+    principal claim. The aggregator returns UNRESOLVED; the
+    rigor gate's adversarial_status check therefore refuses."
+  submittedByRole: "founder"
+  checkOutcomes:
+    [
+      { id: "provenance", status: "PASS",
+        reasonCode: "FULL_CASCADE",
+        rationale:
+          "Cascade back to source artifacts is unbroken.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "calibrated_confidence", status: "PASS",
+        reasonCode: "WITHIN_BOUNDS",
+        rationale:
+          "Stated confidence 0.55 is within method calibration
+          bounds.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "peer_review", status: "PASS",
+        reasonCode: "NO_BLOCKERS",
+        rationale:
+          "All major peer-review findings rebutted.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "freshness", status: "PASS",
+        reasonCode: "FRESH",
+        rationale:
+          "Supporting claims fresh.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "adversarial_status", status: "FAIL",
+        reasonCode: "AGGREGATOR_UNRESOLVED",
+        rationale:
+          "The six-layer aggregator's output on the principal
+          claim is UNRESOLVED (layers disagree past the
+          materiality threshold). TH4 §2.3: 'the aggregator
+          is deliberately conservative: when layers disagree
+          past a threshold, the output is unresolved rather
+          than a point verdict.' An UNRESOLVED verdict at
+          this stage means the adversarial stress test
+          cannot be declared survived; the gate refuses.",
+        sourceAnchor: "TH4_SEC_2_3_UNRESOLVED_DISCIPLINE",
+        crossModeRef: null },
+      { id: "cascade_soundness", status: "PASS",
+        reasonCode: "NO_CYCLES_NO_SPOFS",
+        rationale:
+          "Cascade acyclic.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "method_signatures", status: "PASS",
+        reasonCode: "ALL_SIGNED",
+        rationale:
+          "Methods signed.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "publication_conditions", status: "REFUSED_PENDING",
+        reasonCode: "UPSTREAM_FAIL",
+        rationale:
+          "Not independently evaluated; adversarial_status
+          is FAIL.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null },
+      { id: "corpus_hash", status: "PASS",
+        reasonCode: "PINNED",
+        rationale:
+          "Corpus hash pinned.",
+        sourceAnchor: "TH5_SEC_12_NINE_CHECKS",
+        crossModeRef: null }
+    ]
+  gateVerdict: "REFUSE"
+  gateVerdictRationale:
+    "The adversarial_status check fails because the six-layer
+    aggregator returned UNRESOLVED on the principal claim.
+    UNRESOLVED is not a pass-equivalent and is not a fail-
+    equivalent; it is a first-class verdict stating that
+    the firm's own coherence stack could not agree.
+    Publication at firm tier would be premature. Refusal
+    is the correct verdict. Every downstream consumer
+    handles UNRESOLVED explicitly (TH4 §2.3); this mode
+    renders it in its own verdict tile, the
+    UnresolvedReadout, to prevent the UI from collapsing
+    it into pass/fail."
+  sixLayerAggregator:
+    {
+      runOnClaimId: "f4_claim_principal",
+      runOnClaimText:
+        "Methodology X (defined by its five-criterion
+        specification) is reliable on ideological-coherence
+        scoring across the authored held-out test set.",
+      layerOutcomes: [
+        { layerId: "nli", verdict: "entail", confidence: 0.67,
+          rationale:
+            "Supporting claims entail the principal." },
+        { layerId: "argumentation", verdict: "rejected",
+          confidence: 0.72,
+          rationale:
+            "Grounded extension rejects the principal due
+            to an admissible defeater from the corpus
+            audit's ambiguity findings." },
+        { layerId: "probabilistic", verdict: "satisfiable",
+          confidence: 0.69,
+          rationale:
+            "Joint satisfiability holds." },
+        { layerId: "geometry", verdict: "distant",
+          confidence: 0.64,
+          rationale:
+            "Embedding-geometry: principal sits outside the
+            expected similarity cone for supporting
+            claims." },
+        { layerId: "information", verdict: "incompressible",
+          confidence: 0.70,
+          rationale:
+            "Redundancy below expected band; the claim set
+            is accommodating failures by adding
+            ad-hoc qualifiers." },
+        { layerId: "judge", verdict: "disagrees_other_layers",
+          confidence: 0.61,
+          rationale:
+            "LLM-as-judge flags disagreement among the
+            structural layers and emits the
+            disagrees_other_layers signal rather than a
+            coherent / incoherent verdict." }
+      ],
+      aggregatorVerdict: "unresolved",
+      aggregatorRationale:
+        "Three layers support the principal (nli,
+        probabilistic) or at best are neutral; three layers
+        contradict or flag disagreement (argumentation,
+        geometry, information). The LLM-as-judge layer
+        explicitly emits disagrees_other_layers rather than
+        attempting to force a verdict. The aggregator's
+        materiality threshold is exceeded; UNRESOLVED is
+        returned. No point verdict is appropriate."
+    }
+  productionNote:
+    "Analog: noosphere/noosphere/coherence/aggregator.py
+    emits UNRESOLVED; rigor_gate/ refuses on
+    adversarial_status. The fixture's shape mirrors what a
+    real aggregator dump looks like in meta_analysis.py
+    telemetry (TH4 §2.3; TH5 §6)."
+
+-----------------------------------------------------------
+
+END FIXTURES. Freeze with Object.freeze. Stable ids:
+  f1_clean_pass
+  f2_pass_with_conditions
+  f3_refuse_adversarial
+  f4_refuse_unresolved
+
+F3's crossModeRef on the adversarial_status check points to
+the Severity fixture id
+"f1_moat_net_retention.f1_alt_switching_costs". P05's nav
+logic reads that ref string, parses on ".", and calls
+openInMode("severity",
+"f1_moat_net_retention") which lands the user on Mode 3 with
+F1 active; the alternative row f1_alt_switching_costs is
+focused.
+
+---
+
+§D — COMPONENT CONTRACTS
+
+index.tsx:
+
+    export default function RefusalPanel(): JSX.Element;
+
+    Layout:
+      - Pane A (primary; left at WIDE+, top at NARROW):
+          CandidatePicker if activeCandidateId === null,
+          otherwise the pipeline + verdict + aggregator
+          column.
+      - Pane B (sidebar; right at WIDE+, bottom drawer at
+        NARROW):
+          OverridesLedger (always visible).
+      - Persistent footer (always on screen when mode is
+        active): the TH5 §12 100%-pass-rate anchor.
+
+CandidatePicker.tsx:
+
+    interface Props {
+      candidates: readonly PublicationCandidate[];
+      onPick(id: string): void;
+    }
+
+    Renders 4 candidate cards, 2x2 at WIDE+, stacked at
+    STANDARD and NARROW. Each card shows: title, one-line
+    summary, submittedByRole chip, and a neutral verdict-
+    badge placeholder (the verdict is NOT pre-revealed in
+    the picker; the badge is a generic "rigor gate" chip).
+
+NineCheckPipeline.tsx:
+
+    interface Props {
+      candidate: PublicationCandidate;
+      cursor: number;
+      autoAdvance: boolean;
+      onAdvance(): void;
+    }
+
+    Renders a vertical nine-row list. Each row:
+      row = {
+        index         : 0..8
+        checkName     : human label (e.g. "Provenance
+                        completeness")
+        checkId       : CheckId
+        status        : CheckStatus
+        glyph         : ✓ / ◐ / ✗ / ⟳ for PASS / CONDITION
+                        / FAIL / REFUSED_PENDING
+        reasonCode    : compact
+        rationale     : authored; collapsed by default;
+                        expands on row focus
+        crossModeLink : rendered only if crossModeRef !==
+                        null; label "View the reflection
+                        behind this challenge →" opens the
+                        Mode 2 Reflection Lab on the thesis
+                        the challenge was generated from
+                        (or opens Mode 3 on the Severity
+                        fixture, as in F3).
+      }
+
+    Cursor semantics:
+      - Rows [0 .. cursor-1] are "revealed": status and
+        glyph shown in full.
+      - Row [cursor] is "active": renders a subtle in-
+        progress indicator (opacity-only at reducedMotion).
+      - Rows [cursor+1 .. 8] are "pending": rendered muted;
+        status concealed behind a neutral "—" placeholder.
+    autoAdvance:
+      - If true: after a short authored delay (800ms,
+        halved at reducedMotion to 400ms, zeroed when
+        prefers-reduced-motion is "reduce"), cursor++.
+      - If false: ENTER on the active row calls
+        onAdvance.
+    When cursor === 9, the pipeline emits an aria-live
+    announcement: "Pipeline complete. Verdict:
+    <gateVerdict>." and the GateVerdictTile becomes
+    visible.
+
+GateVerdictTile.tsx:
+
+    interface Props {
+      candidate: PublicationCandidate;
+      visible: boolean;
+      onOverride(): void;          // opens the modal
+    }
+
+    When visible === false, render null.
+    When visible === true:
+      - The verdict tile: PASS / PASS_WITH_CONDITIONS /
+        REFUSE. All three share the same visual footprint
+        and typography; color alone is NOT load-bearing
+        (glyph + text + screen-reader label required).
+      - The gateVerdictRationale prose.
+      - For PASS_WITH_CONDITIONS: a compact "Conditions"
+        sub-section that renders the machine-readable
+        condition set as authored JSON (pretty-printed).
+      - For REFUSE: an "Override as Founder" button that
+        calls onOverride. The button is aria-labelled
+        "Override refusal (permanent, public)". The button
+        is present but subdued by default; hovering /
+        focusing it does NOT pre-commit anything. No
+        one-click overrides; the modal path is required.
+      - For PASS: NO override affordance. PASS candidates
+        do not admit overrides. (An override of PASS would
+        be a no-op in the production rigor_gate/ and is
+        rendered as absent here.)
+
+OverrideControl.tsx (modal):
+
+    interface Props {
+      candidate: PublicationCandidate;
+      draft: string;
+      onDraftChange(s: string): void;
+      onConfirm(): void;
+      onCancel(): void;
+    }
+
+    The modal renders:
+      - A header: "Override as Founder — permanent, public"
+      - A body quote, rendered verbatim from
+        TH5_SEC_12_HUNDRED_PERCENT_ANCHOR.
+      - A textarea for justification. Required; minLength
+        50; maxLength 2000. The form does not submit unless
+        the textarea satisfies the length constraint.
+      - A checkbox the user must tick:
+        "I understand this override will be ledger-recorded
+        permanently and is intended to be visible to any
+        external auditor."
+      - A confirm button, disabled until textarea length
+        ≥ 50 AND the checkbox is ticked.
+      - A cancel button.
+    On confirm, calls onConfirm (the store's
+    confirmOverride action), which pushes an OverrideRecord
+    onto overridesLedger and closes the modal.
+
+OverridesLedger.tsx:
+
+    interface Props {
+      records: readonly OverrideRecord[];
+    }
+
+    Renders the append-only ledger, newest first. Each
+    entry:
+      - candidate title
+      - overriddenAt as a local-time string
+      - overrodeVerdict chip
+      - a collapsed justification; "expand" toggles it open
+      - a non-removable "(permanent)" trailer
+    There is NO "delete" or "edit" affordance, ever. If the
+    records array is empty, render an authored empty-state:
+
+      "No overrides logged in this session. The production
+      ledger at /methodology/overrides/ persists overrides
+      forever (TH5 §12); this session's ledger resets when
+      the page reloads, because this is a teaching panel,
+      not a live gate."
+
+SixLayerAggregator.tsx:
+
+    interface Props {
+      candidate: PublicationCandidate;
+      expanded: boolean;
+      onToggle(): void;
+    }
+
+    A collapsible compact panel. Header: "Six-layer
+    aggregator · <aggregatorVerdict>". Expanded body:
+      - runOnClaimText (in a <blockquote>, preceded by
+        "Run on claim:")
+      - a six-row table: layer name · verdict · confidence ·
+        rationale
+      - the aggregatorRationale prose
+      - for F4 only: the UnresolvedReadout component
+        (rendered inline under the table)
+    Collapsed: shows only the header with the verdict chip.
+
+UnresolvedReadout.tsx:
+
+    interface Props {
+      candidate: PublicationCandidate;
+    }
+
+    Renders a distinct verdict tile labeled "Aggregator
+    verdict: UNRESOLVED". The tile is visually matched to
+    (not smaller than, not subordinate to) the
+    GateVerdictTile. Beneath the tile, the verbatim TH4 §2.3
+    excerpt (TH4_SEC_2_3_UNRESOLVED_DISCIPLINE) is rendered
+    in a <blockquote> with citation trailer
+    "— IV. Architecture, §2.3".
+    This component is ONLY rendered when
+    candidate.sixLayerAggregator.aggregatorVerdict ===
+    "unresolved". That currently means: F4 only. The
+    gating condition is a programmatic check, not a
+    per-fixture flag. The P07 snapshot test asserts
+    "UNRESOLVED" renders on exactly one fixture's verdict
+    tile.
+
+---
+
+§E — UI STATE MACHINE
+
+    picker  ── pickCandidate(id) ──►  pipelineRunning(id)
+    pipelineRunning(id)  ── cursor++ (auto or manual) ──►
+                                          pipelineRunning(id)
+    pipelineRunning(id)  ── cursor === 9 ──►  pipelineDone(id)
+    pipelineDone(id)  ── (if REFUSE) openOverrideModal ──►
+                                          overrideModalOpen(id)
+    overrideModalOpen(id)  ── cancelOverride ──►
+                                          pipelineDone(id)
+    overrideModalOpen(id)  ── confirmOverride ──►
+                                          pipelineDone(id)
+                                          (ledger += entry)
+    pipelineDone(id)  ── pickCandidate(other) ──►
+                                          pipelineRunning(other)
+    pipelineDone(id)  ── resetPipeline(id) ──►
+                                          pipelineRunning(id)
+                                          with cursor=0
+
+Cross-mode navigation:
+    pipelineRunning(F3) or pipelineDone(F3)
+      ── (user activates the crossModeRef link on the
+         adversarial_status row)
+      ──► setMode("severity") then openInMode("severity",
+         "f1_moat_net_retention")
+    The user returns to Refusal by clicking the Refusal tab;
+    the last state (F3, pipeline position, override
+    modal state) rehydrates.
+
+---
+
+§F — RESPONSIVE BREAKPOINTS
+
+    NARROW  <640   — single column. CandidatePicker
+                     vertical list. NineCheckPipeline stacks
+                     with small row density; the crossModeRef
+                     link becomes a button on a new line in
+                     the row. OverrideModal is full-screen.
+                     OverridesLedger is a bottom drawer
+                     accessible from a trailing tab.
+    STANDARD 640-960 — single column; NineCheckPipeline,
+                       GateVerdictTile, and
+                       SixLayerAggregator stack vertically.
+                       OverridesLedger is a right-side slide-
+                       over.
+    WIDE    960-1280 — two-column. Left: pipeline + verdict
+                       + aggregator. Right: overrides ledger,
+                       always visible.
+    XWIDE   ≥1280  — three-column: candidate summary (sticky)
+                     on the left, pipeline+verdict center,
+                     overrides ledger right.
+
+No horizontal scroll at any width ≥ 360px. The
+NineCheckPipeline row wraps reasonably at NARROW; check
+names are allowed to wrap to two lines but the status glyph
+remains aligned on the first line.
+
+---
+
+§G — reducedMotion
+
+  - Pipeline auto-advance delay drops from 800ms to 0ms
+    when prefers-reduced-motion is "reduce"; user must
+    advance manually with ENTER.
+  - No translate / scale animations on verdict-tile
+    reveal; opacity-only crossfade over 1 frame.
+  - Modal open/close is an immediate swap, not a slide.
+  - Overrides ledger new-entry animation is absent (no
+    slide-down); the list re-renders.
+  - Six-layer aggregator expand/collapse is a height swap,
+    not an animated accordion.
+
+---
+
+§H — sources.ts ADDITIONS
+
+Append to src/lib/theseus/sources.ts :
+
+    TH5_SEC_12_NINE_CHECKS: (see verbatim block above)
+    TH5_SEC_12_HUNDRED_PERCENT_ANCHOR: (see verbatim block
+      above)
+    TH4_SEC_2_3_UNRESOLVED_DISCIPLINE: (see verbatim block
+      above)
+    TH5_SEC_8_ADVERSARIAL_TARGETS: (already added in P04)
+    TH5_SEC_10_PEER_REVIEW:
+      "On transition to firm tier, a conclusion auto-queues
+      a swarm review across seven declared reviewer roles in
+      noosphere/noosphere/peer_review/: methodological
+      reviewer, evidential reviewer, statistical reviewer,
+      adversarial-literature reviewer, replication reviewer,
+      rhetorical reviewer, humility reviewer. Each produces
+      a ReviewReport with findings at severity levels info,
+      minor, major, blocker. Major and blocker findings
+      must be rebutted before the rigor gate will consider
+      the conclusion."
+                                                (TH5 §10)
+
+The 100%-pass-rate anchor renders verbatim in the mode's
+persistent footer. The TH5 §12 nine-check excerpt is NOT
+rendered as one block in the UI; its nine bullets are
+rendered AS the nine pipeline rows in NineCheckPipeline.
+The TH4 §2.3 UNRESOLVED-discipline excerpt renders verbatim
+inside UnresolvedReadout (F4 only).
+
+---
+
+§I — A11Y CONTRACT
+
+  - CandidatePicker cards are native <button>s.
+  - NineCheckPipeline is a <ol>; each row is a <li> with
+    an internal <button> for the row's focus target. The
+    crossModeRef link is a separate <button> inside the row,
+    so that activating it does not conflict with advancing
+    the pipeline.
+  - The aria-live region announces:
+      "Pipeline step <n> of 9: <check name> — <status>."
+        on each advance
+      "Pipeline complete. Verdict: <gateVerdict>."
+        on cursor === 9
+      "Override modal open."
+        on openOverrideModal
+      "Override confirmed; ledger entry appended."
+        on confirmOverride
+      "Override cancelled; no ledger entry written."
+        on cancelOverride
+      "Six-layer aggregator: UNRESOLVED. The aggregator's
+       layers materially disagreed; no point verdict is
+       warranted."
+        when UnresolvedReadout mounts
+  - OverrideControl modal is a <dialog> with role="dialog"
+    and aria-modal="true". Focus is trapped inside while
+    open. ESC cancels. The confirm button's aria-disabled
+    reflects its enable gate.
+  - GateVerdictTile's verdict label is in text; color is
+    decorative only.
+  - Every crossModeRef link carries aria-label explaining
+    the target, e.g. "Open Mode 3 Severity Gauntlet on the
+    switching-costs alternative that invoked this refusal."
+
+---
+
+§J — typeGuards.ts ADDITIONS
+
+    export function assertCheckOutcome(
+      o: unknown
+    ): asserts o is CheckOutcome {
+      invariant(typeof o === "object" && o !== null, ...);
+      const c = o as Record<string, unknown>;
+      invariant(
+        ["provenance","calibrated_confidence","peer_review",
+         "freshness","adversarial_status","cascade_soundness",
+         "method_signatures","publication_conditions",
+         "corpus_hash"].includes(c.id as string),
+        "CheckOutcome.id must be one of the 9 CheckId " +
+        "literals from TH5 §12");
+      invariant(
+        ["PASS","CONDITION","FAIL","REFUSED_PENDING"]
+          .includes(c.status as string),
+        "CheckOutcome.status must be one of the 4 " +
+        "CheckStatus literals");
+      invariant(typeof c.reasonCode === "string"
+        && (c.reasonCode as string).length > 0,
+        "CheckOutcome.reasonCode must be non-empty");
+      invariant(typeof c.rationale === "string"
+        && (c.rationale as string).length > 0,
+        "CheckOutcome.rationale must be non-empty");
+      invariant(typeof c.sourceAnchor === "string",
+        "CheckOutcome.sourceAnchor must be a string");
+      // crossModeRef can be null or { mode, refId }
+      if (c.crossModeRef !== null) {
+        const r = c.crossModeRef as Record<string, unknown>;
+        invariant(
+          ["reflection","severity","fixedpoint"]
+            .includes(r.mode as string),
+          "crossModeRef.mode must be one of the 3 Modes");
+        invariant(typeof r.refId === "string"
+          && (r.refId as string).length > 0,
+          "crossModeRef.refId must be non-empty");
+      }
+    }
+
+    export function assertPublicationCandidate(
+      f: unknown
+    ): asserts f is PublicationCandidate {
+      invariant(typeof f === "object" && f !== null, ...);
+      const p = f as Record<string, unknown>;
+      invariant(typeof p.id === "string" && p.id.length > 0,
+        "id required");
+      invariant(typeof p.title === "string"
+        && (p.title as string).length <= 80,
+        "title ≤ 80 chars");
+      invariant(typeof p.oneLineSummary === "string"
+        && (p.oneLineSummary as string).length <= 180,
+        "oneLineSummary ≤ 180 chars");
+      invariant(Array.isArray(p.checkOutcomes)
+        && (p.checkOutcomes as unknown[]).length === 9,
+        "checkOutcomes must have exactly 9 entries " +
+        "(TH5 §12: 'Nine declared checks run in " +
+        "parallel.')");
+      // The 9 CheckIds must be present exactly once each:
+      const seenIds = new Set<string>();
+      for (const o of p.checkOutcomes as unknown[]) {
+        assertCheckOutcome(o);
+        seenIds.add((o as CheckOutcome).id);
+      }
+      invariant(seenIds.size === 9,
+        "checkOutcomes must cover all 9 CheckIds exactly " +
+        "once");
+      invariant(
+        ["PASS","PASS_WITH_CONDITIONS","REFUSE"]
+          .includes(p.gateVerdict as string),
+        "gateVerdict must be one of the 3 literals");
+      invariant(typeof p.gateVerdictRationale === "string"
+        && (p.gateVerdictRationale as string).length > 0,
+        "gateVerdictRationale must be non-empty");
+      const s = p.sixLayerAggregator as Record<string, unknown>;
+      invariant(typeof s === "object" && s !== null,
+        "sixLayerAggregator required");
+      invariant(Array.isArray(s.layerOutcomes)
+        && (s.layerOutcomes as unknown[]).length === 6,
+        "Exactly 6 layerOutcomes (TH4 §2.3: 'the six-layer " +
+        "coherence stack').");
+      const layerIds = new Set<string>(
+        (s.layerOutcomes as any[]).map(x => x.layerId)
+      );
+      invariant(
+        ["nli","argumentation","probabilistic","geometry",
+         "information","judge"]
+         .every(id => layerIds.has(id)),
+        "All six layer ids must appear exactly once.");
+      invariant(
+        ["coherent","incoherent","unresolved"]
+          .includes(s.aggregatorVerdict as string),
+        "aggregatorVerdict must be one of the 3 literals");
+    }
+
+    export function assertPublicationCandidateArray(
+      arr: unknown
+    ): asserts arr is readonly PublicationCandidate[] {
+      invariant(Array.isArray(arr),
+        "PublicationCandidate array must be an array");
+      invariant(arr.length === 4,
+        "00_INDEX MODE 4 spec requires exactly 4 " +
+        "PublicationCandidate fixtures (F1 clean, F2 " +
+        "conditions, F3 refuse-adversarial, F4 refuse-" +
+        "unresolved).");
+      const verdicts = arr.map((f: any) => f.gateVerdict);
+      invariant(verdicts.filter(v => v === "PASS").length
+        === 1, "Expected exactly 1 PASS fixture");
+      invariant(verdicts.filter(
+        v => v === "PASS_WITH_CONDITIONS").length === 1,
+        "Expected exactly 1 PASS_WITH_CONDITIONS fixture");
+      invariant(verdicts.filter(v => v === "REFUSE").length
+        === 2, "Expected exactly 2 REFUSE fixtures");
+      const aggregatorVerdicts = arr.map(
+        (f: any) => f.sixLayerAggregator.aggregatorVerdict
+      );
+      invariant(aggregatorVerdicts.filter(
+        v => v === "unresolved").length === 1,
+        "Exactly one fixture must carry aggregator " +
+        "UNRESOLVED (00_INDEX MODE 4 F4 requirement; P07 " +
+        "UNRESOLVED-fidelity snapshot test).");
+      for (const f of arr) assertPublicationCandidate(f);
+    }
+
+Both guards run in the module initializer of
+publicationCandidates.ts. In development, failing any
+invariant throws with the full message. In production, the
+array-level guard throws once at first import and the panel
+renders the authored error state (an outer error boundary is
+assumed from I01).
+
+---
+
+§K — ACCEPTANCE CRITERIA
+
+The Refusal Panel mode ships when:
+
+  [ ] The "refusal" tab renders RefusalPanel/index.tsx at
+      hostWidthPx ≥ 360 without clipping.
+  [ ] Four PublicationCandidate fixtures load; the array
+      guard asserts 1 PASS + 1 PASS_WITH_CONDITIONS + 2
+      REFUSE, with exactly one UNRESOLVED aggregator.
+  [ ] NineCheckPipeline renders exactly 9 rows per
+      candidate, one per CheckId from TH5 §12, with correct
+      status / glyph / reasonCode / rationale authored
+      content.
+  [ ] F3's adversarial_status row renders the cross-mode
+      link back to Mode 3 Severity (f1_moat_net_retention)
+      with the authored aria-label; activating it invokes
+      openInMode("severity", "f1_moat_net_retention") and
+      focuses the f1_alt_switching_costs row there.
+  [ ] F4's SixLayerAggregator renders UNRESOLVED as a
+      distinct verdict tile (UnresolvedReadout); the
+      component mounts only when aggregatorVerdict ===
+      "unresolved" and does not mount on F1/F2/F3.
+  [ ] The UnresolvedReadout's verbatim TH4 §2.3 excerpt
+      matches sources.ts byte-for-byte under P07's verbatim-
+      drift check.
+  [ ] The 100%-pass-rate footer renders verbatim from
+      TH5_SEC_12_HUNDRED_PERCENT_ANCHOR, persistently,
+      whenever any fixture is active, with citation trailer
+      "— V. The Epistemic Pipeline, §12".
+  [ ] GateVerdictTile renders all three states (PASS /
+      PASS_WITH_CONDITIONS / REFUSE) at equal visual
+      weight; color is not load-bearing; glyph + text +
+      aria label present in every state.
+  [ ] Overriding PASS is not possible (no button exposed).
+      Overriding PASS_WITH_CONDITIONS and REFUSE is
+      possible only via the modal path; the modal
+      enforces: justification length ≥ 50 AND the
+      "permanent, public" checkbox ticked.
+  [ ] OverridesLedger is append-only. No action in this
+      mode removes or rewrites entries. The authored
+      empty-state text renders when the ledger is empty.
+  [ ] Keyboard: Tab reaches every candidate card, every
+      pipeline row, every cross-mode link, the verdict-
+      tile "Override" button, and every modal control.
+      ENTER advances the pipeline when autoAdvance is
+      off; SPACE toggles aggregator expand; ESC closes
+      the modal and collapses the aggregator when focused.
+  [ ] reducedMotion: no auto-advance delay; opacity-only
+      transitions; immediate swaps elsewhere.
+  [ ] aria-live announcements fire as specified in §I.
+  [ ] No runtime ML inference. All layer verdicts,
+      confidences, and gate outcomes are authored. The
+      confidences are stable across renders and do not
+      drift.
+  [ ] Fixture content passes the P07 prose lint,
+      including the cross-suite isolation rules (no
+      05 / 06 vocabulary).
+  [ ] P07's assertUnresolvedPresent snapshot finds the
+      literal string "UNRESOLVED" rendered in exactly
+      one of the four fixture verdict tiles (F4).
+
+---
+
+§L — CROSS-SUITE ISOLATION REMINDER
+
+The Refusal Panel renders the SIX-LAYER engine: nli,
+argumentation, probabilistic, geometry, information, judge
+(TH4 §2.3). It MUST NOT be conflated with the 06 suite's
+five-layer Coherence Engine (contradiction, argumentation,
+embedding, compression, structural). The six-layer
+vocabulary is Theseus-native; the five-layer vocabulary
+belongs to the Coherence Engine project in the HVM panel.
+P07's prose lint includes a banned-token list that flags
+mention of the five-layer vocabulary in any Theseus
+fixture string.
+
+Likewise, nothing from the 05 (Hivemind / Purposeless
+Efficiency strategic face) vocabulary appears here: no
+Nash-GT, Porter-5F, Christensen-DI, Drucker-MBO, or
+Kahneman-BE references.
+
+The 00_INDEX RELATIONSHIP TO PRIOR SUITES block governs.
+
+---
+
+END P05. Mode 4 ships. Proceed to P06 — FIXED-POINT AUDITOR.

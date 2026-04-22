@@ -1,0 +1,568 @@
+P05 — AUDIT ARTIFACT
+=====================
+
+Prerequisites: P01 (chassis + theater); earlier modes
+optional-but-assumed. This prompt delivers MODE 5 — AUDIT ARTIFACT.
+
+Among the five modes, the Audit Artifact is the smallest in surface
+area but the largest in posture. Guide II §3 Component 5 and Guide
+I §3 both identify the immutable audit trail as "the product's
+fiduciary artifact" — what distinguishes a Hivemind recommendation
+from a single-LLM answer. The Audit mode exists to make that
+artifact tangible: one full deliberation as a scrubbable, filterable
+transcript, plus an Export Preview showing the file format, the
+data schema, and the ownership claim.
+
+This mode is also the canonical home for the disclaimer the INDEX
+requires to appear verbatim in the suite:
+
+    "The Nash Lab disclaims responsibility for conclusions drawn
+     by the client"
+
+The Export Preview surfaces it. Do not relocate it elsewhere without
+updating the INDEX's acceptance clause.
+
+
+----------------------------------------------------------------------
+PART A — WHY THIS MODE EXISTS
+----------------------------------------------------------------------
+
+A1. The audit trail is not a feature; it is the fiduciary artifact.
+    Guide II §3 Component 5 is explicit: "It is not a convenience
+    feature; it is the product's fiduciary artifact. It is what
+    distinguishes Hivemind's output from a single-LLM answer to
+    the same question." Visualizing the theater in P01 shows
+    what the deliberation FEELS like; the Audit mode shows what
+    the deliberation LEAVES BEHIND.
+
+A2. The ownership claim matters. Guide II §8 states "The audit
+    trail is owned by the client. The firm does not read it." The
+    Export Preview must make this claim visible, not rely on the
+    user inferring it.
+
+A3. The Audit mode is the complement to the Theater mode (P01).
+    P01 shows the forward-play view of a deliberation; P05 shows
+    the post-hoc archival view. They share a transcript fixture
+    (see C5) — the audit fixture is a superset of the theater
+    fixture with schema fields the theater does not surface.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER SEES
+----------------------------------------------------------------------
+
+B1. Layout.
+
+    WIDE (hostWidthPx >= 960):
+        Two-column split.
+        LEFT COLUMN (65%): AuditTimeline — a dense vertical
+          scrollable list of event rows for the complete
+          transcript.
+        RIGHT COLUMN (35%): two stacked panels.
+          EventCard (top): the currently-selected event expanded
+            with full metadata.
+          ExportPreview (bottom): the file-format preview + the
+            fiduciary header + the ownership + disclaimer.
+
+    STANDARD (640-960):
+        Single column. AuditTimeline on top; clicking an event
+        scrolls to EventCard beneath; ExportPreview at the
+        bottom under its own toggle (<details> open by default
+        on first view).
+
+    NARROW (<640):
+        Single column. Timeline is compact. EventCard appears
+        inline beneath the clicked event (not a persistent
+        right-column panel). ExportPreview is a collapsed
+        <details> block at the bottom.
+
+B2. AuditTimeline.
+
+    Each event row is a single line containing:
+        - Timestamp (monotonic virtual time, mono, e.g., "t+00:42")
+        - Round label (R0 / R1 / R2 / R-practice / R-output)
+        - Event-type badge (same styling as P01 D1:
+          PROPOSAL / CRITIQUE / REVISION / CLUSTER FORMED /
+          SCORE / VETO / PASS / OUTPUT)
+        - Agent attribution (short name, e.g., "Porter-FF";
+          Monitor events show "Monitor"; Practicality events
+          show the constraint agent id: "legal-1", etc.)
+        - Body excerpt (first ~80 chars, serif, truncated with
+          ellipsis; full body in the EventCard).
+
+    Rows are numbered sequentially. The active row is underlined
+    and has a left accent border. Rows are dense — 28px row
+    height at WIDE — so ~40-50 rows fit on a laptop viewport.
+
+    Above the list, a FilterBar:
+        - Event-type filters (8 toggle chips, one per event
+          type). Multi-select.
+        - Round filter (R0 .. R-output dropdown).
+        - Agent filter (dropdown of the ~5 theory agents +
+          Monitor + 5 practicality agents).
+        - A search box ("filter transcript by substring").
+
+    Above the FilterBar, a compact run-header:
+        - Run identifier (e.g., "run-suff3-feas55-v1")
+        - Client tag (fictional for the panel, e.g.,
+          "client-id: redacted-demo")
+        - Deliberation timestamp (fictional: "2026-03-14T09:12:00Z")
+        - Total events (integer)
+        - Total duration (virtual, seconds)
+        - Verdict (PASSED / VETOED)
+
+B3. EventCard.
+
+    Renders the selected event with all schema fields:
+        - Event id (stable, copyable)
+        - Round
+        - Event type
+        - Speaker id (agent id or "Monitor")
+        - Target speaker id (for critiques)
+        - Full body text
+        - Retrieved context ids (list of chunk ids the speaker
+          retrieved from the KB for this utterance; see Guide
+          III §2.2 format)
+        - Timestamp (virtual and wall-clock formatted)
+        - Parent event id (the event this one responds to, if
+          any: critique -> proposal; revision -> parent
+          critique's proposal)
+        - Payload hash (authored placeholder; the schema field
+          name is present to signal immutability)
+
+    Below the schema list, a "RETRIEVED CONTEXT" section
+    expands (closed by default) to show the exact excerpts the
+    agent consumed before producing this event. Format matches
+    Guide III §2.2:
+        [EXCERPT 1] porters-five-forces.pdf (p. 7)
+        The five forces framework identifies five competitive
+        forces...
+
+    This section is authored once per event; many events share
+    the same retrieval set when the same agent speaks twice on
+    the same topic.
+
+B4. ExportPreview.
+
+    This is the fiduciary-artifact-made-legible panel. Contents:
+
+    (a) HEADER with three lines of mono text, each labelled:
+        FORMAT:           JSON Lines (.jsonl)
+        SCHEMA VERSION:   hivemind-audit-v1
+        OWNERSHIP:        client
+
+    (b) FIDUCIARY DISCLAIMER (mandatory, verbatim from INDEX;
+        serif italic, --fg-dim):
+
+            "The Nash Lab disclaims responsibility for
+             conclusions drawn by the client. The audit trail
+             is owned by the client. The firm does not read it."
+
+        Both sentences are load-bearing: the first is the
+        liability disclaimer; the second is the data-ownership
+        claim (from Guide II §8).
+
+    (c) SAMPLE JSONL EXCERPT — authored, ~10 lines, showing the
+        schema of a sequence of events. Each line is a JSON
+        object with keys matching B3's EventCard fields.
+
+    (d) CAPTION (verbatim in D5):
+        "This preview shows the file format and schema of the
+         audit trail. The actual file is written to the client's
+         infrastructure during deliberation, not produced by this
+         panel."
+
+    (e) A disabled "EXPORT" button, greyed out, with tooltip:
+        "Export is a client-side feature of the Hivemind desktop
+         application. This panel cannot export a real audit
+         trail because there is no deliberation running here."
+
+    The disabled EXPORT is intentional. An enabled button would
+    imply the panel is producing a live artifact; we are showing
+    a fixture.
+
+B5. What the user controls.
+
+    - Click any event row to select it (loads into EventCard).
+    - Scroll the timeline; press J/K to move selection
+      down/up (vim style, optional for the power user).
+    - Filter by event type, round, agent, or substring.
+    - Toggle RETRIEVED CONTEXT expansion on the EventCard.
+    - Toggle ExportPreview expansion at NARROW/STANDARD.
+    - Copy an event id from the EventCard.
+
+B6. What the user CANNOT do.
+
+    - Edit any event. Every row is read-only. This is the
+      pedagogical shape of "immutable".
+    - Export a file. The disabled button is deliberate (B4e).
+    - Filter to hide the fiduciary disclaimer. The disclaimer
+      is always present in ExportPreview regardless of
+      timeline filters.
+
+
+----------------------------------------------------------------------
+PART C — FILES, COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+C1. src/components/projects/hivemind/Experience/AuditArtifact/
+
+    AuditTimeline.tsx
+        Props:
+            events: AuditEvent[];
+            selectedEventId: string;
+            filters: AuditFilterState;
+            onSelect(eventId: string): void;
+        Render: a virtualized <ol> of rows; header with run
+        identifier and aggregate stats; FilterBar above.
+
+    FilterBar.tsx
+        Props:
+            filters: AuditFilterState;
+            onChange(next: AuditFilterState): void;
+            agents: Array<{ id: string; name: string }>;
+        Render: 8 event-type chips + round dropdown + agent
+        dropdown + text input.
+
+    EventCard.tsx
+        Props:
+            event: AuditEvent | null;
+            onCopyId(): void;
+            onShowContext(show: boolean): void;
+            contextOpen: boolean;
+        Render: full schema field list; RETRIEVED CONTEXT
+        section collapsed by default.
+
+    ExportPreview.tsx
+        Props:
+            header: AuditHeader;
+            sampleJsonLines: string[];        // ~10 authored lines
+            disclaimerText: string;           // verbatim
+            captionText: string;              // verbatim
+        Render: the five-section layout in B4.
+
+C2. src/lib/hivemind/auditScript.ts
+
+    export type AuditEventType =
+      | "proposal"
+      | "critique"
+      | "revision"
+      | "cluster_formed"
+      | "practicality_score"
+      | "veto"
+      | "pass"
+      | "output";
+
+    export interface RetrievedExcerpt {
+      chunkId: string;
+      documentName: string;          // e.g., "porters-five-forces.pdf"
+      sourcePage: number;
+      textExcerpt: string;
+    }
+
+    export interface AuditEvent {
+      id: string;                    // stable ref; shared with theater
+      runId: string;                 // "run-suff3-feas55-v1"
+      round: string;                 // "R0" | "R1" | "R-practice" | etc.
+      type: AuditEventType;
+      speakerId: string;             // agent id or "monitor"
+      targetSpeakerId?: string;
+      bodyText: string;
+      retrievedContext: RetrievedExcerpt[];  // may be [] for Monitor events
+      tVirtualSec: number;
+      tWallClockIso: string;         // authored ISO string
+      parentEventId?: string;
+      payloadHash: string;           // authored placeholder, mono-style
+    }
+
+    export interface AuditRun {
+      id: string;
+      clientTag: string;             // "client-id: redacted-demo"
+      startedAtIso: string;          // authored
+      sufficiencyValue: number;
+      feasibilityValue: number;
+      densityLabel: string;
+      totalEvents: number;
+      durationSec: number;
+      verdict: "PASSED" | "VETOED";
+      events: AuditEvent[];
+    }
+
+    export interface AuditHeader {
+      format: "JSON Lines (.jsonl)";
+      schemaVersion: "hivemind-audit-v1";
+      ownership: "client";
+    }
+
+    export interface AuditFilterState {
+      eventTypes: Set<AuditEventType>;
+      round: string | "all";
+      agentId: string | "all";
+      substring: string;
+    }
+
+    export const AUDIT_RUN: AuditRun;     // one run; the default theater run's audit superset
+    export const AUDIT_HEADER: AuditHeader;
+    export const AUDIT_SAMPLE_JSONL: string[];  // ~10 lines
+
+C3. State slice.
+
+    interface AuditState {
+      selectedEventId: string;
+      filters: AuditFilterState;
+      contextOpen: boolean;
+      exportOpen: boolean;             // for narrow/standard toggling
+    }
+
+    interface HivemindExperienceState {
+      // ...
+      audit: AuditState;
+      selectAuditEvent(id: string): void;
+      setAuditFilters(next: AuditFilterState): void;
+      toggleAuditContext(): void;
+      toggleAuditExport(): void;
+    }
+
+C4. openInMode.
+
+    openInMode("audit", refId):
+        - If refId matches an event id, sets selectedEventId and
+          scrolls the timeline to that event.
+        - If refId is "export", opens the ExportPreview (relevant
+          only at NARROW/STANDARD where it starts collapsed).
+        - Unknown refIds fall back to the first event.
+
+C5. Transcript correspondence with the theater.
+
+    The theater (P01) runs off theaterScript.THEATER_RUNS; the
+    audit runs off auditScript.AUDIT_RUN. These are NOT two
+    sources of truth — AUDIT_RUN is generated from the default
+    theater run (suff=3, feas=55) by adding the schema fields
+    the theater does not surface:
+        - retrievedContext (authored once per event)
+        - tWallClockIso
+        - parentEventId
+        - payloadHash
+    Event ids are shared verbatim so that openInMode("theater",
+    id) and openInMode("audit", id) reference the same event.
+
+    If the theater fixture is changed, the audit fixture is
+    regenerated by a small codegen script (src/lib/hivemind/
+    __codegen/auditFromTheater.ts) run at build time. P06
+    integrity tests catch drift.
+
+
+----------------------------------------------------------------------
+PART D — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+D1. Event-type badges (VERBATIM, same semantic tokens as P01 D1).
+
+    PROPOSAL          --fg
+    CRITIQUE          --warn
+    REVISION          --fg
+    CLUSTER FORMED    --accent
+    SCORE             --fg-dim
+    VETO              --err
+    PASS              --ok
+    OUTPUT            --ok
+
+    The Audit does not add new event types; the eight above are
+    the complete set from Guide II §3 Component 5 ("every agent
+    utterance, critique, and revision" + Monitor events +
+    practicality events).
+
+D2. Fiduciary disclaimer (VERBATIM; three sentences, all
+    required, rendered together as a single paragraph).
+
+    "The Nash Lab disclaims responsibility for conclusions drawn
+     by the client. The audit trail is owned by the client. The
+     firm does not read it."
+
+    First sentence: the liability clause (from Guide I §7, §8;
+    also the INDEX's required disclaimer, and the integrity-
+    check anchor for P06's assertAudit).
+    Second and third sentences: the data-ownership claim (from
+    Guide II §8 bullet 3).
+
+    All three render together in the ExportPreview as a single
+    serif-italic block. The three-sentence unit renders in
+    exactly one place in the HVM experience (this ExportPreview).
+    Other modes link to it via openInMode("audit", "export");
+    they do not paste the text.
+
+    P06 integrity posture: assertAudit searches fixture strings
+    for the FIRST SENTENCE ONLY ("The Nash Lab disclaims
+    responsibility for conclusions drawn by the client.") and
+    asserts exactly one match. Searching for the full three-
+    sentence block would be legitimate too, but the first
+    sentence is the INDEX's named anchor and the one the lint
+    treats as load-bearing.
+
+D3. Header triad (VERBATIM).
+
+    FORMAT:           JSON Lines (.jsonl)
+    SCHEMA VERSION:   hivemind-audit-v1
+    OWNERSHIP:        client
+
+    "client" is lowercase intentionally — it is a field value,
+    not a noun.
+
+D4. Sample JSONL excerpt (authored, ~10 lines).
+
+    Each line is a JSON object literal with keys: id, runId,
+    round, type, speakerId, targetSpeakerId (optional),
+    bodyText (trimmed), retrievedContext (array of chunk ids,
+    not full excerpts), tVirtualSec, tWallClockIso,
+    parentEventId (optional), payloadHash.
+
+    Body text in sample lines is trimmed to ~80 chars to keep
+    the excerpt readable. This is presentation; the real
+    .jsonl exports full bodies. A footer note in serif italic
+    under the excerpt says:
+
+        "Sample excerpt: body text trimmed to fit. Production
+         .jsonl files carry full utterances."
+
+D5. ExportPreview caption (VERBATIM):
+
+    "This preview shows the file format and schema of the audit
+     trail. The actual file is written to the client's
+     infrastructure during deliberation, not produced by this
+     panel."
+
+D6. Disabled EXPORT tooltip (VERBATIM):
+
+    "Export is a client-side feature of the Hivemind desktop
+     application. This panel cannot export a real audit trail
+     because there is no deliberation running here."
+
+D7. What the mode must not say.
+
+    - "Blockchain", "distributed ledger", "cryptographically
+      immutable". Guide II §3 Component 5 says the log is
+      "immutable" without specifying a mechanism. The concrete
+      mechanism (append-only Postgres table + content hashes?
+      Merkle tree? something else?) is not specified in the
+      Guides; describing it as blockchain or a specific crypto
+      scheme would be fabrication.
+    - "Bulletproof", "tamper-proof", "court-admissible".
+      Guide II §3 Component 5 says the trail can be given "to
+      a board, a regulator, or a court as evidence of due
+      diligence." The correct framing is "as evidence of due
+      diligence," not "as legally-admissible proof." The
+      distinction matters; overclaiming creates liability.
+    - "Transparent AI", "explainable AI". These are borrowed
+      marketing terms with specific technical meanings (feature
+      attribution, interpretability). The audit trail is a
+      process record, not a model-interpretability artifact.
+    - "Complete record of everything". The trail records
+      network messages and scores; it does not record the
+      internal LLM token probabilities or chain-of-thought,
+      because those are not part of what the system emits.
+      Saying "complete" overclaims.
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P05
+----------------------------------------------------------------------
+
+  [ ] ModeTabBar tab 5 (AUDIT) enabled and mounts AuditArtifact.
+  [ ] AuditTimeline renders the complete default-run transcript
+      (suff=3, feas=55) as sequential rows.
+  [ ] Each row shows timestamp, round, event-type badge, agent,
+      body excerpt.
+  [ ] FilterBar: event-type chips toggle multi-select; round
+      dropdown filters; agent dropdown filters; substring search
+      narrows to rows whose body contains the string.
+  [ ] Selecting a row loads EventCard with full schema fields;
+      event id is copyable.
+  [ ] RETRIEVED CONTEXT section on EventCard expands to show
+      excerpts in Guide III §2.2 format; closed by default.
+  [ ] ExportPreview always shows header triad, sample JSONL
+      excerpt, fiduciary disclaimer (VERBATIM per D2), caption
+      (VERBATIM per D5), and disabled EXPORT button with tooltip
+      (VERBATIM per D6).
+  [ ] Fiduciary disclaimer is present in ExportPreview regardless
+      of timeline filter state.
+  [ ] openInMode("audit", "<event-id>") scrolls and selects;
+      openInMode("audit", "export") expands the ExportPreview at
+      NARROW/STANDARD.
+  [ ] Event ids are byte-identical between theater and audit
+      fixtures; P06 integrity test enforces this.
+  [ ] Keyboard: Tab cycles FilterBar controls; arrow keys move
+      selection in timeline; J/K also move selection; ESC closes
+      RETRIEVED CONTEXT expansion.
+  [ ] aria-live announces on selection ("Event 42 selected:
+      critique from Porter-FF at round R1.") and on filter
+      change ("Filter: event type=critique. 18 events shown.").
+  [ ] reducedMotion: no row-slide animations; selection highlight
+      is instant.
+  [ ] Prose lint (P06) passes; all VERBATIM strings byte-exact.
+  [ ] No network calls. No export action. EXPORT button
+      disabled=true and has no onClick handler that writes a
+      file.
+  [ ] Bundle gzip: AuditArtifact code <=6KB; audit fixture
+      <=10KB (default run has ~100-150 events with retrieval
+      metadata, shareable strings, heavy gzip wins).
+
+
+----------------------------------------------------------------------
+PART F — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+F1. DO NOT sync selection bidirectionally with P01 Theater by
+    default. If the user jumps from the theater to the audit via
+    openInMode, that is unidirectional. Building bidirectional
+    sync would over-couple modes and make the Audit feel like a
+    subordinate view of the Theater; its posture is that it is
+    the archival ground truth and the Theater is a pretty
+    replay.
+
+F2. DO NOT pretend the EXPORT button does anything. It is
+    disabled with an explanation. Enabling it with a "demo
+    download" that writes a canned .jsonl to the user's disk
+    would be a theatrical move: the user would read it as proof
+    that the panel produces real audits, which it does not.
+
+F3. DO NOT hide the fiduciary disclaimer behind a collapse or
+    a hover. It sits visible by default in the ExportPreview.
+    The one exception is NARROW, where the whole ExportPreview
+    starts collapsed; the collapsed summary row must include
+    the first sentence of the disclaimer ("The Nash Lab
+    disclaims responsibility for conclusions drawn by the
+    client.") so the claim is visible even pre-expansion.
+
+F4. The RETRIEVED CONTEXT field is authored and may be missing
+    for Monitor events (Monitor does not retrieve from the KB;
+    it operates on theory-network outputs). Empty array is
+    fine; render "— Monitor events do not retrieve context."
+    in the RETRIEVED CONTEXT section when array is empty.
+
+F5. The practicality agents' scores are withheld from the
+    rationale view but PRESENT in the audit (Guide II §3
+    Component 2: "theoretical justifications are preserved for
+    the audit trail and for the user; they are withheld from
+    the practicality network"). The Audit shows both sides —
+    the theoretical rationales AND the practicality scores.
+    This is a teaching opportunity: the audit is more complete
+    than what the practicality network saw.
+
+F6. The payloadHash field is a placeholder. Authored as a
+    plausible-looking hex string per event. Do not compute it
+    at runtime; that would imply the panel is computing
+    cryptographic state, which it is not.
+
+F7. The Audit is the mode in which "immutable" is most tested.
+    Resist the temptation to add an "edit event" affordance
+    "just for users exploring the data". Adding one would
+    directly contradict Guide II §3 Component 5.
+
+F8. If a future version adds "mark as reviewed" UI to support
+    client-side audit-review workflows, that is a legitimate
+    feature — but it belongs to the Hivemind desktop app, not
+    this panel. The panel shows the artifact; it does not
+    participate in the client's review workflow.
+
+
+End of P05.

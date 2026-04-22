@@ -1,0 +1,566 @@
+P02 — KNOB BENCH
+=================
+
+Prerequisites: P01 (chassis + theater). The
+chassis (HivemindExperience, ModeTabBar, hivemindExperience store)
+is assumed in place. This prompt delivers MODE 2 — KNOB BENCH.
+
+The Deliberation Theater in P01 shows ONE full run. The Knob Bench's
+job is different: it isolates the three client-set integers and lets
+the user see how each knob changes the SHAPE of the output — round
+counts, cluster counts, agent counts, veto frequency — across a
+matrix of tuples, without replaying the theater every time.
+
+This is deliberately a schematic, not a dramatisation. The theater
+is for "what does one deliberation feel like?". The bench is for
+"what do the knobs actually do?".
+
+
+----------------------------------------------------------------------
+PART A — THE THREE KNOBS, FROM THE GUIDES
+----------------------------------------------------------------------
+
+The bench surfaces exactly the three client-set integers Guide II §2
+names as the input to every deliberation. The firm-set internal
+calibrations (theory-agent stubbornness, Monitor similarity threshold,
+practicality severity; Guide II §5) are NOT exposed as knobs here —
+exposing them would misrepresent the product. They appear as a small
+read-only "FIRM-SET CALIBRATIONS" panel with an (i) tooltip per line,
+grounded verbatim in Guide II §5.
+
+A1. SUFFICIENCY (integer).
+
+    Definition (Guide II §2): "The number of unique aggregate
+    solutions at which the theory loop should halt."
+
+    Behavior: lower sufficiency demands tighter agreement across
+    the theory network before the loop halts; higher sufficiency
+    tolerates more disagreement and terminates sooner with a
+    broader menu of distinct recommendations (Guide II §3 Component 4).
+
+    Authored domain on the bench: integer ∈ {1, 2, 3, 4}.
+    Snapping: discrete; no intermediate values.
+    Visible effect on output shape:
+      - Round count (how many critique/revise rounds occurred).
+      - Final cluster count (= sufficiency, or the first count at
+        or below it if the theory network converged faster).
+      - Number of preserved rationales per cluster.
+
+A2. FEASIBILITY (integer, 1-100).
+
+    Definition (Guide II §2): "The average practicality score
+    below which the entire solution set is vetoed."
+
+    Behavior: lower feasibility encourages ambition (more ideas
+    survive the veto); higher values enforce brutal pragmatism
+    (more theory passes are required before anything clears)
+    (Guide II §3 Component 4).
+
+    Authored domain on the bench: integer ∈ {40, 55, 70, 85}.
+    Snapping: discrete.
+    Visible effect on output shape:
+      - Veto probability on this problem / this fixture.
+      - Number of restart cycles the theory network was forced
+        through before a pass (0, 1, 2; capped at 2 in fixture).
+      - Which clusters survived the final practicality pass.
+
+A3. DENSITY (theory-network density, integer, approximate per-agent
+    KB token count).
+
+    Definition (Guide II §2, §3 Component 1): "the approximate
+    per-agent token count of knowledge-base context." Load-bearing
+    subtlety from Guide II §3 Component 1: the density value does
+    not DIRECTLY set the number of theory agents. It sets the
+    resolution of the network. Slices cannot cut documents mid-
+    document, so the number of agents is whatever the packing
+    procedure produces against the peer-reviewed KB and the target
+    density.
+
+    Authored domain on the bench: token targets ∈
+    {600, 1200, 2400, 4800}. Snapping: discrete.
+    Displayed as "~600 tok / agent", "~1.2k tok / agent", etc.
+    Visible effect on output shape:
+      - Agent count (falls out of the packing; authored per cell).
+      - Granularity of theoretical framing (lower density = more
+        agents with narrower expertise; higher density = fewer
+        agents each drawing from wider slices).
+      - Second-order: cluster count and veto pattern shift because
+        the theory network's composition shifts.
+
+    The honesty constraint: when the density slider moves, the
+    number of agents visible in the agent-count readout must
+    change in a way that REFLECTS the packing reality, not in a
+    way that is a linear function of the density. The fixture
+    carries one authored agent-count per (density) value. See
+    Part C.
+
+
+----------------------------------------------------------------------
+PART B — WHAT THE USER SEES
+----------------------------------------------------------------------
+
+The bench occupies the same host area as the theater and follows the
+same three viewport regimes.
+
+B1. WIDE layout (hostWidthPx >= 960). Two columns.
+
+    LEFT COLUMN (40%): KnobPanel.
+        Three vertical-stacked slider controls, in canonical order:
+            1 SUFFICIENCY       1 2 3 4
+            2 FEASIBILITY       40 55 70 85
+            3 DENSITY           ~600 ~1.2k ~2.4k ~4.8k   tokens / agent
+        Each slider is discrete. Each shows:
+            - Current value (mono, emphatic).
+            - A one-line subtitle (Guide-grounded, verbatim in D2).
+            - A small (i) glyph that opens a popover with the
+              full Guide definition.
+        Below the three sliders, a "FIRM-SET CALIBRATIONS" mini-panel
+        (read-only) listing:
+            - Theory-agent stubbornness
+            - Monitor similarity threshold
+            - Practicality severity
+        Each with a (i) tooltip (verbatim from Guide II §5).
+
+    RIGHT COLUMN (60%): OutcomeMatrix.
+        A small table or card cluster showing the precomputed
+        outcomes for the currently selected (suff, feas, dens)
+        tuple. Fields (all sourced from the authored fixture):
+            - Agent count           (integer, from density)
+            - Debate rounds         (integer, from suff)
+            - Final cluster count   (integer, <= suff)
+            - Practicality verdict  (PASSED / VETOED)
+            - Restart cycles        (0 / 1 / 2)
+            - Final output size     (clusters surviving, or 0 if
+                                     vetoed after cap)
+            - Approximate deliberation duration (sec, virtual)
+        Plus a compact Sparkline/BarGroup (tiny, single SVG, no
+        external library) showing cluster count vs. round, so the
+        user can see convergence.
+
+    Below the OutcomeMatrix, a DeltaReadout showing the change
+    from the user's PREVIOUS tuple ("vs. last change: agents
+    +2, rounds -1, verdict: VETOED -> PASSED"). This is the
+    pedagogical payoff of the bench: the user sees that moving
+    a single knob in isolation has particular, non-trivial effects.
+
+B2. STANDARD layout (640 <= hostWidthPx < 960).
+
+    KnobPanel stacks above OutcomeMatrix (single column). The
+    FIRM-SET CALIBRATIONS mini-panel collapses into a
+    <details> block (closed by default) titled "FIRM-SET".
+
+B3. NARROW layout (hostWidthPx < 640).
+
+    Same single-column stack as STANDARD. Sliders are full-width
+    with value labels on the right; tap-target for each discrete
+    stop >=44px. The DeltaReadout reduces to one line of mono
+    text.
+
+B4. What the user controls.
+
+    - Move any slider to any of its four discrete values. Values
+      outside the authored domain cannot be selected.
+    - Hover / focus each (i) glyph to read the grounded definition.
+    - Click a reset button to return to the default tuple
+      (suff=3, feas=55, dens=1200). The reset button is in the
+      KnobPanel header, labelled RESET.
+    - Click a "SEND TO THEATER" button on the OutcomeMatrix to
+      call openInMode("theater", runId) where runId is
+      constructed from the current (suff, feas) as
+      `suff${N}-feas${F}-v1` (the canonical runId format declared
+      in P01 C2). The theater's 16-run fixture covers 4×4 of
+      suff×feas at density=1200 only (per P01 B2 single-density
+      constraint). If the bench is at a density other than 1200,
+      the button is disabled with a tooltip "theater fixture
+      covers density ~1.2k only; set DENSITY to ~1.2k to enable".
+
+B5. What the user CANNOT do.
+
+    - Select an arbitrary integer in the sliders' stated ranges
+      (e.g., feasibility 62). Doing so would imply that the bench
+      simulates interpolation between authored outcomes. It does
+      not.
+    - Edit firm-set calibrations. They are read-only and clearly
+      marked FIRM-SET.
+    - Upload a problem. The bench uses a SINGLE simpler authored
+      problem (see B6), distinct from the theater's.
+
+B6. The authored problem used by the bench.
+
+    The bench's problem should be MORE SCHEMATIC than the
+    theater's (where the $2B grocer problem is vivid, multi-school).
+    The bench isolates knobs, so the problem should be something
+    whose cluster structure and veto sensitivity are easy to see
+    change.
+
+    Default bench problem (placeholder until author approval):
+
+        "Should a mid-size firm enter a new geographic market
+         through (a) greenfield expansion, (b) acquisition of
+         an in-market incumbent, or (c) a joint venture with a
+         local partner? Prioritize long-run firm value under
+         regulatory uncertainty."
+
+    Three archetypal options keep the cluster count legible at
+    every sufficiency value. Regulatory uncertainty makes
+    feasibility sliders meaningful (practicality network has
+    real work). The problem is NOT the theater problem on
+    purpose — the user should leave the bench having seen the
+    knob behavior on a second, simpler case.
+
+
+----------------------------------------------------------------------
+PART C — FILES, COMPONENT CONTRACTS
+----------------------------------------------------------------------
+
+C1. src/components/projects/hivemind/Experience/KnobBench/
+
+    KnobPanel.tsx
+        Props:
+            values: {
+              sufficiency: 1 | 2 | 3 | 4;
+              feasibility: 40 | 55 | 70 | 85;
+              density: 600 | 1200 | 2400 | 4800;
+            };
+            onChange(knob: "sufficiency" | "feasibility" | "density",
+                    value: number): void;
+            onReset(): void;
+            firmSet: {
+                stubbornnessLabel: string;
+                similarityThresholdLabel: string;
+                severityLabel: string;
+            };
+        Behavior:
+            - Each slider is a radiogroup (role="radiogroup") of
+              four options (role="radio"). Left/Right arrow moves
+              focus; Space/Enter selects.
+            - reducedMotion: no smooth thumb animation; value
+              snaps instantly.
+
+    OutcomeMatrix.tsx
+        Props:
+            outcome: KnobOutcome;
+            sparklineData: Array<{ round: number; clusterCount: number }>;
+            canSendToTheater: boolean;
+            onSendToTheater(): void;
+        Render:
+            - 2x4 grid of labelled numeric tiles at WIDE; single
+              column at NARROW.
+            - Sparkline: a single <svg> 160x40, no external lib,
+              drawn from sparklineData.
+            - SEND TO THEATER button with enabled/disabled state
+              per canSendToTheater; tooltip on disabled explains
+              why.
+
+    DeltaReadout.tsx
+        Props:
+            previous: KnobOutcome | null;
+            current: KnobOutcome;
+        Render:
+            A single line of mono text describing the deltas in a
+            fixed grammar:
+              "Δ agents {+/-N}, rounds {+/-N}, clusters {+/-N},
+               verdict {same/PASSED->VETOED/VETOED->PASSED}"
+            If previous is null (first render), render "—" in the
+            same slot to reserve vertical space.
+
+C2. src/lib/hivemind/knobMatrix.ts
+
+    export interface KnobTuple {
+      sufficiency: 1 | 2 | 3 | 4;
+      feasibility: 40 | 55 | 70 | 85;
+      density: 600 | 1200 | 2400 | 4800;
+    }
+
+    export interface KnobOutcome {
+      tuple: KnobTuple;
+      agentCount: number;                      // authored per density
+      debateRounds: number;                    // integer, from fixture
+      finalClusterCount: number;               // integer, <= suff
+      verdict: "PASSED" | "VETOED";
+      restartCycles: 0 | 1 | 2;
+      outputSize: number;                      // = finalClusterCount
+                                               //   if PASSED, else 0
+      virtualDurationSec: number;              // authored
+      sparkline: Array<{ round: number; clusterCount: number }>;
+      note?: string;                           // one-line authored
+                                               // hint for unusual cells
+    }
+
+    // 4 × 4 × 4 = 64 cells. Each MUST be authored; no interpolation.
+    export const KNOB_MATRIX: KnobOutcome[];
+
+    // Agent-count-per-density table (Guide II §3 Component 1):
+    // density 600  -> 11 agents (narrow slices, high granularity)
+    // density 1200 -> 5 agents (default; matches theater fixture)
+    // density 2400 -> 3 agents (wider slices, fewer frames)
+    // density 4800 -> 2 agents (coarsest)
+    // These are placeholder integers; final values authored by
+    // Michael against a concrete KB.
+    export const AGENT_COUNT_BY_DENSITY: Record<number, number>;
+
+    // Default tuple:
+    export const DEFAULT_TUPLE: KnobTuple = {
+      sufficiency: 3,
+      feasibility: 55,
+      density: 1200,
+    };
+
+C3. State slice (augments P01's store).
+
+    interface KnobState {
+      current: KnobTuple;
+      previous: KnobTuple | null;
+    }
+
+    interface HivemindExperienceState {
+      // ...existing from P01
+      knobs: KnobState;
+      setKnob(k: "sufficiency" | "feasibility" | "density",
+              v: number): void;
+      resetKnobs(): void;
+    }
+
+    setKnob:
+      - Reads current, writes previous = current, writes current
+        = { ...current, [k]: v }.
+      - Announces via aria-live: "Sufficiency set to 3", etc.
+      - Never accepts a value outside the authored domain
+        (typeGuards runtime-checks at store boundary).
+
+    resetKnobs:
+      - Writes previous = current, writes current = DEFAULT_TUPLE.
+
+C4. Outcome lookup.
+
+    A pure function:
+        lookupOutcome(tuple: KnobTuple): KnobOutcome
+
+    Implementation: indexed access against KNOB_MATRIX using
+    a stable key: `${suff}-${feas}-${dens}`. No math; no
+    interpolation.
+
+    If the fixture is missing a cell (which should never happen
+    after P06's integrity check), the function throws — do NOT
+    fall back to a nearby cell silently.
+
+
+----------------------------------------------------------------------
+PART D — COPY RULES FOR THIS MODE
+----------------------------------------------------------------------
+
+D1. Slider value labels (verbatim, mono).
+
+    Sufficiency:    1       2       3       4
+    Feasibility:    40      55      70      85
+    Density:        ~600    ~1.2k   ~2.4k   ~4.8k     (suffix: " tok / agent")
+
+D2. Slider subtitles (verbatim, single line, serif, below slider label).
+
+    SUFFICIENCY:
+        "halt when unique clusters ≤ this"
+
+    FEASIBILITY:
+        "veto if average practicality score < this"
+
+    DENSITY:
+        "approximate KB tokens per theory agent; sets the resolution
+         of the network, not the agent count directly"
+
+D3. (i) popover full text (verbatim).
+
+    SUFFICIENCY:
+        "Client-set integer. The theory loop halts once the Monitor
+         counts unique solution clusters at or below this value.
+         Lower values demand tighter agreement; higher values
+         terminate sooner with a broader menu of distinct
+         recommendations. (Guide II §3 Component 4)"
+
+    FEASIBILITY:
+        "Client-set integer on a 1-100 scale. The practicality
+         network scores each surviving cluster; if the average is
+         below this threshold, the entire theory pass is vetoed and
+         the theory network regenerates from scratch, with no
+         repeats. (Guide II §3 Components 3 and 4)"
+
+    DENSITY:
+        "Client-set integer. The approximate per-agent token count
+         of knowledge-base context. Each agent's slice is packed
+         with complete documents up to this target without
+         exceeding it; the agent count falls out of the packing.
+         Higher density means fewer agents drawing from broader
+         slices; lower density means more agents with narrower
+         expertise. (Guide II §3 Component 1)"
+
+D4. FIRM-SET CALIBRATIONS panel (verbatim).
+
+    Label header: "FIRM-SET CALIBRATIONS (not client-adjustable)"
+
+    Line 1: "Theory-agent stubbornness"
+      (i): "How strongly agents weight their own prior solution
+           during revision. Governs exploration vs. convergence.
+           (Guide II §5)"
+
+    Line 2: "Monitor similarity threshold"
+      (i): "The similarity bar at which the Monitor lumps two
+           solutions into one cluster. Too loose and genuinely
+           different solutions merge; too tight and variants of
+           the same recommendation count as distinct. (Guide II §5)"
+
+    Line 3: "Practicality severity"
+      (i): "How critical each constraint agent is of feasibility.
+           Severity controls how often the veto fires, which in
+           turn controls compute cost per deliberation. (Guide II §5)"
+
+D5. OutcomeMatrix field labels (verbatim).
+
+    AGENTS
+    DEBATE ROUNDS
+    CLUSTERS
+    VERDICT
+    RESTARTS
+    OUTPUT SIZE
+    DURATION
+
+    Verdict renders as "PASSED" or "VETOED" in the semantic token
+    from P01 D1.
+
+D6. DeltaReadout grammar (verbatim format string).
+
+    "Δ   agents {a:+d}   rounds {r:+d}   clusters {c:+d}   verdict {v}"
+
+    where {v} is one of:
+        "same"
+        "PASSED → VETOED"
+        "VETOED → PASSED"
+
+    Δ is a literal delta glyph. If previous is null, render:
+        "—   no prior state"
+
+D7. SEND TO THEATER button.
+
+    Enabled label: "SEND TO THEATER"
+    Disabled tooltip (verbatim):
+        "The theater's authored run fixture covers density ~1.2k
+         only. Set DENSITY to ~1.2k to enable this."
+
+D8. Honesty caption (mandatory, serif italic, above the OutcomeMatrix).
+
+    "Precomputed outcomes, not live computation. Each cell of the
+     4×4×4 matrix was authored against a single scoped problem to
+     show how the knobs shift the shape of the output."
+
+    This caption is the bench's analogue to P01's D4 caption. It
+    exists to prevent the mistaken inference that the sliders are
+    computing live.
+
+D9. What the mode must not say.
+
+    - "Predict", "simulate the product", "calibrate your run" —
+      these suggest the bench is doing computation it is not.
+    - "Try different settings" is borderline; if used, it must be
+      clear they are precomputed views.
+    - "AI recommends" — the mode does not recommend anything; it
+      shows the SHAPE of outputs under knob changes.
+    - Any colloquial "dial it in" / "knob it up" phrasing. Use
+      "set SUFFICIENCY to N".
+
+
+----------------------------------------------------------------------
+PART E — ACCEPTANCE FOR P02
+----------------------------------------------------------------------
+
+  [ ] ModeTabBar tab 2 (KNOBS) is enabled and mounts KnobBench.
+  [ ] KnobPanel renders three discrete sliders; each snaps to the
+      authored domain; no intermediate values selectable.
+  [ ] FIRM-SET CALIBRATIONS mini-panel is read-only and labelled
+      explicitly.
+  [ ] OutcomeMatrix renders all seven fields for every authored
+      cell; sparkline draws with no external chart library.
+  [ ] DeltaReadout shows exact deltas from the previous tuple
+      (and "—   no prior state" on first render).
+  [ ] RESET restores DEFAULT_TUPLE (3, 55, 1200) and writes
+      previous = prior current.
+  [ ] SEND TO THEATER is enabled only at density=1200;
+      disabled tooltip matches D7 verbatim; clicking while enabled
+      calls openInMode("theater", runId-for-tuple).
+  [ ] Honesty caption (D8) is present and visible on all
+      viewport regimes.
+  [ ] Keyboard: Tab into each slider, Left/Right arrows move
+      among four stops, Space/Enter commits (already default for
+      radiogroup). Reset is a regular button; SEND TO THEATER
+      is a regular button.
+  [ ] aria-live announces on each knob change: e.g., "Sufficiency
+      set to 2. Clusters now 2, rounds 3, verdict PASSED."
+      Granularity: one utterance per slider change; throttle 300ms
+      in case the user holds an arrow key.
+  [ ] reducedMotion: no slider-thumb animation; sparkline draws
+      statically; verdict change does not animate.
+  [ ] Prose lint (P06) passes.
+  [ ] Fixture integrity: KNOB_MATRIX has exactly 64 entries; each
+      key unique; typeGuards pass at store boundary; lookupOutcome
+      throws on missing cell. P06 test runs this.
+  [ ] Bundle gzip: KnobBench code <=5KB gzip; matrix data
+      (64 cells × ~120 bytes ≈ 8KB raw) <=3KB gzip after shared
+      key compression.
+
+
+----------------------------------------------------------------------
+PART F — IMPLEMENTER NOTES
+----------------------------------------------------------------------
+
+F1. Do NOT compute outcomes from formulas. The temptation is to say
+    "agent count ≈ total_kb_tokens / density, rounded down",
+    "cluster count ≈ sufficiency unless convergence", etc. These
+    formulas look reasonable and are WRONG. Guide II §3 Component 1
+    makes clear that slice packing is not a division: documents
+    cannot be cut mid-document, and the actual agent count falls
+    out of the packing procedure against a specific KB. The bench
+    must therefore SHOW authored numbers, not computed ones.
+
+F2. Do NOT show the firm-set calibrations as sliders even if it
+    would be "more interactive". Exposing them as user-adjustable
+    misrepresents the product; Guide II §5 is explicit that these
+    are the firm's responsibility.
+
+F3. Do NOT pretend the bench's problem is the theater's problem.
+    Using distinct problems protects against the user inferring
+    that the theater is the "full run" of the bench's schematic —
+    it is not. They are two grounds for learning the same
+    structural facts.
+
+F4. Do NOT let the density slider appear to be a linear agent-
+    count dial. The displayed agent count must be the authored
+    integer for that (density, problem, KB snapshot) cell; if the
+    number does not fall on the curve the user expects, that is
+    itself pedagogical. A tiny note in the OutcomeMatrix ("density
+    sets resolution; agent count falls out of KB packing") is
+    acceptable; a lengthy explainer is not.
+
+F5. Do NOT aggregate multiple knob changes into a single delta.
+    Each slider change is its own previous-to-current transition.
+    If the user wants a multi-step compound delta, they can click
+    the reset and step through one knob at a time. The single-step
+    delta is honest; aggregated deltas hide causation.
+
+F6. If a cell's fixture is flagged with a `note`, surface it in
+    the OutcomeMatrix as a small serif italic line below the
+    numeric tiles. Notes are used sparingly — for cells where the
+    combined knob configuration produces a surprising result the
+    author wants to highlight (e.g., "density ~4.8k with
+    sufficiency 1: convergence is trivial with two agents;
+    output is one cluster regardless of feasibility").
+
+F7. Theater-bench coupling: the SEND TO THEATER button ensures
+    the two modes are not siloed — the user can move from bench
+    insight ("ah, veto fires above feas=70 here") into the
+    theater to see that fire concretely. The button is a
+    thin coupling on purpose; do not build bidirectional sync.
+
+F8. The bench is small. Do not inflate it with additional
+    visualizations. A table, a sparkline, and a delta readout
+    is the whole thing. Guide II is a short and dense document;
+    the bench should feel similarly pinned.
+
+
+End of P02.

@@ -72,8 +72,8 @@ export default function Panel({ panel, state, onActivate, onFocusInto, onHover, 
         className="panel-body"
         style={{
           flex: 1,
-          padding: "var(--s-6)",
-          overflow: "auto",
+          padding: panel.flushBody ? 0 : "var(--s-6)",
+          overflow: panel.flushBody ? "hidden" : "auto",
         }}
         aria-hidden={!expanded}
       >

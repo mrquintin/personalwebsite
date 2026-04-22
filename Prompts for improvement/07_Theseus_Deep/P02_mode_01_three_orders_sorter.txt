@@ -1,0 +1,712 @@
+P02 — MODE 1, THREE ORDERS SORTER
+====================================
+
+ROLE: You are implementing MODE 1 of the Theseus Deep experience.
+The Three Orders Sorter is the orientation mode: by the time a
+user has advanced through the card deck, the first/second/third-
+order distinction is understood, and Theseus's own position at
+the boundary of the second and third order is legible.
+
+Read P01_chassis_and_panel_host.txt first. This
+prompt assumes the TheseusExperience shell, ModeTabBar, and the
+zustand store shape are already in place. This prompt fills in
+OrdersSlice, authors the card deck, and implements the sorter
+components.
+
+---
+
+GROUNDING
+
+All content in this mode is grounded in:
+
+  TH1 §2   — the three orders, precisely
+  TH1 §3   — what the firm actually does (faculties reference)
+  TH2 §1   — the problem the meta-method solves (framing)
+  TH6 §10  — what the seven projects are not ("each project is
+             methodological. None of them makes a substantive
+             claim about the world")
+  TH6 §12  — the point of all of this (firm's own position)
+
+The canonical definitions (verbatim from TH1 §2):
+
+  "First order — Substantive claims. 'We believe X is true.'
+  The product is a claim about the world. The vulnerability is
+  the obvious one: when X is false, the firm collapses."
+
+  "Second order — Methodology. 'We have a method for
+  determining whether X is true.' The product is a procedure:
+  a coherence engine, a contradiction detector, an adversarial
+  generator. A false X does not collapse the firm; the method
+  either catches the falsity or is shown to be miscalibrated."
+
+  "Third order — Meta-methodology. 'We have a theory of what
+  makes a method reliable, and we can evaluate competing
+  methods by that theory.' The product is not a claim and not
+  a procedure but a criterion for evaluating procedures."
+
+Theseus's own position (verbatim from TH1 §2):
+
+  "Theseus operates at the boundary between the second and
+  third orders. The existing engineering (Noosphere, Dialectic,
+  the Codex) is a second-order product: it operationalizes
+  specific methods. The active intellectual work (the seven
+  projects described in Guide VI) is third-order: it produces
+  methods for evaluating methods."
+
+All three of these passages MUST land verbatim in
+src/lib/theseus/sources.ts with the keys:
+    TH1_SEC_2_ORDER_1
+    TH1_SEC_2_ORDER_2
+    TH1_SEC_2_ORDER_3
+    TH1_SEC_2_POSITION
+
+The mode renders them in its reveal panels and its capstone
+card. Non-verbatim paraphrase in user-facing prose is permitted
+elsewhere but these four passages must be exact.
+
+
+---
+
+A) FILE LAYOUT
+
+    src/components/panels/theseus/Experience/ThreeOrdersSorter/
+        index.tsx                    — mode entry point
+        OrderCard.tsx                — one card; presents statement
+        OrderChoice.tsx              — the three-way choice control
+        OrderReveal.tsx              — flip-to-reveal with rationale
+        OrdersCapstone.tsx           — final card; Theseus's position
+        DeckProgress.tsx             — dot-row "N of M" indicator
+
+    src/lib/theseus/ordersDeck.ts    — the 12 cards (authored)
+    src/lib/theseus/sources.ts       — augmented with the four
+                                        verbatim excerpts above
+    src/lib/theseus/typeGuards.ts    — augmented with
+                                        typeGuardForCardDeck()
+
+    src/stores/theseusExperience.ts  — augment with real
+                                        OrdersSlice definition
+                                        and initializer
+
+
+B) STORE SLICE
+
+B1. Slice type
+
+    export interface OrderCardState {
+      id: string;             // stable card id, e.g., "deck-01"
+      userChoice: "first" | "second" | "third" | null;
+      revealed: boolean;
+    }
+
+    export interface OrdersSlice {
+      deckIndex: number;         // 0..deck.length-1 (the last
+                                  // entry is the capstone)
+      cards: Record<string, OrderCardState>;
+      autoAdvance: boolean;      // default false
+    }
+
+B2. Actions (added to TheseusExperienceState in P01)
+
+    setOrdersChoice(cardId: string, choice: OrderCardState["userChoice"]): void;
+    revealOrdersCard(cardId: string): void;
+    advanceDeck(): void;    // index++, clamped to length
+    goBackDeck(): void;     // index--, clamped to 0
+    resetDeck(): void;      // clears all card state, index=0
+
+B3. Initializer
+
+    import { DECK } from "@/lib/theseus/ordersDeck";
+
+    const initialOrders: OrdersSlice = {
+      deckIndex: 0,
+      cards: Object.fromEntries(
+        DECK.map((c) => [c.id, { id: c.id, userChoice: null, revealed: false }])
+      ),
+      autoAdvance: false,
+    };
+
+    Merge initialOrders into useTheseusStore's initializer (P01
+    left the orders slice as an empty object placeholder).
+
+B4. No side effects in reducers. Announcements are emitted by
+    the component layer via props.announce (e.g., "Card 3 of
+    12. Revealed: second order. Rationale follows.").
+
+
+C) THE CARD DECK (AUTHORED — src/lib/theseus/ordersDeck.ts)
+
+C1. Types
+
+    export type Order = "first" | "second" | "third";
+
+    export interface DeckCard {
+      id: string;
+      kind: "sort" | "capstone";
+      statement: string;           // shown on the front of the card
+      canonicalOrder: Order | null;  // null for the capstone
+      rationale: string;           // shown after reveal
+      consequenceIfMisclassified: string;  // one-sentence note
+      sourceAnchor: string;        // e.g., "TH1 §2; TH6 §10"
+    }
+
+    export const DECK: DeckCard[] = [ /* 11 sort cards + 1 capstone = 12 */ ];
+
+C2. Authoring rules for sort cards (IDs deck-01 through deck-11):
+
+    - Each statement is 1-2 short sentences. No statement
+      invents policy or technology that is not in TH1-TH6.
+    - Each canonicalOrder is determinate and defensible; no
+      "ambiguous" cards in the main deck. (Intentional
+      ambiguity is reserved for the capstone.)
+    - rationale is 2-3 sentences grounded in the source. If it
+      paraphrases, it names the source section.
+    - consequenceIfMisclassified is one sentence that makes the
+      practical cost of the misclassification vivid. For
+      example, classifying a first-order claim as methodology
+      yields "the firm would defend a specific prediction as
+      if defending its method; a false prediction would then
+      wrongly be read as a method failure".
+    - sourceAnchor names 1-2 TH<n> §<x> locations.
+
+C3. The twelve cards (AUTHORED — FINAL; land verbatim)
+
+    DECK[0] through DECK[10] are 11 sort cards; DECK[11] is
+    the capstone. Below is the authored deck:
+
+    // --- SORT CARDS ---
+
+    deck-01: {
+      id: "deck-01",
+      kind: "sort",
+      statement:
+        "We believe the Federal Reserve will cut rates by 50 "
+        + "basis points before the end of the year.",
+      canonicalOrder: "first",
+      rationale:
+        "This is a substantive claim about the world — a "
+        + "specific prediction about a specific event. Its "
+        + "vulnerability is the obvious one: when the event "
+        + "does not happen, the claim collapses, and any firm "
+        + "whose product is this claim collapses with it.",
+      consequenceIfMisclassified:
+        "A firm that treats its predictions as its product is "
+        + "only as good as its last prediction.",
+      sourceAnchor: "TH1 §2 (first order)",
+    }
+
+    deck-02: {
+      id: "deck-02",
+      kind: "sort",
+      statement:
+        "We have a six-layer coherence engine that scores "
+        + "claim-pairs as entailing, contradicting, or neutral, "
+        + "and returns UNRESOLVED when the layers disagree.",
+      canonicalOrder: "second",
+      rationale:
+        "This is a procedure — a method for determining whether "
+        + "two claims are consistent. The claim it produces "
+        + "about any given pair can still be wrong, but the "
+        + "firm is not selling that claim; the firm is selling "
+        + "the procedure that produced it, and the procedure is "
+        + "either vindicated or critiqued by a specific failure.",
+      consequenceIfMisclassified:
+        "Treating a procedure as a substantive claim turns a "
+        + "method failure into a firm failure — which the "
+        + "second-order design is specifically structured to "
+        + "prevent.",
+      sourceAnchor: "TH1 §2 (second order); TH4 §2.3",
+    }
+
+    deck-03: {
+      id: "deck-03",
+      kind: "sort",
+      statement:
+        "A method is reliable to the extent that it would detect "
+        + "its own failure. Severity, progressivity, "
+        + "compressibility, coherence-across-aims, and domain "
+        + "sensitivity are each this single principle applied at "
+        + "a different scale.",
+      canonicalOrder: "third",
+      rationale:
+        "This is not a claim about the world and not a procedure. "
+        + "It is a CRITERION for evaluating procedures. It tells "
+        + "us how to discriminate reliable methods from "
+        + "unreliable ones — and, crucially, how to evaluate the "
+        + "criterion itself (it passes its own test).",
+      consequenceIfMisclassified:
+        "Treating a criterion as a procedure yields the "
+        + "Goodhart failure mode: one operationalizes the "
+        + "criterion and forgets the property it was meant to "
+        + "measure.",
+      sourceAnchor: "TH2 §3; TH2 §4",
+    }
+
+    deck-04: {
+      id: "deck-04",
+      kind: "sort",
+      statement:
+        "Our analysis of Company X concludes that its moat is "
+        + "durable because its net retention has exceeded 110% "
+        + "in each of the last three years.",
+      canonicalOrder: "first",
+      rationale:
+        "This is a specific claim about a specific company, "
+        + "supported by a specific piece of evidence. It is the "
+        + "output of a method, not the method itself. If the "
+        + "retention number is mis-measured or the moat thesis "
+        + "is empirically wrong, the claim falls; the method "
+        + "that produced it does not automatically fall with it.",
+      consequenceIfMisclassified:
+        "Bundling a first-order conclusion into the firm's "
+        + "methodological identity makes the firm hostage to "
+        + "that single conclusion's fate.",
+      sourceAnchor: "TH1 §2 (first order); TH4 §9",
+    }
+
+    deck-05: {
+      id: "deck-05",
+      kind: "sort",
+      statement:
+        "Every prediction we publish is automatically logged to "
+        + "the Calibration Scoreboard with its claim, confidence, "
+        + "method, and resolution date, and is scored monthly by "
+        + "Brier, log-loss, and ECE as outcomes arrive.",
+      canonicalOrder: "second",
+      rationale:
+        "This is the procedure for turning predictions into "
+        + "scored evidence about the firm's methods. It is not "
+        + "a claim about markets; it is a mechanism for "
+        + "discovering which of the firm's methods predict "
+        + "well.",
+      consequenceIfMisclassified:
+        "Mistaking the scoreboard for a claim (e.g., 'we are "
+        + "well-calibrated') hides the fact that it is "
+        + "continuously-running evidence, not a conclusion.",
+      sourceAnchor: "TH2 §2.1; TH6 §4",
+    }
+
+    deck-06: {
+      id: "deck-06",
+      kind: "sort",
+      statement:
+        "The Reverse Marxism reflection technique generates the "
+        + "structurally-strongest counter-argument to any "
+        + "thesis by Householder-reflecting its embedding across "
+        + "the operative concept axis.",
+      canonicalOrder: "second",
+      rationale:
+        "This is a method — a mechanism for producing "
+        + "adversarial challenges that satisfy Mayo's severity "
+        + "requirement. Whether the reflected argument is "
+        + "correct about the world is a first-order question; "
+        + "whether the reflection MECHANISM reliably produces "
+        + "the strongest adversarial position is a second-order "
+        + "question, and this is the mechanism claim.",
+      consequenceIfMisclassified:
+        "Treating a generator of counter-arguments as a "
+        + "substantive counter-argument forecloses the very "
+        + "severity benefit the generator was built to supply.",
+      sourceAnchor: "TH3 §5; TH6 §3",
+    }
+
+    deck-07: {
+      id: "deck-07",
+      kind: "sort",
+      statement:
+        "Methods are worth more when they are progressive — "
+        + "when they generate novel, testable predictions "
+        + "whose outcomes discriminate them from ad-hoc "
+        + "rescues — regardless of which specific claims they "
+        + "happen to produce.",
+      canonicalOrder: "third",
+      rationale:
+        "This is a criterion by which methods are compared. "
+        + "The claim names a property methods should have; it "
+        + "is not a method itself, and it is not a "
+        + "first-order claim about what is true.",
+      consequenceIfMisclassified:
+        "If progressivity is treated as a method, the firm "
+        + "tries to operationalize 'be progressive' directly — "
+        + "which is exhortation; if as a claim, the firm "
+        + "defends progressivity empirically and forgets that "
+        + "it is a criterion.",
+      sourceAnchor: "TH2 §2.1; TH2 §3",
+    }
+
+    deck-08: {
+      id: "deck-08",
+      kind: "sort",
+      statement:
+        "We claim that our portfolio will outperform the S&P "
+        + "500 by 3 percentage points annually over the next "
+        + "decade.",
+      canonicalOrder: "first",
+      rationale:
+        "A specific, testable prediction — a substantive claim "
+        + "about future performance. Its empirical fate is "
+        + "decided in ten years by direct comparison with a "
+        + "public benchmark.",
+      consequenceIfMisclassified:
+        "If understood as a methodology, a decade of "
+        + "underperformance would be read as the methodology "
+        + "failing, when it may simply be the prediction "
+        + "failing.",
+      sourceAnchor: "TH1 §2 (first order); TH5 §12",
+    }
+
+    deck-09: {
+      id: "deck-09",
+      kind: "sort",
+      statement:
+        "We submit every firm-tier conclusion to an adversarial "
+        + "peer-review swarm of seven roles (methodological, "
+        + "evidential, statistical, adversarial-literature, "
+        + "replication, rhetorical, humility), each with a "
+        + "tracked calibration weight.",
+      canonicalOrder: "second",
+      rationale:
+        "A procedure for stress-testing conclusions. The seven "
+        + "roles, their biases, and the calibration weighting "
+        + "are mechanisms; the conclusions they evaluate are "
+        + "first-order.",
+      consequenceIfMisclassified:
+        "Reading the swarm as a method-evaluating CRITERION "
+        + "would wrongly collapse it to the meta-method's "
+        + "five-criteria framework. The swarm is an "
+        + "instrumentation of severity; it is not the criterion "
+        + "of severity itself.",
+      sourceAnchor: "TH5 §10; TH4 §2.4",
+    }
+
+    deck-10: {
+      id: "deck-10",
+      kind: "sort",
+      statement:
+        "No method is universally optimal; a method's "
+        + "reliability is always relative to a problem class, "
+        + "so a reliable meta-methodology maps methods to their "
+        + "domains of reliability.",
+      canonicalOrder: "third",
+      rationale:
+        "This is the No Free Lunch criterion — a property the "
+        + "meta-method imposes on its objects (other methods). "
+        + "It is not a method; it is the reason some methods "
+        + "qualify as reliable in a domain and others do not.",
+      consequenceIfMisclassified:
+        "Mistaking NFL for a method produces the illusion of "
+        + "'universal domain-matching' machinery; mistaking it "
+        + "for a claim produces overclaim — that the firm has "
+        + "proven no method can work universally — when the "
+        + "result holds only in the theorem's averaging "
+        + "regime.",
+      sourceAnchor: "TH2 §2.5",
+    }
+
+    deck-11: {
+      id: "deck-11",
+      kind: "sort",
+      statement:
+        "Rates will fall sharply because the labor market is "
+        + "softening, inflation has structurally moderated, and "
+        + "the Fed's reaction function points toward easing.",
+      canonicalOrder: "first",
+      rationale:
+        "A substantive prediction with a supporting sub-"
+        + "argument. The supporting premises are first-order "
+        + "too; together they constitute a first-order claim "
+        + "bundle. This is the most common kind of content "
+        + "produced by commentary firms.",
+      consequenceIfMisclassified:
+        "Dressing a first-order prediction in methodological "
+        + "language ('our method predicts...') lets the firm "
+        + "absorb predictive failure as method validation, "
+        + "which is the central second-order trap Theseus is "
+        + "built to prevent.",
+      sourceAnchor: "TH1 §2 (first order)",
+    }
+
+    // --- CAPSTONE ---
+
+    deck-12: {
+      id: "deck-12",
+      kind: "capstone",
+      statement:
+        "Where does Theseus ITSELF operate? First, second, or "
+        + "third order? Select your best guess, then reveal.",
+      canonicalOrder: null,
+      rationale:
+        "Theseus operates at the BOUNDARY between the second "
+        + "and third orders. The existing engineering "
+        + "(Noosphere, Dialectic, the Codex) is a second-order "
+        + "product: it operationalizes specific methods. The "
+        + "active intellectual work (the seven projects) is "
+        + "third-order: it produces methods for evaluating "
+        + "methods. Picking either one alone is partially "
+        + "right; picking 'both' is the canonical answer — "
+        + "hence the capstone treats 'second' and 'third' as "
+        + "equally defensible and 'first' as the only strictly "
+        + "wrong answer.",
+      consequenceIfMisclassified:
+        "Reading Theseus as first-order — 'a firm with good "
+        + "market views' — misses the entire product. The "
+        + "product is methodology, not views.",
+      sourceAnchor: "TH1 §2 (position); TH6 §10",
+    }
+
+C4. Size & bundle
+
+    The deck totals ~2,200 words of authored strings. Stored as
+    a single TypeScript object literal in ordersDeck.ts, it
+    contributes ~5.5-6.5KB gzip to the bundle. Budget line
+    applied in P07.
+
+
+D) COMPONENTS
+
+D1. index.tsx (mode entry)
+
+    export function ThreeOrdersSorter(props: ModeProps) {
+      const deckIndex = useTheseusStore((s) => s.orders.deckIndex);
+      const card = DECK[deckIndex];
+      return (
+        <section aria-labelledby="orders-mode-h">
+          <h3 id="orders-mode-h" className="sr-only">
+            Three Orders Sorter
+          </h3>
+          <DeckProgress total={DECK.length} index={deckIndex} />
+          {card.kind === "sort"
+            ? <OrderCard card={card} {...props} />
+            : <OrdersCapstone card={card} {...props} />}
+          <NavControls />
+        </section>
+      );
+    }
+
+D2. OrderCard.tsx (sort card lifecycle)
+
+    Three-phase render:
+      Phase 1 — STATEMENT:  the card's statement is shown;
+                           the <OrderChoice /> control is
+                           active; reveal is hidden.
+      Phase 2 — CHOSEN:    user has picked an order; the
+                           chosen button highlights; REVEAL
+                           button appears. The choice is
+                           NOT revealed yet — deliberate
+                           commitment before evaluation.
+      Phase 3 — REVEALED:  OrderReveal renders the canonical
+                           order, the rationale, the
+                           consequence-if-misclassified note,
+                           and the source anchor. NEXT button
+                           appears.
+
+    Transitions are opacity-only when reducedMotion is true;
+    otherwise framer-motion 180ms fade + 4px vertical slide.
+
+D3. OrderChoice.tsx (the three-way control)
+
+    Three side-by-side buttons: FIRST / SECOND / THIRD.
+    On larger widths, each button has a short inline
+    description ("substantive claim" / "methodology" /
+    "meta-methodology"). On NARROW, descriptions collapse
+    into popovers that open on focus.
+
+    Keyboard: 1/2/3 select first/second/third; arrow keys
+    move focus; ENTER commits.
+
+    Visual treatment: when revealed, the button matching
+    canonicalOrder gets a 2px left border in the "correct"
+    color; the user's choice (if different) gets a 2px
+    left border in the "mismatch" color. NO tick/cross
+    emoji; NO "correct/incorrect" copy. The reveal is
+    about the rationale, not the score. The mode does NOT
+    track a running score.
+
+D4. OrderReveal.tsx
+
+    Renders in order:
+      1. CANONICAL ORDER badge — "FIRST-ORDER", "SECOND-
+         ORDER", or "THIRD-ORDER".
+      2. DEFINITIONAL EXCERPT — the verbatim TH1 §2 passage
+         for that order (from sources.ts:
+         TH1_SEC_2_ORDER_1 / ORDER_2 / ORDER_3). Rendered
+         in a bordered block with a small "SOURCE: TH1 §2"
+         caption.
+      3. RATIONALE — the card's authored rationale.
+      4. CONSEQUENCE IF MISCLASSIFIED — labeled "If read as
+         another order:".
+      5. SOURCE ANCHOR — "Source: {card.sourceAnchor}".
+
+    The OrderReveal renders inline; it does not modal or
+    drawer. All on-card content stays within the card frame.
+
+D5. OrdersCapstone.tsx
+
+    The capstone (deck-12) has three differences from a
+    normal sort card:
+
+    (i)  OrderChoice offers FOUR options: FIRST / SECOND /
+         THIRD / BOTH. Only BOTH is labelled "(canonical)"
+         on reveal; SECOND and THIRD are labelled "(partially
+         right)"; FIRST is labelled "(strictly wrong)".
+
+    (ii) OrderReveal renders Theseus's own position passage
+         (TH1_SEC_2_POSITION) verbatim, followed by the
+         capstone's authored rationale, followed by the
+         question "What do you want to see next?" with
+         three small navigation buttons:
+           - To the Reflection Lab (mode 2 — method in
+             operation).
+           - To the Refusal Panel (mode 4 — method under
+             pressure).
+           - To the Fixed-Point Auditor (mode 5 — method
+             on itself).
+         Clicking any calls setMode(target).
+
+    (iii) NavControls on the capstone show a RESTART button
+          instead of NEXT. RESTART calls resetDeck() and
+          returns to deck-01.
+
+D6. DeckProgress.tsx
+
+    A horizontal row of 12 dots; the active dot is filled,
+    past dots are half-filled, future dots are outlined.
+    aria-label: "Card {index+1} of {total}".
+
+D7. NavControls
+
+    - PREV button (disabled on deck-01)
+    - NEXT button (disabled on deck-12; replaced by
+      RESTART on capstone)
+    - "JUMP TO CAPSTONE" button (always enabled — lets a
+      hurried user skip straight to Theseus's own position).
+
+    Keyboard: LEFT arrow is PREV; RIGHT arrow is NEXT (when
+    a card is revealed; while choosing, arrows move between
+    order buttons).
+
+
+E) RESPONSIVE BEHAVIOR
+
+    NARROW (<640):
+      Single column; OrderChoice buttons stacked vertically
+      full-width; OrderReveal is inline; the card itself is
+      the whole viewport width minus 16px padding.
+
+    STANDARD (640-960):
+      OrderChoice buttons in a 3-column row; card max-width
+      640px centered.
+
+    WIDE (960-1280):
+      Card max-width 720px; OrderReveal content laid out in
+      two columns at the "rationale" + "consequence" pair;
+      canonical excerpt remains full-width.
+
+    XWIDE (>=1280):
+      Same as WIDE. (No advantage to going wider for text-
+      heavy cards.)
+
+
+F) MOTION / REDUCED MOTION
+
+    Default:
+      Card flip: 180ms opacity + 4px slide on Y.
+      OrderChoice commit: 120ms scale 1.00 -> 0.98 on
+      the chosen button.
+      OrderReveal: 220ms staggered fade-in on each of
+      the five internal blocks.
+
+    reducedMotion:
+      All timings collapse to 0ms; motion.div wrappers
+      become plain divs; stagger is removed.
+
+
+G) ANNOUNCE CONTRACT
+
+    On advanceDeck:
+      announce(`Card ${newIndex+1} of ${DECK.length}.`)
+    On setOrdersChoice:
+      announce(`You selected ${choice} order. Reveal to
+      see the canonical answer.`)
+    On revealOrdersCard:
+      For sort cards:
+        announce(
+          `Canonical order: ${canonicalOrder}. Source: ${sourceAnchor}.`
+        )
+      For capstone:
+        announce(
+          `Theseus operates at the boundary of second and
+          third order. Source: TH1 §2.`
+        )
+
+
+H) TYPE GUARDS
+
+    In src/lib/theseus/typeGuards.ts:
+
+    export function typeGuardForCardDeck(x: unknown): DeckCard[] {
+      if (!Array.isArray(x)) throw new Error("DECK not array");
+      for (const c of x) {
+        if (typeof c.id !== "string") throw new Error(`card.id`);
+        if (c.kind !== "sort" && c.kind !== "capstone") {
+          throw new Error(`card.kind ${c.id}`);
+        }
+        if (typeof c.statement !== "string") throw new Error(`card.statement ${c.id}`);
+        if (c.kind === "sort" && !["first","second","third"].includes(c.canonicalOrder as string)) {
+          throw new Error(`canonicalOrder ${c.id}`);
+        }
+        if (c.kind === "capstone" && c.canonicalOrder !== null) {
+          throw new Error(`capstone canonicalOrder must be null`);
+        }
+        for (const k of ["rationale","consequenceIfMisclassified","sourceAnchor"]) {
+          if (typeof (c as any)[k] !== "string") throw new Error(`card.${k} ${c.id}`);
+        }
+      }
+      if (x.length !== 12) throw new Error(`DECK must have 12 entries`);
+      if (x[11].kind !== "capstone") throw new Error(`deck-12 must be capstone`);
+      return x as DeckCard[];
+    }
+
+    Invoke from ordersDeck.ts at module load:
+
+      import { typeGuardForCardDeck } from "./typeGuards";
+      const _raw = [ /* the 12 cards */ ];
+      export const DECK = typeGuardForCardDeck(_raw);
+
+
+I) SOURCES ADDITIONS
+
+    In src/lib/theseus/sources.ts, add the four verbatim
+    passages named in GROUNDING above, keyed as:
+
+      TH1_SEC_2_ORDER_1     // First order — ...
+      TH1_SEC_2_ORDER_2     // Second order — ...
+      TH1_SEC_2_ORDER_3     // Third order — ...
+      TH1_SEC_2_POSITION    // Theseus operates at the boundary...
+
+    Each value is the exact text of the passage. P07's
+    source-drift check compares these byte-for-byte against
+    ths01_orientation.txt.
+
+
+J) ACCEPTANCE (MODE 1)
+
+  [ ] ThreeOrdersSorter renders when mode === "orders".
+  [ ] All 12 cards cycle through; capstone renders with its
+      four-option control and three navigation shortcuts.
+  [ ] OrderReveal renders the correct verbatim passage from
+      sources.ts for each canonical order.
+  [ ] Capstone renders TH1_SEC_2_POSITION verbatim.
+  [ ] Keyboard: 1/2/3 commit on sort cards; 1/2/3/4 on the
+      capstone (adding BOTH); LEFT/RIGHT navigate; ENTER
+      activates focused control.
+  [ ] aria-live announcements per §G.
+  [ ] reducedMotion collapses all animations.
+  [ ] Bundle delta (this mode): <=8KB gzip over the chassis
+      baseline.
+  [ ] No running score shown; no tick/cross emoji; no "correct/
+      incorrect" copy.
+
+
+---
+
+END P02. Mode 1 ships. Proceed to P03 — REFLECTION LAB.

@@ -1,0 +1,476 @@
+P03 — DOMAIN-RELATIVE COMPARATOR
+==================================
+
+ROLE: Continuing as the senior TypeScript/React engineer on the
+Coherence Engine suite. This prompt implements MODE 3, the
+Domain-Relative Comparator — the mode that teaches why the
+operational question is NOT "is this text absolutely coherent?"
+but "is this text more coherent than the best incumbent argument
+in its domain?"
+
+Read P01 and P02 before starting. This prompt
+depends on the chassis from P01.
+
+---
+
+WHAT THIS MODE HAS TO COMMUNICATE
+
+CE2 §5 and CE1 §5.2 together make a single argument:
+
+  1. The absolute composite Coh(Γ) is computable but
+     operationally unhelpful, because society's own curated
+     premise set scores only Coh ≈ 0.321 across 47 premises
+     and 10 domains with 12 documented cross-domain tensions.
+     Scoring a pitch absolutely against this noisy baseline
+     tells you little.
+
+  2. The policy-relevant quantity is coherence SUPERIORITY:
+
+           CS(Γ, d) = Coh(Γ) − Coh(Γinc_d)
+
+     where Γinc_d is the incumbent argument set for domain d.
+
+  3. For a domain MIX, CS is a weighted sum with weights
+     summing to 1.
+
+  4. Scoring is conservative: the decision-grade quantity is
+     CS_ci95.lower, not the point estimate.
+
+The mode shows each of these in turn on three authored pitches.
+
+
+---
+
+GROUNDING NOTES
+
+Values to preserve:
+
+    Societal baseline (CE1 §5.2):
+        Coh(society) ≈ 0.321
+        47 premises across 10 domains
+        12 documented cross-domain tensions
+        source: Research/Measuring_Societys_Premises.pdf
+
+    Domain incumbent examples to use as fixtures
+    (CE4 §3.1 — three domains are specified in the spec):
+        market_economics   CSd0 = 0.18,  γd = 2.0,  Sdmin = $50,000,  αd = 0.25
+        governance         CSd0 = 0.20,  γd = 2.2,  Sdmin = $50,000,  αd ≈ 0.227
+        public_health      CSd0 = 0.22,  γd = 2.4,  Sdmin = $50,000,  αd ≈ 0.208
+
+    Conservative enforcement (CE2 §6, CE4 §3.3):
+        CSobserved = CS_ci95.lower
+        decision uses lower bound, not point estimate.
+
+    Coherence superiority CI interval model is named in the
+    CE backend as fund-cs-superiority-v1 (CE2 §6).
+
+Interpretation guide (CE2 §8, illustrative only):
+
+    Coh > 0.75           structurally sound, semantically unified
+    0.50 < Coh <= 0.75   merit, but contains tensions
+    0.25 < Coh <= 0.50   fragmented; contradictions or loose threads
+    Coh <= 0.25          fundamentally incoherent or self-defeating
+
+    Microcopy MUST note these are illustrative; the fund's
+    policy uses a superiority threshold, not an absolute one.
+
+
+---
+
+A) FILE LAYOUT (additions only)
+
+    src/components/panels/hivemind/CoherenceEngine/Experience/DomainRelativeComparator/
+        index.tsx
+        PitchPicker.tsx              — three-pitch selector
+        IncumbentSparkline.tsx       — curated premise set visualisation
+        CSReadout.tsx                — Coh − Coh_inc numeric & formula
+        CIBar.tsx                    — 95% credible interval bar with conservative marker
+
+    src/lib/coherenceEngine/pitches.ts
+    src/lib/coherenceEngine/domainParameters.ts   — (also used by P04)
+    src/lib/coherenceEngine/incumbents.ts         — the per-domain incumbent premise arrays
+
+    src/stores/coherenceEngineExperience.ts
+        — add CompareSlice to the store.
+
+A2. Store addition
+
+    export interface CompareSlice {
+      activePitchId: string;        // default first pitch
+      showIllustrativeBands: boolean; // default false
+      focusDomain: DomainKey | null; // if pitch has a domain mix, which is currently focused
+    }
+
+    export type DomainKey = "market_economics" | "governance" | "public_health";
+
+    Store actions:
+
+      setActivePitch(id: string): void;
+      toggleIllustrativeBands(): void;
+      setFocusDomain(d: DomainKey | null): void;
+
+    setActivePitch announces "Pitch: {label}. Domain: {primary}.
+    CS: {CS.toFixed(3)}" and scrolls the CIBar into view.
+
+
+---
+
+B) FIXTURES
+
+B1. Three pitch fixtures
+
+    src/lib/coherenceEngine/pitches.ts
+
+    Export three authored pitches, one per domain:
+
+       "pitch-coffee"       domain: market_economics
+                            a mild-tempo pitch for a specialty-
+                            coffee roasting cooperative; moderately
+                            coherent; small cross-premise tension.
+
+       "pitch-auditor"      domain: governance
+                            a pitch for an independent local-
+                            government auditor tool; more coherent;
+                            few internal tensions.
+
+       "pitch-walkability"  domain: public_health
+                            a pitch for a neighborhood-walkability
+                            analytics service for city planners;
+                            contains one significant tension.
+
+    Each pitch is:
+
+       export interface PitchFixture {
+         id: string;
+         label: string;                   // <= 40 chars
+         primaryDomain: DomainKey;
+         domainMix: Array<{ domain: DomainKey; weight: number }>; // sums to 1
+         text: string;                    // 200-400 word authored pitch
+         cohAbsolute: number;             // Coh(Γ) ∈ [0,1]
+         cohPerLayer: {
+           s1: number; s2: number; s3: number; s4: number; s5: number;
+         };                               // sum*weights = cohAbsolute (within ε)
+         incumbentPerDomain: Partial<Record<DomainKey, number>>;  // Coh_inc_d
+         csPerDomain: Partial<Record<DomainKey, number>>;          // Coh - Coh_inc_d
+         csPoint: number;                 // weighted CS
+         csCI95: { lower: number; upper: number };
+         csObserved: number;              // = csCI95.lower (per CE4 §3.3)
+         expectedThresholdHint: number;   // for pedagogy; equals CSd0 for primaryDomain (P04 computes real threshold)
+         citation: "CE2 §5, CE4 §3";
+       }
+
+    Value bounds:
+        cohAbsolute ∈ [0.45, 0.75]
+        incumbent Coh_inc_d for each domain must be consistent with
+            CE4 base thresholds: Coh_inc_d is approximated as
+            CSd0 for pedagogy purposes (since the curated incumbents
+            score modestly above or below CSd0). Use:
+              market_economics  Coh_inc = 0.35
+              governance        Coh_inc = 0.37
+              public_health     Coh_inc = 0.40
+        csCI95 width ∈ [0.06, 0.14]    (the CE docs do not bound
+            this explicitly; we use a range consistent with
+            "borderline" vs "confident" pitches).
+
+    Authored pitches MUST avoid marketing vocabulary. Suggested
+    approach: write the pitch as a 3-4 paragraph deliberation
+    transcript in natural English. No "leverage", "synergy",
+    "disrupt", "unlock", "paradigm".
+
+B2. Incumbent premise tables
+
+    src/lib/coherenceEngine/incumbents.ts
+
+    For each of the three domains, export an array of 8-12
+    curated premises with:
+
+       export interface IncumbentPremise {
+         id: string;
+         text: string;
+         polarityAgreement: number;   // [0,1]: how broadly accepted
+         tensionWith: string[];       // other premise ids this contradicts
+       }
+
+    Also export a societal-aggregate row:
+
+       export const SOCIETAL_BASELINE = {
+         coh: 0.321,
+         premiseCount: 47,
+         domainCount: 10,
+         documentedTensions: 12,
+         source: "CE1 §5.2, Research/Measuring_Societys_Premises.pdf",
+       } as const;
+
+    The 47-premise total is a summary statistic; the panel does
+    NOT display 47 premises. It displays 8-12 per domain and
+    annotates "sample of the domain's curated premise set".
+
+B3. Domain parameters
+
+    src/lib/coherenceEngine/domainParameters.ts
+
+       export const DOMAIN_PARAMS = {
+         market_economics: { CSd0: 0.18, gamma: 2.0, alpha: 0.25,   Sdmin: 50000 },
+         governance:       { CSd0: 0.20, gamma: 2.2, alpha: 0.2273, Sdmin: 50000 },
+         public_health:    { CSd0: 0.22, gamma: 2.4, alpha: 0.2083, Sdmin: 50000 },
+       } as const;
+
+    α is 1/(2γ) per CE4 §3.1. Displayed prose (B2 above and
+    in P04 §A2) uses the source's three-decimal rounded form
+    ("≈ 0.227", "≈ 0.208"); the runtime constant stores the
+    four-decimal derived value so CSreq = CSd0 + αd·log_2(S/Sdmin)
+    is computed from the closed form rather than a display
+    rounding. The fixture-integrity check in P06 §B2 asserts
+    |alpha_stored − 1/(2·gamma)| < 1e-6 per domain. The file
+    is shared with P04.
+
+
+---
+
+C) UI
+
+C1. Layout
+
+    WIDE (>= 960):
+        TWO-column:
+          left  50% — PitchPicker (top) above text preview pane
+          right 50% — IncumbentSparkline (top), CSReadout (mid),
+                      CIBar (bottom)
+
+    STANDARD (640-960):
+        Stacked: PitchPicker → text preview → IncumbentSparkline
+                → CSReadout → CIBar
+
+    NARROW (<640):
+        Same stacked layout; text preview collapses to a toggle
+        "show pitch text" to save vertical space.
+
+C2. PitchPicker.tsx
+
+    Three buttons:
+        [COFFEE COOP]   [AUDITOR]   [WALKABILITY]
+    with a label line under each reading the primary domain in
+    small caps. Active button gets a 1px underline in the active
+    color and an aria-current="true". Keys 1/2/3 select.
+
+    Below the picker, a single-line "DOMAIN:" label followed by
+    chips for the domain mix:
+
+        COFFEE COOP
+        DOMAIN: [market_economics 0.70] [governance 0.30]
+
+    Clicking a domain chip sets focusDomain so the rest of the
+    panel reads that particular lane. Hovering shows the exact
+    weight.
+
+    Below the chips, a paragraph-preview of the pitch text,
+    clamped to 4 lines with a "show full pitch" drawer.
+
+C3. IncumbentSparkline.tsx
+
+    A horizontal lane per domain present in the active pitch's
+    mix (so usually 1 or 2 lanes). Each lane:
+
+        market_economics  ▓░░░░░░░░░░░░░░░░░░░░▓░░░░░░░░░  Coh_inc = 0.35
+                           ^ society 0.321      ^ pitch's Coh in this domain
+
+    The lane is a 0.00-to-1.00 horizontal axis with:
+
+        - the societal baseline mark at 0.321 (always shown, a
+          thin vertical line labeled "society")
+        - the domain incumbent at Coh_inc_d (a thicker vertical
+          line labeled "incumbent")
+        - the pitch's per-domain coherence at csPerDomain +
+          incumbent (labeled "this pitch")
+
+    A small toggle "show illustrative bands" (bound to
+    showIllustrativeBands in the store) overlays the CE2 §8
+    bands (green >0.75, amber 0.50-0.75, red 0.25-0.50,
+    charcoal <=0.25) so the user can read the pitch's position
+    on the absolute scale too. The microcopy next to the toggle
+    reads:
+
+        "Illustrative bands. The fund's policy does not use an
+         absolute-coherence threshold; it uses a domain-relative
+         superiority threshold (see GATES tab)."
+
+    The 47 / 10 / 12 societal aggregate is summarized in a
+    small caption under the chart:
+
+        "Society's own curated premise set: Coh ≈ 0.321 across
+         47 premises, 10 domains, 12 documented cross-domain
+         tensions. Source: CE1 §5.2."
+
+C4. CSReadout.tsx
+
+    The formula pill, typeset:
+
+        CS(Γ, d) = Coh(Γ) − Coh(Γinc_d)
+
+    Under the pill, for the active pitch and the focused
+    domain (or the weighted mix when no single domain is
+    focused):
+
+        Coh(Γ)         =  0.xxx
+        Coh(Γinc_d)    =  0.xxx                [link to COSINE mode §3]
+        CS (point)     = +0.xxx
+
+    When the domain is a mix, also render:
+
+        CS (mix)       = Σ w_d · CS_d  =  +0.xxx
+        where
+            market_economics  w = 0.70,   CS_d = +0.xx
+            governance        w = 0.30,   CS_d = +0.xx
+
+    A caption:
+
+        "This is the unweighted difference. The policy compares
+         the lower bound of a 95% interval (see below) against a
+         check-size-aware, portfolio-aware threshold."
+
+    The link "[link to COSINE mode §3]" calls openInMode(
+    "cosine", "stage:difference") so the user can see how the
+    engine tells contradiction from topic overlap.
+
+C5. CIBar.tsx
+
+    A horizontal bar showing the 95% credible interval for CS:
+
+        CS range bar:    [────●─────────○──]
+                             ^ CS_lower  ^ CS_upper
+                         CS point = CS_lower + width/2 (or
+                         wherever the point is)
+        a vertical marker labeled "CS_observed = CS_lower"
+        a caption:
+
+        "The policy uses the LOWER BOUND of this interval, not
+         the point estimate. A pitch at the edge of its own
+         uncertainty fails by design, not by accident.
+         Source: CE2 §6, CE4 §3.3."
+
+    Under the bar, the numeric display:
+
+        CS_observed (lower)  = +0.xxx
+        CS point             = +0.xxx
+        CS upper             = +0.xxx
+        Interval width       = 0.xxx
+        Uncertainty model: fund-cs-superiority-v1
+
+    Pedagogical toggle "show conservative enforcement":
+    when on, the bar visually dims everything ABOVE the lower
+    bound to emphasize that only the lower bound counts.
+
+
+---
+
+D) STATE TRANSITIONS
+
+D1. Announcements
+
+    pitch change       — "Pitch: {label}. Domain: {primaryDomain}. CS observed {CS_observed}."
+    domain focus       — "Focused on domain {focusDomain}."
+    bands toggle       — "Illustrative bands {shown|hidden}."
+
+D2. Keyboard
+
+    1/2/3 select pitch
+    b toggles illustrative bands
+    d cycles focus domain through the mix (skipping domains
+      with weight 0)
+    Enter on focused element activates
+    Esc clears focus domain back to null
+
+
+---
+
+E) CROSS-MODE INTERACTIONS
+
+E1. openInMode("compare", refId)
+
+    Valid refIds:
+        "pitch:<pitch-id>"   — sets activePitch
+        "baseline"           — focuses the IncumbentSparkline and
+                               scrolls societal baseline into view
+
+E2. Links OUT
+
+    CSReadout has the "[link to COSINE mode §3]" that calls
+    openInMode("cosine", "stage:difference").
+
+    CIBar has a "[link to GATES tab]" in the caption that calls
+    openInMode("gates", "gate:coherence"), routing the user to
+    the coherence-gate explanation in P04.
+
+
+---
+
+F) BUNDLE AND PERFORMANCE
+
+F1. Code budget:        Compare mode  <= 9KB gzip
+F2. Data budget:
+    pitches.ts (3 pitches with full fields)     <= 6KB gzip
+    incumbents.ts (3 domains × ~10 premises)    <= 3KB gzip
+    domainParameters.ts                          <= 0.3KB gzip
+    total data <= 9.5KB gzip.
+
+F3. No runtime statistics or regression; everything is
+    precomputed. The CIBar uses a hand-authored lower/upper for
+    each pitch; the panel does NOT compute intervals on the fly.
+
+
+---
+
+G) PROSE LINT NOTES
+
+G1. Banned phrases in authored prose:
+
+    "leverage" (verb), "disrupt" (except in CE3 §9 Reverse-
+    Marxism context, which is not used in this mode), "paradigm",
+    "synergy", "unlock", "unleash", "next-gen", "cutting-edge",
+    "revolutionary".
+
+G2. Required citation format for numerics in prose:
+
+    "{number} [CE{N} §{section}]"   e.g., "Coh ≈ 0.321 [CE1 §5.2]"
+
+G3. The societal baseline line:
+
+    "Society's own curated premise set scores Coh ≈ 0.321 across
+     47 premises, 10 domains, 12 documented cross-domain
+     tensions."
+
+    renders EXACTLY once in IncumbentSparkline. P06's
+    assertCompare() asserts exactly-one-occurrence across all
+    fixture strings.
+
+
+---
+
+H) ACCEPTANCE CHECKLIST FOR P03
+
+  [ ] CompareSlice added to the store; setActivePitch,
+      toggleIllustrativeBands, setFocusDomain all work and
+      announce.
+  [ ] Three pitches mount; the user can switch via 1/2/3.
+  [ ] IncumbentSparkline shows societal baseline (0.321) and
+      per-domain incumbent (0.35/0.37/0.40) as vertical marks on
+      a 0-to-1 axis, with the pitch's per-domain value also
+      marked.
+  [ ] CSReadout displays Coh − Coh_inc and, for mixed-domain
+      pitches, the weighted sum.
+  [ ] CIBar shows [lower, upper] with CS_observed =
+      CS_ci95.lower annotated as load-bearing.
+  [ ] openInMode("cosine", "stage:difference") and
+      openInMode("gates", "gate:coherence") both succeed from
+      links in this mode.
+  [ ] Fixture integrity: cohPerLayer · weights ≈ cohAbsolute
+      within 1e-3; csPerDomain_d + incumbent_d ≈ pitch's Coh
+      (for that domain lane) within 1e-3; CS_observed ==
+      CS_ci95.lower byte-exact.
+  [ ] Bundle: mode code <=9KB gzip, data <=9.5KB gzip.
+
+
+---
+
+END P03.
+Proceed to P04 (Decision Policy Gates) once P03 is approved.

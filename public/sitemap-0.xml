@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-<url><loc>https://personalwebsite-beta-nine.vercel.app/projects</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/purposeless-efficiency</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/hivemind</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/about</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/resume</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/hivemind</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/purposeless-efficiency</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/theseus</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/theseus</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://personalwebsite-beta-nine.vercel.app/changelog</loc><lastmod>2026-04-21T00:12:21.623Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app</loc><lastmod>2026-04-22T02:49:03.254Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/changelog</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/projects</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/theseus</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/about</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/purposeless-efficiency</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/resume</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/hivemind</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/hivemind</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/purposeless-efficiency</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://personalwebsite-beta-nine.vercel.app/projects/theseus</loc><lastmod>2026-04-22T02:49:03.255Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
 </urlset>
