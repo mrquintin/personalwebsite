@@ -737,8 +737,8 @@ H2. Accessibility snapshot (a new file,
 
 H3. Screen-reader smoke test (manual; documented)
 
-    Document in 00_INDEX or in a separate a11y-test
-    README:
+    Document in a separate a11y-test README colocated
+    with the suite's ship-gate scripts:
       "Before ship: open in VoiceOver (macOS). Tab to
        panel 3's spine. Hear: '{title}, button,
        collapsed'. Press Enter. Hear: '{title} pinned.'

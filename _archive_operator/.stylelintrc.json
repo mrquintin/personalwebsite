@@ -1,0 +1,14 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "color-no-hex": [true, { "severity": "warning" }],
+    "color-named": "never",
+    "selector-class-pattern": null,
+    "custom-property-pattern": null,
+    "no-descending-specificity": null,
+    "declaration-block-no-redundant-longhand-properties": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null
+  },
+  "ignoreFiles": ["public/**/*.css", ".next/**/*"]
+}

@@ -2,8 +2,8 @@ P05 — MODE 4, THE REFUSAL PANEL
 =================================
 
 ROLE: You are implementing MODE 4 of the Theseus Deep experience.
-The Refusal Panel is the mode that answers the 00_INDEX's Q4:
-"what happens when a publication candidate fails rigor?" The
+The Refusal Panel is the mode that answers the question: "what
+happens when a publication candidate fails rigor?" The
 answer it must demonstrate, interactively, is refusal — not as
 an error state, not as a 400-variant pass, but as a first-class
 output of the firm's machinery. The mode renders the rigor
@@ -120,16 +120,15 @@ The six-layer names are TH4 §2.3's exact labels:
 
 These names are shown in the SixLayerAggregator sub-panel
 (§D item F). They are NOT conflated with any CE-suite
-vocabulary; cross-reference is governed by the 00_INDEX
-RELATIONSHIP TO PRIOR SUITES block.
+vocabulary; cross-suite isolation is enforced by the
+banned-token list in P07's prose lint.
 
 ---
 
 §A — FILE LAYOUT
 
-Create the following new files under the RefusalPanel subtree
-declared in 00_INDEX §FILE MANIFEST. Rooted at
-src/components/panels/theseus/Experience/RefusalPanel/ :
+Create the following new files under the RefusalPanel subtree.
+Rooted at src/components/panels/theseus/Experience/RefusalPanel/ :
 
     RefusalPanel/
         index.tsx                    — mode root; composes the
@@ -468,8 +467,8 @@ F1 — CLEAN PASS (all nine checks PASS)
   gateVerdictRationale:
     "All nine checks returned PASS. The rigor gate emits a
     PASS verdict with no conditions. Publication proceeds.
-    Consistent with the 00_INDEX Q4 answer: PASS is one of
-    three canonical verdict states, NOT the default state.
+    PASS is one of three canonical verdict states
+    (PASS / REFUSE / UNRESOLVED), NOT the default state.
     The monthly refusal rate would regress toward zero if
     every candidate looked like this one, which is exactly
     the 'evidence that the gate is too weak' condition
@@ -1447,7 +1446,7 @@ inside UnresolvedReadout (F4 only).
       invariant(Array.isArray(arr),
         "PublicationCandidate array must be an array");
       invariant(arr.length === 4,
-        "00_INDEX MODE 4 spec requires exactly 4 " +
+        "MODE 4 spec requires exactly 4 " +
         "PublicationCandidate fixtures (F1 clean, F2 " +
         "conditions, F3 refuse-adversarial, F4 refuse-" +
         "unresolved).");
@@ -1465,7 +1464,7 @@ inside UnresolvedReadout (F4 only).
       invariant(aggregatorVerdicts.filter(
         v => v === "unresolved").length === 1,
         "Exactly one fixture must carry aggregator " +
-        "UNRESOLVED (00_INDEX MODE 4 F4 requirement; P07 " +
+        "UNRESOLVED (MODE 4 F4 requirement; P07 " +
         "UNRESOLVED-fidelity snapshot test).");
       for (const f of arr) assertPublicationCandidate(f);
     }
@@ -1560,7 +1559,8 @@ Efficiency strategic face) vocabulary appears here: no
 Nash-GT, Porter-5F, Christensen-DI, Drucker-MBO, or
 Kahneman-BE references.
 
-The 00_INDEX RELATIONSHIP TO PRIOR SUITES block governs.
+P07's prose lint mechanically enforces these exclusions
+via its banned-token list.
 
 ---
 

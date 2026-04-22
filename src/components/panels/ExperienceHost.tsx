@@ -7,9 +7,9 @@ import ExperienceScaffold, { type ScaffoldHandle } from "./ExperienceScaffold";
 import FixturePicker from "./FixturePicker";
 import { STORAGE_KEY } from "./ExperienceDossierToggle";
 import {
+  EXPERIENCE_REGISTRY,
   type ExperienceContext,
   type ExperienceMode,
-  type ExperienceComponent,
   type ProjectId,
 } from "@/lib/experience-config";
 
@@ -18,18 +18,16 @@ type Props = {
   name: string;
   synopsis: string;
   mode: ExperienceMode;
-  // Lazy loader for the experience component. Optional — until the deep
-  // suite ships, the EXPERIENCE view shows a placeholder and the toggle
-  // defaults to DOSSIER. When `load` is provided, the bundle is gated on
-  // first reach of the experience view.
-  load?: () => Promise<{ default: ExperienceComponent }>;
   dossier: ReactNode;
   prefersDense?: boolean;
 };
 
+// `load` is resolved client-side from the registry to avoid passing a
+// function across the server→client boundary.
 export default function ExperienceHost({
-  projectId, name, synopsis, mode, load, dossier, prefersDense = false,
+  projectId, name, synopsis, mode, dossier, prefersDense = false,
 }: Props) {
+  const load = EXPERIENCE_REGISTRY[projectId]?.load;
   // Default view: EXPERIENCE if a loader exists, otherwise DOSSIER.
   // sessionStorage overrides on subsequent visits within the session.
   const initialView: "experience" | "dossier" = load ? "experience" : "dossier";

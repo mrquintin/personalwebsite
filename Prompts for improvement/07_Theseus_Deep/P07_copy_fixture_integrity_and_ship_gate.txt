@@ -12,8 +12,8 @@ lints the fixtures P02-P06 declared, it verifies that the
 verbatim excerpts in sources.ts are byte-identical to the
 source documents in /outputs/, it confirms the bundle budget
 partition sums to ≤80KB gzip per I01, and it enforces the
-cross-suite isolation rules the 00_INDEX declared (the
-RELATIONSHIP TO PRIOR SUITES block).
+cross-suite isolation rules — no 04/05/06 vocabulary in any
+Theseus fixture string — via its banned-token list.
 
 This prompt mirrors the ship-gate prompts of the 04, 05, and
 06 suites in structure (04/P06, 05/P06, 06/P06). The
@@ -109,9 +109,9 @@ Enforced rules:
       - "knows the answer"
       Every instance in authored prose is a FAIL. The source
       itself uses none of these. Rationale: the honest
-      posture is load-bearing (00_INDEX standing constraint
-      (b)) and sales vocabulary contaminates the mode that
-      most depends on restraint.
+      posture is load-bearing (a suite-level standing
+      constraint) and sales vocabulary contaminates the mode
+      that most depends on restraint.
 
   B2. LLM-presence-implying banned-token list:
       - "chat with Theseus"
@@ -120,16 +120,16 @@ Enforced rules:
         fixture — context-sensitive check)
       - "streaming"
       - "live inference"
-      The 00_INDEX standing constraint (a) governs: no
-      runtime ML inference, and no UI language that implies
-      it. Fixture strings may describe what the PRODUCTION
+      The suite's standing constraint governs: no runtime ML
+      inference, and no UI language that implies it. Fixture
+      strings may describe what the PRODUCTION
       software does (adversarial.py generates challenges);
       they may not describe the EXPERIENCE as doing the
       same thing live.
 
-  B3. Cross-suite vocabulary banned-token list. The 00_INDEX
-      RELATIONSHIP TO PRIOR SUITES block declares the
-      following terms off-limits inside ANY Theseus fixture
+  B3. Cross-suite vocabulary banned-token list. The
+      following terms — drawn from the 04/05/06 suites — are
+      off-limits inside ANY Theseus fixture
       or component string:
         05 (Hivemind strategic face):
           "Nash-GT", "Porter-5F", "Christensen-DI",
@@ -364,9 +364,9 @@ The measurement methodology:
 §E — CROSS-SUITE ISOLATION
 
 scripts/theseus/cross_suite_isolation.ts enforces the
-RELATIONSHIP TO PRIOR SUITES constraints from 00_INDEX. It
-is a companion to the prose lint's B3 check but runs at a
-wider scope:
+Theseus suite's cross-suite isolation constraints. It is a
+companion to the prose lint's B3 check but runs at a wider
+scope:
 
   E1. Imports discipline. No file under
       src/components/panels/theseus/ or src/lib/theseus/
@@ -499,7 +499,7 @@ tests/theseus/nine_checks_structure.test.ts :
 tests/theseus/severity_fixture_distribution.test.ts :
 
     test("severity fixtures: 2 severe + 1 non-severe + 1 " +
-         "partially-severe (00_INDEX MODE 3 spec)", () => {
+         "partially-severe (MODE 3 spec, P04)", () => {
       const severities = require("...severityFixtures");
       const verdicts = severities.ALL.map(
         (f: any) => f.canonicalVerdict
@@ -520,7 +520,7 @@ tests/theseus/orders_deck_distribution.test.ts :
 
     test("orders deck: at least 3 first-order, at least 3 " +
          "second-order, at least 3 third-order, exactly 1 " +
-         "capstone (00_INDEX MODE 1 spec, 10-12 cards " +
+         "capstone (MODE 1 spec from P02, 10-12 cards " +
          "total)", () => {
       const deck = require("...ordersDeck").ALL;
       expect(deck.length).toBeGreaterThanOrEqual(10);
@@ -602,7 +602,8 @@ are focused in the expected order.
 §I — PANEL MOUNTING (FINAL)
 
 The Theseus experience is mounted INSIDE the THS accordion
-panel (00_INDEX PANEL DISPOSITION). P07 confirms:
+panel (no new panel; the suite lands inside the existing
+THS tab). P07 confirms:
 
   I1. src/components/panels/theseus/Panel.tsx exists and
       is rendered by the accordion's open handler for the

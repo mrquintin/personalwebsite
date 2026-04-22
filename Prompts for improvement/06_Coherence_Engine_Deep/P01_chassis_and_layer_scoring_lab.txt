@@ -144,7 +144,9 @@ A3. CoherenceEngineExperience.tsx
     panel at src/components/panels/hivemind/Panel.tsx; the
     CoherenceEngineExperience is one of the two experience faces
     that panel renders (the other being the 05 strategic-operator
-    face). See 00_INDEX for the HVM-internal mount model.
+    face). The HVM panel renders whichever face is active via
+    the hvm.face sessionStorage toggle (STRATEGIC vs TECHNICAL);
+    06 is the TECHNICAL face.
 
 A4. ModeTabBar.tsx — five tabs
 

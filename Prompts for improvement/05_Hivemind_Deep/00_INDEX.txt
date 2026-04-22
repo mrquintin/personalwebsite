@@ -1,0 +1,383 @@
+PROMPT SET 05 — HIVEMIND, DEEP EXPERIENCE
+==========================================
+
+STATUS: supersedes 03_Interactive_Experiences/I02_hivemind_coherence_engine_demo.txt.
+
+        I02 was designed from the earlier "Coherence Engine" PDFs
+        (executive_overview, mathematical_framework, geometry_of_
+        contradiction, quant_preseed_fund, architecture_and_status).
+        That work described a five-layer contradiction-scoring system,
+        a six-gate fund-decision policy, a 42-dimensional contradiction
+        axis, and a quant pre-seed fund application. It is not the same
+        product as the Hivemind described in the three guides that
+        ground this suite. Shared branding (the word "Hivemind") aside,
+        the substrates almost do not overlap.
+
+        If the Coherence Engine is an active, separate workstream that
+        must be reachable from the HVM accordion panel, the cleanest
+        path is to make it a SIXTH mode in the chassis delivered by
+        P01 of this suite — a "CONTRADICTION GEOMETRY" mode that
+        reuses the I02 design work. That path is not developed further
+        in this suite; if it is taken later it should be its own
+        prompt (P07) and should not block the shipping of P01-P06.
+
+        Until told otherwise, this suite assumes the HVM panel is the
+        Nash Lab / Hivemind product described in the three uploaded
+        guides, and that I02 is retired.
+
+
+AUTHORITATIVE SOURCES for this suite:
+  (I)   "The Nash Lab" — the firm behind the product.
+  (II)  "Hivemind (Conceptual)" — protocol, components, calibrations.
+  (III) "Hivemind (Technical)" — backend, RAG, agent engine, deploy.
+
+Hereafter "Guide I", "Guide II", "Guide III". All experience content
+MUST be grounded in these three documents. Paraphrase is acceptable;
+inventing mechanics, components, or parameters the guides do not
+describe is not.
+
+
+----------------------------------------------------------------------
+WHY THIS SUITE EXISTS (the design thesis)
+----------------------------------------------------------------------
+
+The Hivemind accordion panel must teach the user, in three to ten
+minutes of voluntary interaction, the answer to four specific
+questions:
+
+  1. WHAT IS HIVEMIND? An adversarial multi-agent strategic AI,
+     not a single LLM call, not a chatbot, not a consulting-firm-
+     with-AI-bolted-on.
+
+  2. HOW DOES IT DELIBERATE? Theory network proposes -> critiques
+     each other -> revises; Monitor aggregates similar solutions
+     into clusters; Practicality network scores and can veto the
+     whole set; full audit trail is retained.
+
+  3. WHAT CAN THE CLIENT CONTROL? Three integer knobs:
+     sufficiency (how many unique clusters before halt), feasibility
+     (veto threshold), density (per-agent KB token count, which
+     implicitly sets the number of theory agents).
+
+  4. WHY IS THE FIRM BEHIND IT SHAPED THE WAY IT IS? Because it
+     is engineered to neutralize four specific structural failures
+     of the consulting industry, and each team and hiring procedure
+     at The Nash Lab exists to dissolve one of those failures.
+
+These four questions are the teaching goals. The five modes
+below map onto them.
+
+Standing constraints:
+
+  (a) No runtime LLM calls. Every "deliberation" shown inside the
+      experience is a replay from authored fixtures. Live LLM
+      calls would (i) break the 80KB bundle contract, (ii) expose
+      API keys, (iii) make the experience flaky, and (iv) conflate
+      marketing demo with actual product. Replay is honest; live
+      is not, because the client-infrastructure-deployment is a
+      core part of Hivemind's honesty pitch.
+
+  (b) No marketing language. The Nash Lab's public posture is
+      explicit: "rigor, without the ivory tower" and "we disclaim
+      responsibility for conclusions drawn by the client". The
+      experience must not soften that into "try our AI today".
+
+  (c) Client-infrastructure deployment must be legible. The
+      accordion panel itself is web-served, so it cannot literally
+      demonstrate on-prem install. It must, however, make the
+      architectural claim visible — e.g., the ownership of the
+      audit trail, the one-way firm->client updates, and the
+      explicit disclaimer all surface in authored microcopy that
+      can be reviewed.
+
+  (d) Panel must be legible at hostWidthPx down to 360. Same
+      viewport thresholds as I01 and the 04 suite.
+
+
+----------------------------------------------------------------------
+THE FIVE MODES
+----------------------------------------------------------------------
+
+Mapped to the four teaching questions (question 1 is the whole
+panel, so each mode contributes to it):
+
+  MODE 1 — DELIBERATION THEATER             (P01)
+      Answers Q2 primarily, Q3 secondarily. A step-through
+      replay of one full Hivemind run on an authored strategic
+      problem. Theory network generates -> critiques -> revises;
+      Monitor aggregates; Practicality scores; veto-or-pass;
+      audit emitted. Playable, scrubbable, pauseable, keyboard-
+      navigable. The single most important mode in the suite.
+
+  MODE 2 — KNOB BENCH                       (P02)
+      Answers Q3 primarily. The three client-set integers
+      (sufficiency, feasibility, density) are isolated on a
+      simplified fixture so the user can see how each knob
+      changes the shape of the output — round counts, cluster
+      counts, veto frequency — without running a full theatrical
+      replay each time. Precomputed fixture matrix keyed by
+      (suff, feas, dens) tuples.
+
+  MODE 3 — FOUR FAILURES MAP                (P03)
+      Answers Q4 primarily. The consulting industry's four
+      structural failures (hiring, analysis, accountability,
+      theatrics) paired with the four structural responses
+      (blind-exam hiring, peer-reviewed KB + adversarial theory
+      network, client-infra deployment + audit trail, direct
+      output without slide-deck theater). Each failure expands
+      into specifics drawn from Guide I.
+
+  MODE 4 — KNOWLEDGE PIPELINE               (P04)
+      Answers Q1 secondarily, Q2 secondarily, and exposes the
+      substrate of both. A stepped animated pipeline showing
+      how a peer-reviewed document becomes a retrievable slice
+      becomes a theory agent: upload -> LLM optimize -> chunk
+      -> embed (MiniLM, 384-dim) -> upsert (Qdrant, cosine)
+      -> retrieve (top K, filtered by document_type). The
+      pipeline is grounded in Guide III Section 2.
+
+  MODE 5 — AUDIT ARTIFACT                   (P05)
+      Answers Q1 structurally (the audit trail is the key
+      fiduciary artifact). A scrubbable timeline of a complete
+      deliberation's transcript: every utterance, critique,
+      revision, score. Export button shows the file format and
+      its ownership (client, not firm).
+
+P06 delivers copy rules, fixture integrity, unpublished-work
+posture, a11y budgets, and the ship-gate verification protocol,
+mirroring 04/P06.
+
+
+----------------------------------------------------------------------
+INHERITED CONVENTIONS (from 03_Interactive_Experiences/I01)
+----------------------------------------------------------------------
+
+Every prompt in this suite assumes the following are in place from
+I01_integration_and_accordion_wiring.txt:
+
+  ExperienceHost, ExperienceScaffold, mode/hostWidthPx/reducedMotion/
+  announce. Viewport thresholds <640/640-960/960-1280/>=1280.
+  Keyboard: FixturePicker via Shift+Cmd+E in dev. Motion: framer-
+  motion, reducedMotion-aware, opacity-only fallbacks. Bundle
+  budget: <=80KB gzipped per panel experience.
+
+The 05 suite is siblings with the 04 suite in structure but has
+NO shared state. Each panel's experience is its own sandbox per
+I01's projectId convention.
+
+
+----------------------------------------------------------------------
+SHARED STATE SHAPE (used across P01-P05)
+----------------------------------------------------------------------
+
+A single zustand store, src/stores/hivemindExperience.ts:
+
+    type Mode = "theater" | "knobs" | "failures" | "pipeline" | "audit";
+
+    interface HivemindExperienceState {
+      mode: Mode;
+      dossierOpen: boolean;
+      theater:   /* see P01 */;
+      knobs:     /* see P02 */;
+      failures:  /* see P03 */;
+      pipeline:  /* see P04 */;
+      audit:     /* see P05 */;
+      setMode(m: Mode): void;
+    }
+
+    // Cross-mode routing, same pattern as 04:
+    openInMode(target: Mode, refId: string): void;
+
+Each mode slice is defined authoritatively in its own prompt. If an
+implementer finds drift between this index and an owning prompt, the
+owning prompt wins.
+
+
+----------------------------------------------------------------------
+FILE MANIFEST
+----------------------------------------------------------------------
+
+src/components/projects/hivemind/Experience/
+    HivemindExperience.tsx                     — top-level
+    ModeTabBar.tsx                              — 5 tabs
+    DeliberationTheater/                        — P01
+        TheaterStage.tsx
+        AgentStrip.tsx
+        TranscriptLine.tsx
+        MonitorPanel.tsx
+        PracticalityPanel.tsx
+        PlaybackControls.tsx
+    KnobBench/                                  — P02
+        KnobPanel.tsx
+        OutcomeMatrix.tsx
+        DeltaReadout.tsx
+    FourFailuresMap/                            — P03
+        FailureCard.tsx
+        ResponsePanel.tsx
+        PrinciplesDrawer.tsx
+    KnowledgePipeline/                          — P04
+        PipelineStage.tsx
+        DocumentCassette.tsx
+        EmbeddingCloud.tsx
+    AuditArtifact/                              — P05
+        AuditTimeline.tsx
+        EventCard.tsx
+        ExportPreview.tsx
+
+src/lib/hivemind/
+    theaterScript.ts                            — the canned run
+    knobMatrix.ts                               — precomputed outcomes
+    failures.ts                                 — 4 failures + 4 responses
+    beliefs.ts                                  — 7 Core Beliefs from Guide I
+    pipeline.ts                                 — stage data, sample doc
+    auditScript.ts                              — full transcript fixture
+    agents.ts                                   — theory + practicality agent cards
+    typeGuards.ts                               — runtime integrity
+
+src/stores/hivemindExperience.ts
+
+Plus one modification:
+src/components/projects/hivemind/Panel.tsx
+    - add ExperienceHost + EXPERIENCE/DOSSIER toggle per I01
+    - preserve existing dossier content
+
+
+----------------------------------------------------------------------
+EXECUTION ORDER
+----------------------------------------------------------------------
+
+Strictly serial:
+  1. P01 — chassis + Deliberation Theater (the load-bearing mode).
+  2. P02 — Knob Bench.
+  3. P03 — Four Failures Map.
+  4. P04 — Knowledge Pipeline.
+  5. P05 — Audit Artifact.
+  6. P06 — copy + fixture integrity + verification + ship-gate.
+
+P01 alone ships a usable panel: a user who sees only the Theater has
+already understood the core of what Hivemind is. P02-P05 deepen the
+teaching; none blocks P01.
+
+
+----------------------------------------------------------------------
+RELATIONSHIP TO I02
+----------------------------------------------------------------------
+
+I02 was built around the Coherence Engine's decision-policy
+vocabulary: five scoring layers, six gates, 42-dim contradiction
+axis, portfolio-state selector. None of that vocabulary appears in
+the three Hivemind guides. The correct reading is:
+
+  - Hivemind (per the three guides) is an adversarial multi-agent
+    strategic AI. Its components are the theory network, the Monitor,
+    the practicality network, the sufficiency/feasibility knobs,
+    and the audit trail.
+
+  - The Coherence Engine, IF it is still an active workstream, is
+    something else — either (a) an internal decision-policy design
+    for an investment fund at The Nash Lab, not part of the Hivemind
+    product, or (b) a superseded earlier framing of a subset of the
+    Hivemind substrate that has been replaced by the product spec
+    in the three guides.
+
+    Until Michael tells me which, the suite does NOT merge the two.
+    I02 was retired 2026-04-21 and its file is now a tombstone
+    (see 03_Interactive_Experiences/I02_hivemind_coherence_engine_demo.txt);
+    the retired spec content is available in git history prior to
+    the tombstone commit if it needs to be recovered. The Hivemind
+    panel experience is the one in this suite, and the technical
+    face (Coherence Engine) ships from the 06 suite under the same
+    HVM panel per I01's projectId convention.
+
+If the Coherence Engine remains load-bearing and needs its own
+surface, three paths are available:
+
+    Option A. A separate workstream outside HVM — a new project
+    panel, or a fund-specific microsite, with its own experience
+    suite modeled after the 04/05 pattern.
+
+    Option B. A sixth mode in this suite's chassis —
+    "CONTRADICTION GEOMETRY" — that reuses I02 design work.
+    Added as P07 if desired.
+
+    Option C. A mode INSIDE the Four Failures Map or the Knowledge
+    Pipeline, framed as one specific theory-agent package
+    ("coherence-engine fund-decision agent") available in the
+    peer-reviewed KB. Most conservative integration.
+
+
+----------------------------------------------------------------------
+WHAT THIS SUITE IS NOT
+----------------------------------------------------------------------
+
+  - Not a sales demo. No "start free trial", no "request a demo",
+    no email capture. The words "demo" and "trial" are both
+    banned in authored copy.
+
+  - Not a chatbot playground. No text input that goes to a live
+    LLM. All input is control-surface interaction with precomputed
+    fixtures.
+
+  - Not a consulting-firm website. The HVM panel represents the
+    PRODUCT, with the firm (The Nash Lab) presented as context
+    inside the panel — specifically inside the Four Failures Map
+    mode and the CORE BELIEFS drawer it opens.
+
+  - Not an architecture brochure. The Knowledge Pipeline mode
+    teaches the RAG substrate, but it is faithful to Guide III's
+    concrete choices (MiniLM, Qdrant, cosine, 384-dim, 800-token
+    chunks with 80-token overlap) and does not pretend these are
+    "vendor-agnostic design decisions". They are the choices.
+
+  - Not an LLM. All copy is authored, lives in fixtures, and
+    passes the prose lint in P06.
+
+
+----------------------------------------------------------------------
+ACCEPTANCE FOR THE FULL SUITE
+----------------------------------------------------------------------
+
+The HVM experience ships when:
+
+  [ ] All five modes mount inside the HVM accordion at host widths
+      >=360px without clipping or horizontal scroll.
+  [ ] EXPERIENCE <-> DOSSIER toggle from I01 preserves existing
+      dossier content unchanged.
+  [ ] No runtime LLM or network calls. No secrets in bundle.
+  [ ] Bundle size: total HVM experience <=80KB gzip.
+  [ ] Authored prose passes the P06 prose lint.
+  [ ] Keyboard: every interactive element reachable; ESC closes
+      drawers; playback controls have keyboard equivalents.
+  [ ] reducedMotion: no translations, scales, or parallax;
+      opacity-only transitions.
+  [ ] aria-live announcements on mode change, playback events,
+      knob changes, failure expand, pipeline stage, audit event.
+  [ ] The disclaimer "The Nash Lab disclaims responsibility for
+      conclusions drawn by the client" appears verbatim as the
+      first sentence of a three-sentence disclaimer block (the
+      second and third sentences being "The audit trail is owned
+      by the client. The firm does not read it.", taken from
+      Guide II §8). The full three-sentence block renders in
+      exactly ONE user-reachable surface in the suite — the P05
+      Audit Artifact Export Preview. The first sentence is the
+      integrity-check anchor; P06's assertAudit searches for it
+      by itself (not the full three-sentence block) and must
+      find exactly one match across all fixture strings.
+
+
+NARROW BRANCH (mobile, <640 px)
+----------------------------------------------------------------------
+The narrow-viewport rendering of the HVM strategic face (this suite)
+is specified in 09_Mobile_Deep/M06_hvm_narrow.txt §B (sections B1–B5
+cover Deliberation Theater, Knob Bench, Four Failures Map, Knowledge
+Pipeline, Audit Artifact). Narrow components live under
+src/content/projects/hivemind/narrow/. Face toggle (STRATEGIC |
+TECHNICAL) is preserved as a segmented control at the top of the
+narrow panel body per M06 §A. State persists in
+sessionStorage["hvm.face"]. The HVM experience bundle budget
+(≤80 KB gzip) from I01 is retained — narrow components reuse
+fixtures and primitives, they do not duplicate.
+
+----------------------------------------------------------------------
+END INDEX. Proceed to P01.
+----------------------------------------------------------------------

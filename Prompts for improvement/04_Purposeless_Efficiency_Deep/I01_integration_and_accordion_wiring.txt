@@ -7,8 +7,8 @@ STATUS (as of 2026-04-21)
 I01 remains the load-bearing specification for the accordion's
 experience-hosting contract. The three experience prompts this prompt
 originally hosted (I02 Hivemind, I03 Purposeless Efficiency, I04
-Theseus) have been retired — each is now a tombstone in this folder,
-superseded by per-project deep suites that ship in their place:
+Theseus) have been retired, superseded by per-project deep suites
+that ship in their place:
 
   I02 → 05_Hivemind_Deep/ (strategic face) + 06_Coherence_Engine_Deep/
                           (technical face). Both share the HVM panel
@@ -21,10 +21,10 @@ I01's primitives (ExperienceHost, ExperienceScaffold, the
 mode/hostWidthPx/reducedMotion/announce/prefersDense contract, the
 lazy-load and motion and a11y guardrails, the EXPERIENCE ⇄ DOSSIER
 toggle, the FixturePicker) are all STILL IN FORCE. Every deep suite
-declares I01 as a prerequisite and consumes its exports by name; see
-03_Interactive_Experiences/00_INDEX.txt "WHO DEPENDS ON I01" for the
-current reference list. Do NOT edit I01 primitives without the
-downstream consequence analysis documented there.
+(04, 05, 06, 07, and the narrow branch in 09) declares I01 as a
+prerequisite and consumes its exports by name. Do NOT edit I01
+primitives without analyzing downstream consequences across those
+five suites.
 
 Everything below this STATUS block is the original I01 text, including
 references to I02/I03/I04 as the then-in-development experiences. The

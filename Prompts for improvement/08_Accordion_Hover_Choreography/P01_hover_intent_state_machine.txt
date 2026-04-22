@@ -174,7 +174,8 @@ B4. Transitions
     (warm, pinned=false, activeIndex=i)
       onPanelEnter(j) if j != i  →  activeIndex=j;
                           (no dwell; warm-swap is
-                          instant, per 00_INDEX §D2).
+                          instant — the warm-state
+                          invariant defined in this §).
       onPanelLeave(i) →  nothing (still warm; other
                           panel may fire enter, or
                           accordion may fire leave).
@@ -191,7 +192,8 @@ B4. Transitions
 
     (warm, pinned=true, activeIndex=i (= pinnedIndex))
       onPanelEnter(j)  →  no-op (hover disabled while
-                          pinned, per 00_INDEX §D4).
+                          pinned — pin-semantics
+                          invariant defined in this §).
       onPanelLeave(i)  →  no-op.
       onAccordionLeave()→ no-op (pinned stays open even
                           when cursor fully leaves).
@@ -545,8 +547,9 @@ E7. Preserve all useHotkey wiring (lines 78-87 in the
       - ArrowRight/ArrowLeft: focusIndex ±1.
       - Escape: collapseToNeutral — now maps to
         handlers.onUnpin() THEN, if not pinned, leaves
-        the FSM to the leaveTimer. Actually: per 00_INDEX
-        §G, ESC unpins AND collapses to neutral. The
+        the FSM to the leaveTimer. Actually: the suite's
+        keyboard contract (see P03 §keyboard) requires
+        ESC to unpin AND collapse to neutral. The
         cleanest wiring:
           Escape → handlers.onUnpin();
                    handlers.onAccordionLeave();

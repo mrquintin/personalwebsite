@@ -37,9 +37,9 @@ A1. The two modes of failure this suite must avoid.
         Guide I §2 Failure IV is specifically about this register;
         using it in the panel that diagnoses it is self-defeating.
 
-    SALES TONE (the target of the INDEX posture)
+    SALES TONE (forbidden by the suite's honesty posture)
         "Try our AI", "get started", "demo", "trial", "request a
-         preview", "join waitlist". The INDEX bans these; they
+         preview", "join waitlist". These tokens are banned; they
         conflict with the disclaim-responsibility honesty posture
         that the panel must surface.
 
@@ -411,8 +411,9 @@ network functions were never called. Any call fails the test.
 C3. Bundle-size secondary assertion.
 
 MiniLM's quantized weights are several megabytes. If bundle
-size exceeds 200KB gzip for the HVM panel (the 80KB contract
-from the INDEX plus a 120KB slack), the bundle-budget test
+size exceeds 200KB gzip for the HVM panel (the 80KB per-
+experience contract inherited from I01 plus a 120KB slack),
+the bundle-budget test
 additionally prints a warning suggesting the possibility that
 a model file slipped in.
 
@@ -654,7 +655,7 @@ surfaces. The ship gate is:
       or drift-warned only.
   [ ] Manual verification (D2) passed by at least one reviewer
       (Michael).
-  [ ] The INDEX's full-suite acceptance clauses all green.
+  [ ] All per-prompt acceptance clauses (P01-P05) green.
   [ ] The rollback plan (D3) has been tested at least once on
       a staging deploy.
 
@@ -697,10 +698,9 @@ F5. When the theater or audit fixture is regenerated (the audit
     integrity check must be kept in lockstep; drift is the most
     likely source of post-ship regressions.
 
-F6. If a new mode is added later (e.g., the P07 Contradiction
-    Geometry mode contemplated in the INDEX), P06 MUST be
-    expanded in the same pass. An unlinted mode is worse than
-    no mode.
+F6. If a new mode is added later (e.g., a future Contradiction
+    Geometry mode), P06 MUST be expanded in the same pass. An
+    unlinted mode is worse than no mode.
 
 F7. The prose lint is the only place where the three Guides'
     exact language is enforced. Skipping it — even for a "just

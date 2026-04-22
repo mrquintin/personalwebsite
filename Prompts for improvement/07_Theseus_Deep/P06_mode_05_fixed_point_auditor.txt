@@ -4,7 +4,7 @@ P06 — MODE 5, FIXED-POINT AUDITOR
 ROLE: You are implementing MODE 5 — the capstone — of the
 Theseus Deep experience. The Fixed-Point Auditor is the one
 mode the whole suite is arranged to build toward. It answers
-the 00_INDEX's Q5: "does the meta-method require a meta-meta-
+the question: "does the meta-method require a meta-meta-
 method, ad infinitum?" The answer the source gives — the
 deepest epistemic claim the firm makes — is no: the meta-
 method is self-applying, and the regress terminates at a
@@ -152,8 +152,9 @@ TH2_SEC_6_NFL_GUARANTEES_OPPOSITE block, as a separate card
 in the Candid Frontier. The rendered text for c1
 (TH2_SEC_6_NOT_CERTAINTY) and for c3
 (TH2_SEC_6_NFL_GUARANTEES_OPPOSITE) therefore contain
-overlapping prose. THIS IS INTENTIONAL: the 00_INDEX's
-assertCandidFrontier searches for each first-sentence anchor
+overlapping prose. THIS IS INTENTIONAL: the
+assertCandidFrontier check (defined in P07's prose lint)
+searches for each first-sentence anchor
 exactly once across all rendered fixture strings, and the
 rendered text for c1 and c3 each begins with a distinct
 first-sentence anchor. Only the first sentence of each is
@@ -568,7 +569,7 @@ certainty." / "The meta-method is not neutrality." /
 applied to a new problem will succeed." — MUST appear VERBATIM
 IN EXACTLY ONE USER-REACHABLE SURFACE in the entire Theseus
 suite: the Candid Frontier sidebar rendered by this mode.
-00_INDEX §ACCEPTANCE governs. P07's assertCandidFrontier
+P07's assertCandidFrontier is the mechanical enforcer: it
 runs a single-match search across the concatenated rendered
 string of every fixture file and confirms each anchor has
 exactly one hit.
@@ -937,7 +938,7 @@ Claim tile.
       invariant(Array.isArray(arr), "must be array");
       invariant(arr.length === 3,
         "Candid Frontier requires exactly 3 anchors " +
-        "(00_INDEX ACCEPTANCE).");
+        "(load-bearing count; P07 prose-lint enforces).");
       const anchors = (arr as any[]).map(
         a => a.firstSentenceAnchor
       );
@@ -1015,8 +1016,8 @@ The Fixed-Point Auditor mode ships when:
       /outputs/ths02_meta_method.txt under the P07
       verbatim-drift check.
   [ ] No 05 / 06 suite vocabulary appears in any fixture
-      string. (Cross-suite isolation; governed by 00_INDEX
-      RELATIONSHIP TO PRIOR SUITES.)
+      string. (Cross-suite isolation; enforced by P07's
+      prose-lint banned-token list.)
   [ ] No runtime ML inference; all content is authored.
 
 ---

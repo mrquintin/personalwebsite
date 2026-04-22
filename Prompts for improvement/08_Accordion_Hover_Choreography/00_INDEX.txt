@@ -1,0 +1,613 @@
+PROMPT SET 08 — ACCORDION HOVER CHOREOGRAPHY
+================================================
+
+STATUS: operates on the SHELL layer — src/components/shell/
+        Accordion.tsx, Panel.tsx, PanelSpine.tsx — and on
+        src/app/globals.css / src/styles/tokens.css. Does NOT
+        modify any project panel's content code under
+        src/components/panels/. Does NOT modify src/lib/
+        panels.ts or the panel registry. Does NOT introduce a
+        new panel; the five (+ optional log-panel) PanelDefs
+        are unchanged.
+
+        This suite is the Round-2 revision of the accordion
+        opening/closing choreography. Round 1 lives in
+        Prompts for improvement/02_Revisions_Round_1 as R01
+        (smoothness) and R02 (label fade in place). R01 fixed
+        the CLICK-triggered choreography; R02 removed the
+        shared-layout label morph. Neither Round-1 prompt
+        specified HOVER semantics to a useful depth. The
+        present suite does.
+
+        The current live code (committed as of this suite's
+        authoring) already has an onMouseEnter→expand wiring
+        in Accordion.tsx (lines 112-117 of the current file):
+        hover over any panel instantly fires expand(). This
+        produces the jerky behavior the user is now asking to
+        fix. The key deficiencies are enumerated in §C below
+        and each is owned by an explicit prompt in the suite.
+
+
+---
+
+A) AUTHORITATIVE PRIOR ART — DO NOT REGRESS
+
+   Two prior revisions set constraints this suite MUST preserve.
+   Any change that regresses one of their acceptance criteria
+   is a FAIL of the P04 ship gate.
+
+   (R01 — accordion_transition_smoothness)
+     - Panel flex-basis transitions over --d-accordion (420ms)
+       with --ease-accordion (cubic-bezier(0.22, 1, 0.36, 1)).
+       These two tokens stay.
+     - Content inside the expanding panel does not reflow
+       after becoming visible. The body is always laid out
+       against the final target width and fades in from
+       opacity 0 with a 6px translateY.
+     - Collapsing body fades out over 180ms BEFORE the width
+       change completes, so there is no mixed-content flash.
+     - prefers-reduced-motion collapses durations to 0.
+     - Chrome DevTools Performance shows >=60fps on a mid-tier
+       laptop during the expansion animation.
+
+   (R02 — remove_label_morph_on_expand)
+     - No framer-motion layoutId morph between the spine
+       label and any full-page header. The label is a
+       property of the spine and only the spine.
+     - The spine label's opacity goes 1→0 over 180ms linear
+       (or 180ms ease-out) as the panel expands; it does not
+       translate/rotate/scale during the fade.
+     - Semantic focus ownership (aria-expanded, focus ring,
+       keyboard handlers) transitions instantly to the panel
+       body on activation; the fade is visual only.
+
+   Both revisions assume a deterministic SINGLE transition
+   trigger (click). They are silent on what happens when:
+     * the cursor passes over five tabs in 300ms;
+     * the cursor enters tab B while tab A is still mid-
+       expansion;
+     * the cursor leaves the accordion region entirely while
+       a panel is expanded;
+     * the cursor re-enters the SAME tab whose content is
+       mid-collapse;
+     * the user clicks a tab to "pin" it open and then
+       hovers another tab.
+
+   These cases are the 08-suite's territory.
+
+
+---
+
+B) USER'S REQUIREMENT (verbatim, for traceability)
+
+   "Design a set of prompts (in their own folder) for
+    smoothing out the opening and closing of the accordion
+    tabs. I want, when hovering over a given accordion tab,
+    for its label to disappear and the tab to expand to
+    reveal the respective interactive experience. I want
+    this expansion to be smooth and well-built, so that the
+    website is not jerky and thus unmaneouvehable. Make sure
+    to understand exactly what I'm talking about here and
+    account in your prompts for potential issues in the UI —
+    for example, if the user hovers over a tab and hovers
+    over an adjacent one as the first tab is expanding, the
+    UI should adapt to account for the smooth closing of the
+    non-hovered tab and the smooth opening of the hovered
+    tab."
+
+   Parsing (each clause produces at least one invariant):
+
+   B1. "hovering over a given accordion tab, for its label
+       to disappear and the tab to expand"
+       → hover-triggered expansion is a first-class input
+         path (parallel to click and keyboard). The label
+         fade on expansion (R02) is preserved under hover as
+         under click.
+
+   B2. "reveal the respective interactive experience"
+       → the panel body is the respective
+         interactive-experience chassis. For panels that
+         have a suite-internal experience (04, 05, 06, 07 —
+         already landed), this is the ExperienceHost. For
+         panels that do not (01/ABT, 05/CV as of this
+         writing), it is whatever the panel's content slot
+         provides. This suite is agnostic to the body's
+         contents.
+
+   B3. "smooth and well-built, so that the website is not
+        jerky and thus unmaneouvehable"
+       → no animation may re-start from its keyframe origin
+         when its target changes mid-animation. All open/close
+         transitions are interruptible and retarget from
+         current computed value. No frame drops below 60fps
+         on the rapid-swap test path (P04 §C).
+
+   B4. "if the user hovers over a tab and hovers over an
+        adjacent one as the first tab is expanding, the UI
+        should adapt to account for the smooth closing of
+        the non-hovered tab and the smooth opening of the
+        hovered tab"
+       → the accordion has exactly one "active hover target"
+         at any time. When it changes, the previous target's
+         panel animates back to spine width FROM ITS CURRENT
+         flex-basis, and the new target's panel animates to
+         full width FROM ITS CURRENT flex-basis. The two
+         animations run concurrently on the same 420ms
+         timeline with the same easing curve. No "close
+         first, then open" sequencing.
+
+
+---
+
+C) CURRENT-CODE DEFICIENCIES (the problem inventory)
+
+   Read these in order; each one is addressed by the named
+   prompt.
+
+   C1. No hover-intent debounce. The handler in
+       Accordion.tsx (line 116, `expand(p.index)`) fires
+       synchronously on mouseenter. Traversing the accordion
+       from left to right in ~300ms therefore triggers five
+       expand() state-mutations in rapid succession, each
+       kicking off a 420ms width animation. The browser tries
+       to honor all five; the user sees a cascade of partial
+       expansions. THIS IS THE CORE "JERKY" FEELING.
+       Owner: P01.
+
+   C2. No hover-leave handling. Accordion.tsx wires
+       `onMouseEnter` only. Once expanded via hover, a panel
+       stays expanded indefinitely — nothing collapses on
+       cursor-out. The only ways to return to neutral are
+       ESC, clicking the expanded panel, or navigating away.
+       The user's request implies hover→expand and
+       leave→collapse as a paired gesture.
+       Owner: P01.
+
+   C3. Mid-animation swap is a restart. When state.index
+       flips from N to M while panel N's animation is still
+       running, the CSS transition on `.panel` retargets
+       correctly for flex-basis (CSS transitions are
+       naturally interruptible). BUT the panel-body
+       animations in globals.css (lines 124-131) are CSS
+       keyframe animations with `forwards` fill mode. When
+       state flips, a panel that was mid-way through
+       `operator-panel-out` and is now re-flagged as expanded
+       restarts `operator-panel-in` FROM its keyframe origin
+       (opacity 0, translateY 6px), producing a visible
+       jump back to "invisible" before re-fading in. This is
+       a concrete, reproducible flicker path.
+       Owner: P02.
+
+   C4. Cold-open vs warm-swap ambiguity. UX principle: when
+       the accordion is cold (mode === "neutral"), a dwell
+       period (80-150ms) should elapse before the first
+       expansion fires, so a cursor traversing the accordion
+       bar to reach an adjacent UI element does not
+       accidentally open a panel. When the accordion is warm
+       (mode === "expanded"), any hover over a different
+       panel should produce an instant swap — the user is
+       already browsing, and a dwell in this state reads as
+       laggy. Neither of these is in the current code.
+       Owner: P01.
+
+   C5. Focus-within semantics. If a keyboard user tabs into
+       an interactive control inside an expanded panel and
+       the cursor happens to sit outside that panel, a naive
+       "close on cursor-leave" policy would collapse the
+       panel and destroy keyboard focus. The close predicate
+       must respect focus-within: a panel that has focus
+       inside remains expanded regardless of hover.
+       Owner: P01 (predicate) + P03 (a11y wiring).
+
+   C6. Click-pin semantics. The current code treats click as
+       "toggle expanded↔neutral". If we add hover-open,
+       click must gain a distinct meaning: pin the current
+       panel so that hover-leave does NOT collapse it.
+       Without pin, keyboard-activated panels would close
+       the moment the user's cursor drifted away. The click
+       handler at Accordion.tsx:110 is therefore
+       semantically overloaded and must be repartitioned.
+       Owner: P03.
+
+   C7. Touch / no-hover environments. Accordion.tsx already
+       gates hover on
+       `(hover: hover) and (pointer: fine) and (min-width:
+       768px)`. Preserve this. Touch devices, Windows
+       tablets in touch mode, and the mobile <768px
+       breakpoint keep click/tap-only activation.
+       Owner: P03 (guardrails).
+
+   C8. Label fade under rapid swap. The R02 fade depends on
+       .panel[data-state="expanded"] toggling the spine-
+       content opacity. Under rapid swap, the data-state
+       attribute flips as fast as React commits. The CSS
+       `transition: opacity 180ms linear` retargets smoothly
+       (opacity transitions are interruptible), but the
+       mid-fade starting point must not reset. Validated by
+       test P04 §C2; owner P02.
+
+   C9. will-change management. Panel.tsx adds `is-animating`
+       for 540ms on every state change. Under rapid swap
+       this timer thrashes: the class is added, the timer
+       reset, added again, etc. Under a 5-tab traversal the
+       will-change is held on all five panels for up to
+       540ms after the last swap settles. This is a
+       long-term compositor memory cost. Need to scope
+       will-change to the two panels actually animating
+       (the closing one and the opening one) rather than
+       every panel that saw a state change.
+       Owner: P02.
+
+   C10. Hash sync thrash. Accordion.tsx:27 calls setHash on
+        every expand(). Under a 5-tab rapid swap, five
+        history.replaceState calls land in the same frame.
+        Browsers tolerate this but it is wasteful. Debounce
+        setHash to fire only on the FINAL settled target
+        (e.g., 80ms after the last expand call).
+        Owner: P01 (the debounce happens at the
+        state-setter layer).
+
+   C11. BroadcastChannel thrash. Same reasoning as C10 for
+        the cross-tab channel. One message per settled
+        target, not one per mid-swap state.
+        Owner: P01.
+
+
+---
+
+D) SCOPE DECISIONS (design choices made, with reasoning)
+
+   The user's request leaves a few design choices open.
+   Each was made explicitly; the reasoning is recorded here
+   so the user can push back on the choice rather than
+   debug the consequence.
+
+   D1. Cold-open dwell = 120ms.
+       Range tested in UX research (hover-intent libraries
+       have used 50-200ms): too short (<80ms) and passive
+       cursor traversal trips the dwell; too long (>180ms)
+       and the interaction feels reluctant. 120ms is near
+       the median of the literature and is the value used
+       by jQuery hoverIntent's default. Override token
+       --d-hover-intent-cold: 120ms in tokens.css; override
+       via URL ?motion=slow (per R01 stretch goal) doubles
+       it to 240ms.
+
+   D2. Warm-swap dwell = 0ms.
+       Once any panel is expanded, the user has committed
+       to browsing. Dwell in this state is wasted latency.
+       Instant swap.
+
+   D3. Leave-tolerance = 200ms.
+       Time after cursor exits the accordion region before
+       the expanded panel collapses to neutral. 200ms
+       covers a brief cursor dip (to read a tooltip that
+       rendered outside the panel, to click a system menu,
+       to reach for keyboard) without closing the panel.
+       Longer (500ms+) reads as sticky and prevents the
+       visitor from discovering that hovering away closes.
+
+   D4. Hover-open is DISABLED for pinned panels.
+       If panel N is pinned (via click or keyboard
+       activation), hovering over panel M has NO effect.
+       Rationale: the pin is an explicit user intent to
+       dwell on N; silently replacing that intent with a
+       hover somewhere else violates least surprise. To
+       switch, the user must click M (which repins to M)
+       or press ESC (which unpins N), or press Enter on
+       M's spine button (which repins).
+
+   D5. One "active" panel at a time.
+       The store still carries `{ mode: "neutral" } |
+       { mode: "expanded"; index: number }`. The hover
+       logic writes to the same state via expand() /
+       collapseToNeutral(). Pin is a new boolean flag
+       colocated with the state, not a separate union.
+
+   D6. The "label disappears" language maps to the existing
+       R02 fade.
+       The user's phrasing — "its label to disappear and
+       the tab to expand" — is exactly what R02 already
+       does on click. This suite does not re-open R02.
+       What this suite guarantees is that the fade works
+       correctly under HOVER (including rapid swap).
+
+   D7. Hover-intent applies only in the horizontal
+       accordion layout (>=768px, pointer:fine, hover:hover).
+       Below 768px the accordion is a vertical stack
+       (tokens.css media query, globals.css:160-187) and
+       hover is nonsensical. On touch-only tablets and
+       pointer:coarse devices the hover media query is
+       already false; tap-to-activate remains the sole
+       interaction.
+
+   D8. The neutral mode is preserved and reachable.
+       Leave-tolerance collapsing returns to `{ mode:
+       "neutral" }`, which is what R01/R02 already design
+       for. The neutral layout (five equal flex:1 1 0
+       panels with all labels visible) is a valid resting
+       state and must remain so.
+
+
+---
+
+E) FILE MANIFEST (what this suite writes; across all prompts)
+
+   NEW files:
+
+     src/lib/accordion/
+         hoverIntent.ts            — hover-intent state
+                                     machine + hook; pure
+                                     TypeScript; framework-
+                                     agnostic timer logic.
+                                     Owner: P01.
+         types.ts                  — ActiveTarget, PinState,
+                                     HoverIntentPhase types.
+                                     Owner: P01.
+
+     scripts/accordion/
+         hover_regression.ts       — Playwright script
+                                     running the rapid-swap
+                                     scenarios. Invoked by
+                                     CI and the P04 ship
+                                     gate.
+                                     Owner: P04.
+         ship_gate.ts              — orchestrator for
+                                     accordion-specific
+                                     tests.
+                                     Owner: P04.
+
+     tests/accordion/
+         hover_intent.test.tsx     — jsdom unit tests for
+                                     the hoverIntent hook.
+                                     Owner: P01.
+         rapid_swap.spec.ts        — Playwright: 5-tab
+                                     traversal, mid-
+                                     animation swap,
+                                     leave-tolerance,
+                                     pin/unpin.
+                                     Owner: P04.
+         r01_r02_invariants.test.ts — regression: R01's
+                                     420ms flex-basis
+                                     transition preserved;
+                                     R02's 180ms label fade
+                                     preserved; reduced-
+                                     motion zero-duration
+                                     preserved.
+                                     Owner: P04.
+
+   MODIFIED files:
+
+     src/components/shell/Accordion.tsx
+         — replace instant onMouseEnter→expand with
+           hoverIntent hook invocation;
+         — add onMouseLeave propagation;
+         — add pin state + setPin()/unpin() methods;
+         — debounce setHash and BroadcastChannel postMessage
+           to fire only on settled target;
+         — preserve all existing keyboard handling
+           (useHotkey calls and focusIndex).
+       Owner: P01 specifies the signature; P03 specifies
+       the pin/unpin handling; both land in the same file.
+
+     src/components/shell/Panel.tsx
+         — scope is-animating class to the two panels
+           actually animating during a swap, not every
+           state-change-recipient;
+         — read pin state (via prop) and surface a
+           data-pinned="true|false" attribute for CSS
+           targeting;
+         — accept onHoverLeave callback alongside existing
+           onHover.
+       Owner: P02.
+
+     src/components/shell/PanelSpine.tsx
+         — no behavioral change; gain an aria-pressed
+           attribute reflecting pin state (so screen
+           readers announce "pinned" on activation).
+       Owner: P03.
+
+     src/app/globals.css
+         — convert .panel-body animations from keyframe
+           `animation:` to `transition:` on opacity and
+           transform. Rationale: animations restart from
+           keyframe origin on state change; transitions
+           retarget from current computed value. This is
+           the fix for C3.
+         — ensure .spine-content opacity uses transition
+           (already does; verify);
+         — add [data-pinned="true"] visual cue (subtle
+           1px indicator on the spine or inside the panel
+           chrome, non-load-bearing — color + glyph pair).
+       Owner: P02.
+
+     src/styles/tokens.css
+         — add --d-hover-intent-cold: 120ms,
+           --d-hover-intent-leave: 200ms.
+         — add the reduced-motion block for those tokens
+           (both collapse to 0).
+       Owner: P01 specifies values; P02 lands the CSS.
+
+   UNMODIFIED (to be clear): src/lib/panels.ts,
+     PANELS/PANEL_LOG, the TheseusTeaser, every file under
+     src/components/panels/, any route handler, the top-
+     level layout, the palette, the boot sequence.
+
+
+---
+
+F) PROMPT SEQUENCE
+
+   00_INDEX.txt                          — this file.
+
+   P01_hover_intent_state_machine.txt    — the FSM: phases,
+       dwell/leave timers, cold-vs-warm semantics, pin
+       interaction, hash/BroadcastChannel debounce. Ships
+       src/lib/accordion/hoverIntent.ts and its unit tests.
+       Modifies Accordion.tsx to consume the hook. Bundle
+       delta budget: <=2.6KB gzip (2.0 for new modules +
+       0.5 for Accordion.tsx delta + 0.1 for tokens.css).
+
+   P02_motion_coordination.txt           — the CSS + Panel.tsx
+       changes that make the transitions interrupt-safe. Key
+       conversion: panel-body animations move from @keyframes
+       to transitions. Ships updates to globals.css,
+       Panel.tsx, and tokens.css. JS delta <=0.3KB gzip
+       (Panel.tsx additions — transitionend listener,
+       data-attribute props); CSS-size delta is net-neutral
+       (keyframes removed; transitions added).
+
+   P03_pin_keyboard_touch_a11y.txt       — click-pin semantics,
+       ESC-unpin, focus-within-keeps-open, ARIA state,
+       touch/<768px guardrails, screen-reader announcements.
+       Ships updates to Accordion.tsx (pin state + ESC focus
+       recovery + live region), PanelSpine.tsx (aria-pressed),
+       Panel.tsx (inert on unexpanded body), globals.css
+       (data-pinned visual affordance). Bundle delta:
+       <=0.5KB gzip.
+
+   P04_ship_gate_and_regression_tests.txt — Playwright rapid-
+       swap test, hover_intent unit test, R01/R02 invariant
+       regression, 60fps budget assertion, reduced-motion
+       parity, will-change hygiene lint. Ships scripts/
+       accordion/ and tests/accordion/. No src/ bundle
+       delta.
+
+
+---
+
+G) ACCEPTANCE (suite-level; individual prompts add their own)
+
+   The following must hold when the suite lands:
+
+   [ ] On a cold accordion, a cursor passing over five
+       panels in <600ms total produces ZERO expansions
+       (dwell never reached on any individual panel).
+
+   [ ] On a cold accordion, a cursor dwelling on panel N
+       for 120ms produces exactly one expansion to N,
+       starting on the 120ms-mark.
+
+   [ ] On a warm accordion, entering panel M when panel N
+       is expanded produces a concurrent close-N/open-M
+       swap that completes in the same 420ms window. No
+       visible gap of neutral between N closing and M
+       opening.
+
+   [ ] Mid-animation swap never restarts the closing
+       panel's opacity from 1 or the opening panel's
+       opacity from 0; both transition FROM their current
+       computed opacity and translateY.
+
+   [ ] Cursor leaving the accordion region triggers a
+       200ms timer; if the cursor re-enters within 200ms
+       the timer cancels and the panel remains expanded;
+       if 200ms elapses, the panel collapses to neutral
+       with R01's 420ms ease.
+
+   [ ] Focus inside an expanded panel overrides
+       hover-leave collapse: leaving the cursor closes
+       nothing while a descendant has focus.
+
+   [ ] Clicking a spine (or pressing Enter on a focused
+       spine) pins the panel; hover over other spines
+       while pinned has no effect; clicking the same
+       pinned spine again unpins (restoring hover
+       semantics); ESC unpins and collapses to neutral.
+
+   [ ] R01 acceptance preserved verbatim: the 420ms
+       flex-basis transition, the content-fade-in at
+       t=260ms, the content-fade-out over 180ms, the
+       prefers-reduced-motion zero-duration path.
+
+   [ ] R02 acceptance preserved verbatim: no layoutId
+       travel, label fades in place, focus ownership
+       flips instantly on activation.
+
+   [ ] On touch / pointer:coarse / <768px: hover semantics
+       are fully disabled (already gated by media query);
+       click/tap behavior is unchanged from current.
+
+   [ ] Chrome DevTools Performance captures of the
+       rapid-swap path remain >=60fps (24ms frame budget,
+       measured on a 2021 M1 MacBook Air; slower hardware
+       may tolerate slightly lower).
+
+   [ ] No permanent will-change: *; will-change is
+       applied only during the ~420ms window a panel is
+       actually animating.
+
+   [ ] The P04 ship gate exits 0 on a clean build.
+
+
+---
+
+H) OUT OF SCOPE (so prompts don't drift into this)
+
+   H1. Any change to panel CONTENT (the body of ABT/HVM/
+       PRP/THS/CV). Hover semantics apply to the spine/
+       frame layer only.
+
+   H2. Any change to the 5-panel registry or the log-panel
+       reveal at >=1680px.
+
+   H3. Any new animation library. framer-motion is already
+       a dependency per R01; we use CSS transitions
+       primarily and framer-motion only where a
+       transition cannot express the behavior. No adding
+       react-spring, motion-one, GSAP, or auto-animate.
+
+   H4. Any change to routing or the accordion↔route
+       relationship. R02 already settled that the route
+       renders statically; this suite does not touch it.
+
+   H5. Any "staggered" reveal inside a panel body. R01
+       forbade it; this suite inherits the prohibition.
+
+   H6. Any dark-mode / light-mode theming work. The
+       tokens.css light variant (lines 92-108) is
+       unchanged.
+
+
+---
+
+I) IMPLEMENTATION ORDER
+
+   Implementers should do P01 → P02 → P03 → P04 in strict
+   order. Each prompt's acceptance depends on the prior
+   prompts' deliverables:
+     - P02 needs the hover-intent hook from P01 so it can
+       scope is-animating correctly.
+     - P03 needs Accordion.tsx's pin state so aria-pressed
+       can read from it.
+     - P04 needs all of the above plus the converted CSS.
+
+   A partial implementation is not acceptable. If P01-P03
+   land but P04 fails, the ship gate blocks merge and the
+   failures must be triaged per P04 §D.
+
+
+---
+
+SCOPE NOTE: DESKTOP-ONLY
+------------
+This suite specifies HOVER choreography and is DESKTOP-ONLY. Every
+behaviour defined here is gated in Accordion.tsx on the matchMedia
+query `(hover: hover) and (pointer: fine) and (min-width: 768px)`
+— touch devices, coarse pointers, and narrow viewports fall through
+and this suite's state machine never engages.
+
+The mobile surface (<640 px) is owned by 09_Mobile_Deep, which
+replaces the width-based flex-basis choreography with a height-based
+max-height choreography on the .panel-body (09/M02 §C4). No rule
+in this suite (intent delay, pin, hover-debounce, motion
+coordination) applies on narrow.
+
+If a future revision of this suite adds a new hover-driven behaviour,
+it MUST reuse the existing matchMedia guard or remain silent on
+narrow. A hover behaviour that fires on touch is a regression and
+blocks merge.
+
+---
+
+END 00_INDEX. Proceed to P01.

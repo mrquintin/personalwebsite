@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function PurposelessPage() {
-  const { name, synopsis, load } = EXPERIENCE_REGISTRY.prp;
+  const { name, synopsis } = EXPERIENCE_REGISTRY.prp;
   return (
     <div style={{ height: "calc(100vh - var(--toprail-h))", padding: "var(--s-4)" }}>
       <ExperienceHost
@@ -17,7 +17,6 @@ export default function PurposelessPage() {
         name={name}
         synopsis={synopsis}
         mode="route"
-        load={load}
         dossier={<PurposelessDossier />}
       />
     </div>

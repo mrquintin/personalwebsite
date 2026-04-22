@@ -6,7 +6,7 @@ import { EXPERIENCE_REGISTRY } from "@/lib/experience-config";
 // I01: panel-mode ExperienceHost replaces the legacy teaser content.
 // Same component that mounts on /hivemind, with mode="panel".
 export default function HivemindTeaser() {
-  const { name, synopsis, load } = EXPERIENCE_REGISTRY.hvm;
+  const { name, synopsis } = EXPERIENCE_REGISTRY.hvm;
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
       <ExperienceHost
@@ -14,7 +14,6 @@ export default function HivemindTeaser() {
         name={name}
         synopsis={synopsis}
         mode="panel"
-        load={load}
         dossier={<HivemindDossier />}
       />
     </div>

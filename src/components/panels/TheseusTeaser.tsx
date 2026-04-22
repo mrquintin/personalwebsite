@@ -5,7 +5,7 @@ import { EXPERIENCE_REGISTRY } from "@/lib/experience-config";
 
 // I01: panel-mode ExperienceHost. The THS experience is the Reflection Lab.
 export default function TheseusTeaser() {
-  const { name, synopsis, load } = EXPERIENCE_REGISTRY.ths;
+  const { name, synopsis } = EXPERIENCE_REGISTRY.ths;
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
       <ExperienceHost
@@ -13,7 +13,6 @@ export default function TheseusTeaser() {
         name={name}
         synopsis={synopsis}
         mode="panel"
-        load={load}
         dossier={<TheseusDossier />}
       />
     </div>

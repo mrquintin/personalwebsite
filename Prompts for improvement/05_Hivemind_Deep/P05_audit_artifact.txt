@@ -13,14 +13,15 @@ artifact tangible: one full deliberation as a scrubbable, filterable
 transcript, plus an Export Preview showing the file format, the
 data schema, and the ownership claim.
 
-This mode is also the canonical home for the disclaimer the INDEX
-requires to appear verbatim in the suite:
+This mode is also the canonical home for the fiduciary disclaimer
+that MUST appear verbatim in the Hivemind suite:
 
     "The Nash Lab disclaims responsibility for conclusions drawn
      by the client"
 
-The Export Preview surfaces it. Do not relocate it elsewhere without
-updating the INDEX's acceptance clause.
+The Export Preview surfaces it. Its placement and wording are
+load-bearing acceptance criteria (enforced by P06's ship-gate);
+do not relocate it or paraphrase it.
 
 
 ----------------------------------------------------------------------
@@ -151,8 +152,9 @@ B4. ExportPreview.
         SCHEMA VERSION:   hivemind-audit-v1
         OWNERSHIP:        client
 
-    (b) FIDUCIARY DISCLAIMER (mandatory, verbatim from INDEX;
-        serif italic, --fg-dim):
+    (b) FIDUCIARY DISCLAIMER (mandatory, verbatim — wording is
+        load-bearing and enforced by P06's ship-gate; serif
+        italic, --fg-dim):
 
             "The Nash Lab disclaims responsibility for
              conclusions drawn by the client. The audit trail
@@ -380,7 +382,7 @@ D2. Fiduciary disclaimer (VERBATIM; three sentences, all
      firm does not read it."
 
     First sentence: the liability clause (from Guide I §7, §8;
-    also the INDEX's required disclaimer, and the integrity-
+    load-bearing suite-level disclaimer, and the integrity-
     check anchor for P06's assertAudit).
     Second and third sentences: the data-ownership claim (from
     Guide II §8 bullet 3).
@@ -396,8 +398,8 @@ D2. Fiduciary disclaimer (VERBATIM; three sentences, all
     responsibility for conclusions drawn by the client.") and
     asserts exactly one match. Searching for the full three-
     sentence block would be legitimate too, but the first
-    sentence is the INDEX's named anchor and the one the lint
-    treats as load-bearing.
+    sentence is the canonical named anchor and the one the
+    lint treats as load-bearing.
 
 D3. Header triad (VERBATIM).
 

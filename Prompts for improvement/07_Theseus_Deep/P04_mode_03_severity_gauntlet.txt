@@ -13,10 +13,9 @@ to the production analog in Noosphere.
 
 This mode exists because severity is the single criterion whose
 violation produces the most common methodological failure —
-confirmation bias. The 00_INDEX declares this mode's teaching
-target as Q2 (the five formal properties and their reduction to a
-single principle), specifically the severity half of that
-question. Mode 2 (Reflection Lab) showed HOW severity is made
+confirmation bias. Its teaching target is the five formal
+properties reduced to a single principle — specifically the
+severity half of that principle. Mode 2 (Reflection Lab) showed HOW severity is made
 generative (by reflecting the thesis to produce an antithesis);
 Mode 3 shows WHAT severity is in its raw form (a property of the
 test-claim pair, assessed against plausible alternatives).
@@ -93,10 +92,10 @@ alternative test the mode demands.
 §A — FILE LAYOUT
 
 Create the following new files under the SeverityGauntlet
-subtree declared in 00_INDEX §FILE MANIFEST. Every path is
-rooted at src/components/panels/theseus/Experience/
-SeverityGauntlet/ (no new directories outside that subtree and
-no edits to files that belong to P01/P02/P03):
+subtree. Every path is rooted at
+src/components/panels/theseus/Experience/SeverityGauntlet/
+(no new directories outside that subtree and no edits to
+files that belong to P01/P02/P03):
 
     SeverityGauntlet/
         index.tsx                    — mode root; composes the
@@ -858,18 +857,16 @@ SeverityVerdict.tsx:
       (f) the verbatim Mayo severity operational-test excerpt
           (TH2_SEC_2_2_SEVERITY_OP_TEST), rendered in a
           <blockquote> with a citation trailer reading
-          "— II. The Meta-Method, §2.2". This is the same
-          excerpt required in the 00_INDEX MODE 3
-          specification ("'Would this test have caught the
-          falsity under plausible alternatives?' summary
-          renders verbatim from TH2 §2.2"). The op-test
-          excerpt is the selected verbatim.
+          "— II. The Meta-Method, §2.2". The excerpt's summary
+          line — "Would this test have caught the falsity
+          under plausible alternatives?" — is the mandatory
+          verbatim-from-TH2-§2.2 text surfaced in this mode.
 
     No score is shown. No "you got N of M correct" surface
     is rendered anywhere. The AGREE / DISAGREE indicators
     are per-alternative only and are not summed. The
     reasoning is the same as in P02's no-score rationale
-    (00_INDEX MODE 1): this is a teaching mode, not a quiz.
+    (MODE 1): this is a teaching mode, not a quiz.
 
 ---
 
@@ -1070,7 +1067,7 @@ Add to src/lib/theseus/typeGuards.ts:
         && g.alternatives.length >= 3
         && g.alternatives.length <= 5,
         "SeverityFixture must have between 3 and 5 " +
-        "alternatives (MODE 3 spec in 00_INDEX).");
+        "alternatives (MODE 3 spec).");
       const altIds = new Set<string>();
       for (const alt of g.alternatives as unknown[]) {
         invariant(typeof alt === "object" && alt !== null,
@@ -1124,7 +1121,7 @@ Add to src/lib/theseus/typeGuards.ts:
       invariant(Array.isArray(arr),
         "Severity fixture array must be an array");
       invariant(arr.length === 4,
-        "00_INDEX MODE 3 spec requires exactly 4 severity " +
+        "MODE 3 spec requires exactly 4 severity " +
         "fixtures (two severe, one non-severe, one " +
         "partially severe).");
       const severe = arr.filter(
@@ -1249,8 +1246,8 @@ The Severity Gauntlet mode ships when:
       verbatim-drift check.
   [ ] No runtime ML inference. No embedding calls, no
       LLM calls, no scoring functions executed at runtime.
-      Every value shown is authored. (Consistent with
-      the 00_INDEX standing constraint (a).)
+      Every value shown is authored. (Consistent with the
+      suite's no-runtime-ML standing constraint.)
 
 ---
 
@@ -1274,9 +1271,9 @@ Theseus's six-layer coherence engine (NLI, argumentation,
 probabilistic, geometry, information-theoretic,
 LLM-as-judge — TH4 §2.3) may be referenced BY NAME where
 material (e.g., in F2's proposed test), and must not be
-conflated with the 06 suite's 5-layer engine. The 00_INDEX
-RELATIONSHIP TO PRIOR SUITES block is the governing
-statement.
+conflated with the 06 suite's 5-layer engine. Cross-suite
+isolation is governed by the banned-token list enforced in
+P07's prose lint.
 
 P07's prose lint includes a banned-token list that
 mechanically enforces these exclusions.

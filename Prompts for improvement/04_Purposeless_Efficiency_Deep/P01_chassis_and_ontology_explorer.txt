@@ -111,8 +111,10 @@ scroll-snap-type: x mandatory, and each tab is a snap point.
 
 A3. File: src/stores/prpExperience.ts
 
-Single zustand store. The full shape is defined in the INDEX
-"SHARED STATE SHAPE" section. Two notes specific to P01:
+Single zustand store. The full shape is the union of the
+per-mode slices declared in P01–P05 (ontology selection,
+quadrant picks, diamond practicum state, objection
+responses, atlas traversal). Two notes specific to P01:
 
   - mode defaults to "ontology".
   - selectedClaimId is null by default. When a user clicks a claim
@@ -125,10 +127,11 @@ Single zustand store. The full shape is defined in the INDEX
 
 A4. File: src/styles/prp-prose.css (NEW)
 
-This is the shared prose-typography utility for the PRP panel. It is
-the concrete implementation of the commitment in 00_INDEX §"RELATIONSHIP
-TO I03" (lines 278–282) that the Galley's serif body treatment would
-survive into this suite. Without this file, the commitment is orphaned.
+This is the shared prose-typography utility for the PRP panel. It
+preserves the Galley's serif body treatment from the retired I03
+(03_Interactive_Experiences) as a first-class visual commitment
+of the Purposeless Efficiency suite. Without this file, that
+commitment is orphaned.
 
 Provenance: inherited verbatim (with minor adjustments noted below)
 from the retired 03_Interactive_Experiences/I03 §VISUAL LANGUAGE spec

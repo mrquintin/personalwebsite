@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function HivemindPage() {
-  const { name, synopsis, load } = EXPERIENCE_REGISTRY.hvm;
+  const { name, synopsis } = EXPERIENCE_REGISTRY.hvm;
   return (
     <div style={{ height: "calc(100vh - var(--toprail-h))", padding: "var(--s-4)" }}>
       <ExperienceHost
@@ -17,7 +17,6 @@ export default function HivemindPage() {
         name={name}
         synopsis={synopsis}
         mode="route"
-        load={load}
         dossier={<HivemindDossier />}
       />
     </div>

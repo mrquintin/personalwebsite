@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function TheseusPage() {
-  const { name, synopsis, load } = EXPERIENCE_REGISTRY.ths;
+  const { name, synopsis } = EXPERIENCE_REGISTRY.ths;
   return (
     <div style={{ height: "calc(100vh - var(--toprail-h))", padding: "var(--s-4)" }}>
       <ExperienceHost
@@ -17,7 +17,6 @@ export default function TheseusPage() {
         name={name}
         synopsis={synopsis}
         mode="route"
-        load={load}
         dossier={<TheseusDossier />}
       />
     </div>

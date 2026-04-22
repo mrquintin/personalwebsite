@@ -704,8 +704,9 @@ src/lib/coherenceEngine/ is rejected.
 Integration with 05 at implementation time: the HVM panel will
 compose both suites, using either a flat ten-tab bar or a
 two-face switch (Strategic / Technical) with each face owning
-its own five-tab bar — see 00_INDEX "PANEL DISPOSITION". Mode
-code in P01–P05 does not change between the two patterns.
+its own five-tab bar. The canonical disposition is the two-face
+switch, keyed by the hvm.face sessionStorage toggle. Mode code
+in P01–P05 does not change between the two patterns.
 
 Bundle budget: the 80KB figure in this suite's F3 applies to
 the CE experience in isolation. When the combined HVM panel

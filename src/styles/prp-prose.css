@@ -1,0 +1,68 @@
+/*
+  prp-prose.css
+  Serif-prose utility for the Purposeless Efficiency panel.
+  Ported from retired I03 §VISUAL LANGUAGE. The PRP panel is the
+  ONE place on the site where a serif typeface appears in body
+  copy; do NOT apply this utility outside the PRP experience, and
+  do NOT leak it into the spine, the tab bar, or the panel margin.
+*/
+
+.prp-prose {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: var(--t-md-size);
+  line-height: 1.7;
+  max-width: 64ch;
+  hyphens: auto;
+  hanging-punctuation: first last;    /* honored by Safari; gracefully
+                                         ignored by Chromium/Firefox */
+  color: var(--fg);
+}
+
+/*
+  Drop cap: only on the first <p> of a SUBSTANTIAL prose passage.
+  Opt-in via the modifier class — do NOT apply it to short (1–3
+  sentence) claim statements or quadrant diagnoses.
+*/
+.prp-prose--drop-cap > p:first-of-type::first-letter {
+  float: left;
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 3.5em;
+  line-height: 0.85;
+  padding: 0.05em 0.08em 0 0;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/*
+  Prose-level heading inside a .prp-prose block: small-caps mono.
+  Used for "THE BOOK'S VIEW", "WHERE DEVELOPED", "OBJECTION", etc.
+*/
+.prp-prose h4,
+.prp-prose .prp-prose-heading {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-mute);
+  margin-top: 1.5em;
+  margin-bottom: 0.4em;
+}
+
+/*
+  Monospace note adjacent to a prose passage (annotation voice,
+  objection summary, etc).
+*/
+.prp-prose .prp-prose-note {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prp-prose a,
+  .prp-prose .prp-pinned {
+    transition: none;
+  }
+}

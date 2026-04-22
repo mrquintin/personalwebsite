@@ -72,7 +72,9 @@ in --accent. NARROW tab bar uses scroll-snap.
 
 A3. File: src/stores/hivemindExperience.ts
 
-Single zustand store; full shape in INDEX. Notes for P01:
+Single zustand store; the full shape is the union of the
+per-mode slices declared in P01–P05 (theater, knobs, failures,
+pipeline, audit). Notes for P01:
 
   - mode defaults to "theater".
   - theater slice contains all playback state (see PART C).
@@ -224,7 +226,8 @@ B3. What the user CANNOT do.
 
   - Type a prompt. The replay runs on a fixed authored problem
     (see B4). A "try your own question" path would require a
-    live LLM, which is banned in this panel (see INDEX).
+    live LLM, which is banned in this panel (see the
+    honesty-posture constraint enforced by P06's ship-gate).
   - Edit agent behavior. The personas are fixed in the fixture.
   - Modify the knowledge base. That flow is in P04 Pipeline.
   - Export the audit trail from the Theater. That is the

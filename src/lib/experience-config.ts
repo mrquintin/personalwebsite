@@ -37,8 +37,9 @@ export type ExperienceDescriptor = {
 export const EXPERIENCE_REGISTRY: Record<ProjectId, ExperienceDescriptor> = {
   hvm: { projectId: "hvm", name: "Coherence Receiver",
          synopsis: "strategic-analytical software · live deliberation surface" },
-  prp: { projectId: "prp", name: "Galley",
-         synopsis: "manuscript reading surface · book i" },
+  prp: { projectId: "prp", name: "Purposeless Efficiency",
+         synopsis: "five-mode reading surface · ontology · quadrant · diamond · objections · atlas",
+         load: () => import("@/components/projects/purposeless-efficiency/Experience/PrpExperience") },
   ths: { projectId: "ths", name: "Reflection Lab",
          synopsis: "principle graph · contradiction reflection" },
 };

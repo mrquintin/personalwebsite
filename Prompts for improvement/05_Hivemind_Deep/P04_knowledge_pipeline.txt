@@ -305,7 +305,8 @@ C6. What the user CANNOT do.
     - Upload a real file. The pipeline is illustrative; live
       pipeline execution would require MiniLM in-browser (large)
       plus a server-side Qdrant (network call; banned by the
-      INDEX).
+      suite's no-runtime-ML and no-network constraint,
+      enforced in P06's ship-gate).
     - Edit config constants. They are displayed read-only. This
       is consistent with the P03 "FIRM-SET CALIBRATIONS" posture.
     - Change which embedding model is shown. MiniLM is the choice
