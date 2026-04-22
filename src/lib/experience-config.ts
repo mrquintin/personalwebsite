@@ -35,8 +35,9 @@ export type ExperienceDescriptor = {
 // Canonical experience names per project (from the deep-suite specs).
 // When the deep suites ship their components, point `load` at them.
 export const EXPERIENCE_REGISTRY: Record<ProjectId, ExperienceDescriptor> = {
-  hvm: { projectId: "hvm", name: "Coherence Receiver",
-         synopsis: "strategic-analytical software · live deliberation surface" },
+  hvm: { projectId: "hvm", name: "Hivemind",
+         synopsis: "deliberation theater · knobs · four failures · pipeline · audit",
+         load: () => import("@/components/projects/hivemind/Experience/HivemindExperience") },
   prp: { projectId: "prp", name: "Purposeless Efficiency",
          synopsis: "five-mode reading surface · ontology · quadrant · diamond · objections · atlas",
          load: () => import("@/components/projects/purposeless-efficiency/Experience/PrpExperience") },
