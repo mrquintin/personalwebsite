@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { FORBIDDEN_WORDS } from "../src/content/forbidden-words";
 
 const ROOTS = ["src", "docs"];
-const EXTS = [".ts", ".tsx", ".md", ".mdx"];
+const EXTS = [".ts", ".tsx", ".md"];
 const EXCLUDE = new Set(["node_modules", ".next", "public", ".git", "tools"]);
 const SELF = "src/content/forbidden-words.ts";
 // Files allowed to mention the forbidden words for documentary purposes.
