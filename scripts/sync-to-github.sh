@@ -55,11 +55,26 @@ resolve_branch() {
   local b
   b="$(git symbolic-ref -q HEAD 2>/dev/null | sed 's|^refs/heads/||')" || true
   if [[ -z "${b:-}" ]]; then
-    echo "Detached HEAD — defaulting branch name to main for sync operations." >&2
-    echo "main"
-    return 0
+    echo "error: detached HEAD detected. Check out a branch before syncing." >&2
+    echo "hint: git checkout main" >&2
+    exit 1
   fi
   echo "$b"
+}
+
+ensure_no_in_progress_rebase() {
+  if [[ -d ".git/rebase-merge" || -d ".git/rebase-apply" ]]; then
+    cat >&2 <<'EOF'
+error: a git rebase is already in progress.
+
+Finish it first:
+  git rebase --continue
+
+Or cancel it:
+  git rebase --abort
+EOF
+    exit 1
+  fi
 }
 
 working_tree_clean() {
@@ -73,6 +88,15 @@ commits_ahead_of_origin() {
     return 0
   fi
   git rev-list --count "origin/${branch}..HEAD" 2>/dev/null || echo "0"
+}
+
+commits_behind_origin() {
+  local branch="$1"
+  if ! git rev-parse --verify "origin/${branch}" >/dev/null 2>&1; then
+    echo "0"
+    return 0
+  fi
+  git rev-list --count "HEAD..origin/${branch}" 2>/dev/null || echo "0"
 }
 
 ensure_origin_remote() {
@@ -95,6 +119,35 @@ commit_if_needed() {
     return 0
   fi
   git commit -m "Sync: latest changes"
+}
+
+ensure_no_merge_conflicts() {
+  if [[ -n "$(git diff --name-only --diff-filter=U 2>/dev/null)" ]]; then
+    cat >&2 <<'EOF'
+error: unresolved merge conflicts detected.
+
+Resolve conflicted files, then:
+  git add <resolved-files>
+  git commit
+
+Then run this sync script again.
+EOF
+    exit 1
+  fi
+}
+
+ensure_no_conflict_markers() {
+  local matches
+  matches="$(git grep -nE '^(<<<<<<< |>>>>>>> |=======)$' -- . ':(exclude)node_modules/*' 2>/dev/null || true)"
+  if [[ -n "${matches}" ]]; then
+    cat >&2 <<EOF
+error: conflict markers found in tracked files:
+${matches}
+
+Resolve the markers, commit the fixes, then rerun sync.
+EOF
+    exit 1
+  fi
 }
 
 curl_canonical_site() {
@@ -217,8 +270,38 @@ watch_ci_workflow() {
   gh run watch "${run_id}" --repo "${REPO_SLUG}" --exit-status && echo "CI run ${run_id} completed successfully."
 }
 
+rebase_onto_origin_if_needed() {
+  local branch="$1"
+  local behind
+  behind="$(commits_behind_origin "$branch")"
+  if [[ "${behind}" == "0" ]]; then
+    return 0
+  fi
+
+  echo "Local ${branch} is behind origin/${branch} by ${behind} commit(s) — rebasing before push..."
+  if ! git rebase "origin/${branch}"; then
+    echo "Rebase failed — aborting rebase and falling back to merge strategy..." >&2
+    git rebase --abort >/dev/null 2>&1 || true
+    if ! git merge --no-edit "origin/${branch}"; then
+      cat >&2 <<EOF
+error: both rebase and merge failed.
+
+Resolve merge conflicts, then continue:
+  git add <resolved-files>
+  git commit
+
+Then rerun this sync script.
+EOF
+      exit 1
+    fi
+  fi
+}
+
 main() {
   clean_stale_git_locks
+  ensure_no_in_progress_rebase
+  ensure_no_merge_conflicts
+  ensure_no_conflict_markers
   ensure_origin_remote
 
   branch="$(resolve_branch)"
@@ -251,12 +334,18 @@ main() {
     commit_if_needed
   fi
 
+  # Keep branch linear when possible; fall back to merge when required.
+  git fetch origin "${branch}" 2>/dev/null || git fetch origin 2>/dev/null || true
+  rebase_onto_origin_if_needed "${branch}"
+
   ahead="$(commits_ahead_of_origin "$branch")"
   if [[ "$ahead" == "0" ]] && working_tree_clean; then
     echo "No commits to push."
     exit 0
   fi
 
+  ensure_no_merge_conflicts
+  ensure_no_conflict_markers
   verify_ci_if_deps_changed
 
   echo "Pushing to origin ${branch} (${REPO_PUSH_URL})..."
