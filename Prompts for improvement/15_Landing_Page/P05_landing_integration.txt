@@ -1,0 +1,63 @@
+15/P05 — LANDING PAGE INTEGRATION + E2E
+==========================================
+
+GOAL
+----
+Compose Hero, Bio, ProjectTeasers, ChatPreview into src/app/page.tsx.
+Add a small e2e covering the landing page's primary CTAs.
+
+§A FILES TOUCHED
+----------------
+  src/app/page.tsx                       (rewrite — replaces stub)
+  e2e/landing.spec.ts                    (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  page.tsx layout (top to bottom):
+       <Hero />
+       <Bio />
+       <ProjectTeasers />
+       <ChatPreview />
+       <ResumeCta />     — small inline link block with "Download my
+                            resume" link to /resume; one-line.
+
+     Each section provides its own Container; page.tsx itself is just
+     the composition.
+
+B2.  Metadata for the page:
+       export const metadata = {
+         title: "Home",
+         description: "<one-line site description, drawn from
+                       src/content/about/identity.ts>",
+       };
+
+B3.  E2E (e2e/landing.spec.ts):
+       - GET / returns 200
+       - h1 contains the user's name (read from identity.ts)
+       - "Ask my LLM about my work" link exists and points to /chat
+       - three project cards exist with text matching HVM, PRP, THS
+         titles
+       - "Open the full chat" link exists in ChatPreview section
+
+B4.  Lighthouse smoke (manual, optional):
+       npx lighthouse http://localhost:3000/ --quiet --chrome-flags="--headless"
+     Report performance and accessibility scores in the IMPL_RESULT.
+     Targets (rough): perf >= 90, a11y >= 95. If below, document
+     reasons and pass to suite 21 for the focused perf pass.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/page.tsx
+  test -f e2e/landing.spec.ts
+  npm run build
+  npx playwright test e2e/landing.spec.ts
+
+§D NON-GOALS
+------------
+  • Do NOT add additional sections beyond the five named.
+  • Do NOT inject analytics in this prompt; that lives in deployment
+    suite if user opts for it.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include Lighthouse perf + a11y scores

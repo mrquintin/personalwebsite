@@ -1,0 +1,52 @@
+20/P03 — RESUME REWRITE
+==========================
+
+GOAL
+----
+Refresh resume content. Tightens entries; aligns voice; ensures the
+v2 /resume page renders cleanly.
+
+§A FILES TOUCHED
+----------------
+  src/content/resume/identity.ts         (modify — align with about/identity.ts)
+  src/content/resume/summary.ts          (modify)
+  src/content/resume/experience.ts       (modify — review every entry)
+  src/content/resume/skills.ts           (modify — categorize, trim)
+  src/content/resume/education.ts        (modify)
+  src/content/resume/writing.ts          (modify — recent only)
+
+§B ACCEPTANCE
+-------------
+B1.  summary.ts: 2-3 sentence professional summary. Voice-guide
+     compliant. Distinct from about/biography.ts (which is broader).
+
+B2.  experience.ts: each entry has:
+       { role, organization, start, end, bullets: string[2-5] }
+     Each bullet is one short sentence. STAR-style (Situation/
+     Task/Action/Result) preferred but not required. Active
+     voice. No more than 5 bullets per entry; 2-3 is the target.
+
+B3.  skills.ts: organized into 3-5 categories (e.g., "Engineering",
+     "Research", "Communication"). Each category lists 4-8 items.
+     No proficiency ratings (1-5 stars are noise).
+
+B4.  writing.ts: entries for published / public writings, recent
+     first, no more than 12 entries total. Each has title,
+     publication, date, link.
+
+B5.  Pass voice-lint. Pass forbidden-words check.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/resume/summary.ts
+  npm run lint
+
+§D NON-GOALS
+------------
+  • Do NOT include compensation history.
+  • Do NOT include references.
+  • Do NOT include a personal mission statement.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,49 @@
+16/P05 — PRP PROJECT PAGE CONTENT
+====================================
+
+GOAL
+----
+Author the PRP (Purposeless Efficiency) project page content.
+
+§A FILES TOUCHED
+----------------
+  src/content/projects/purposeless-efficiency/metadata.ts        (NEW)
+  src/components/projects/purposeless-efficiency/Body.tsx        (NEW)
+  src/components/projects/purposeless-efficiency/Links.tsx       (NEW)
+  src/content/projects/purposeless-efficiency/body.ts            (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  metadata.ts: tagline + framing sourced from existing
+     src/content/projects/purposeless-efficiency/* (preface.ts,
+     pillars.ts, arc.ts, thesis sources). seedQuestion = "what is
+     purposeless efficiency?".
+
+B2.  body.ts narrates 4-6 sections:
+       - "The distinction"
+       - "Why it matters"
+       - "Where it shows up"
+       - "What the manuscript covers"
+       - "Status"
+
+B3.  Same source-fidelity rule: every claim grounded in existing
+     repo content. The implementer flags sections that cannot be
+     populated from existing prose rather than invent.
+
+B4.  Body.tsx + Links.tsx: same patterns as 16/P04.
+
+B5.  Word count: 600-1200.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/projects/purposeless-efficiency/metadata.ts
+  test -f src/components/projects/purposeless-efficiency/Body.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT include diamond-method widgets or quadrant simulators.
+    Pure prose.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

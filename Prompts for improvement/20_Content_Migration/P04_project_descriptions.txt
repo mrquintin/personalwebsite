@@ -1,0 +1,64 @@
+20/P04 — PROJECT DESCRIPTIONS REWRITE
+========================================
+
+GOAL
+----
+Rewrite each project's tagline + framing + body for the new
+explanatory paradigm. v1's project copy assumed a deep-dive context;
+v2 needs a "stranger walks in cold" tone.
+
+§A FILES TOUCHED
+----------------
+  src/content/projects/hivemind.ts                                (modify)
+  src/content/projects/hivemind/{thesis,capabilities,workflow}.ts (review; align)
+  src/content/projects/purposeless-efficiency.ts                  (modify)
+  src/content/projects/purposeless-efficiency/{preface,pillars,arc}.ts (review)
+  src/content/projects/theseus.ts                                 (modify)
+  src/content/projects/theseus/{thesis,methodology,principles}.ts (review)
+
+§B ACCEPTANCE
+-------------
+B1.  Each project's top-level metadata file (e.g.,
+     src/content/projects/hivemind.ts) defines:
+       export const meta = {
+         slug, code, title,
+         tagline: "<one line ≤ 80 chars>",
+         framing: "<2-3 sentences explaining what + why>",
+         status: "<one of exploration | in-progress | shipped>",
+       };
+
+B2.  Tagline must be parseable cold by a non-technical visitor.
+     "Strategic-analytical software for groups making consequential
+     decisions" passes. "Coherence Receiver — a strategic-operator
+     deliberation surface" fails (jargon-front-loaded).
+
+B3.  Framing: 2-3 sentences. Sentence 1: what is the project (in
+     normal words). Sentence 2: why does it matter (stakes, who
+     benefits). Sentence 3 (optional): what's the user's contribution.
+
+B4.  Project sub-files (thesis, capabilities, workflow,
+     methodology, principles, preface, pillars, arc) are reviewed
+     for:
+       - Internal consistency with the new tagline + framing
+       - Voice-guide compliance
+       - Length: each ≤ 600 words; if over, the implementer
+         identifies the load-bearing parts and trims rest. Preserved
+         text becomes a candidate for the corpus (suite 18).
+
+B5.  Per-project body.ts (created in suite 16/P04-P06) is composed
+     from these sources. Verify the v2 page renders cleanly with the
+     refreshed content.
+
+§C VERIFICATION COMMANDS
+------------------------
+  for f in src/content/projects/{hivemind,purposeless-efficiency,theseus}.ts; do test -f $f; done
+  npm run lint
+
+§D NON-GOALS
+------------
+  • Do NOT delete project sub-files. Trimmed content stays elsewhere
+    (corpus or sub-pages); nothing the user wrote is discarded.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

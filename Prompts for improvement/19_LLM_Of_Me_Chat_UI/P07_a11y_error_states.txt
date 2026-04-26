@@ -1,0 +1,73 @@
+19/P07 — A11Y, ERROR STATES, RATE-LIMIT MESSAGING
+=====================================================
+
+GOAL
+----
+Polish the chat surface for screen readers, keyboard users, and
+error scenarios.
+
+§A FILES TOUCHED
+----------------
+  src/components/llm/ChatSurface.tsx             (modify)
+  src/components/llm/Message.tsx                 (modify)
+  src/components/llm/ChatInput.tsx               (modify)
+  src/components/llm/ErrorBoundary.tsx           (NEW)
+  e2e/chat.spec.ts                               (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  ARIA structure:
+       ChatSurface  — role="region" aria-label="Chat with the LLM"
+       ChatMessageList — role="log" aria-live="polite" aria-atomic="false"
+       ChatInput textarea — aria-label="Your question"
+       Each message — role="article" aria-labelledby={role-header-id}
+
+B2.  Keyboard:
+       - Tab cycles: header link → textarea → submit → message copy buttons
+       - Enter in textarea submits (without Shift)
+       - Shift+Enter inserts newline
+       - Escape: if streaming, calls stopStreaming(); if not, blurs input
+       - Cmd/Ctrl+K (or just /): focus input, scroll to bottom
+
+B3.  Error states with explicit messages:
+       400 invalid request:    "Hmm, the request didn't validate. Try shortening your question."
+       429 rate limited:       "You've hit the per-hour limit (resets in <X> minutes). Try again then."
+       502/503 backend error:  "The LLM service is unreachable right now. Try again in a moment."
+       Network failure:        "Connection lost. Check your network and retry."
+       Empty retrieval:        Inline note above the answer:
+                                 "(no relevant material was retrieved from the corpus; this answer is in the speaker's voice but not grounded in specific writings.)"
+
+B4.  ErrorBoundary wraps ChatSurface; if any unhandled error occurs
+     in a child, falls back to a simple error pane with a "reload"
+     button.
+
+B5.  Focus management:
+       - On mount, focus stays where it was (do not auto-focus).
+       - On submit, focus stays in textarea. Clear textarea content.
+       - When a streamed assistant message completes, the textarea
+         retains focus (do not move focus to the new message).
+       - Screen reader users hear the assistant message via
+         aria-live="polite" on the message list.
+
+B6.  e2e/chat.spec.ts:
+       - GET /chat returns 200
+       - heading visible
+       - typing in textarea + clicking ask sends a request
+         (mock the /api/chat endpoint in the test fixture)
+       - rendered response contains expected text
+       - clear button empties messages
+
+§C VERIFICATION COMMANDS
+------------------------
+  npx playwright test e2e/chat.spec.ts
+  # axe-core a11y check for the chat page (requires axe-playwright):
+  # npx axe http://localhost:3000/chat
+
+§D NON-GOALS
+------------
+  • Do NOT add voice input.
+  • Do NOT add internationalization (single-locale: en).
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

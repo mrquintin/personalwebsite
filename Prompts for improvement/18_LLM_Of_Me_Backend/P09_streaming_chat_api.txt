@@ -1,0 +1,98 @@
+18/P09 — STREAMING CHAT API + RATE LIMITER
+===============================================
+
+GOAL
+----
+The Next.js Route Handler that:
+  1. Validates the incoming request
+  2. Rate-limits the caller
+  3. Retrieves context
+  4. Assembles the prompt
+  5. Streams the Claude response back to the client
+
+§A FILES TOUCHED
+----------------
+  src/app/api/chat/route.ts              (NEW)
+  src/lib/llm/anthropicClient.ts         (NEW — Anthropic SDK wrapper)
+  src/lib/llm/rateLimiter.ts             (NEW — Vercel KV / Upstash)
+  src/lib/llm/chatTypes.ts               (NEW — request/response types)
+  src/app/api/chat/route.test.ts         (NEW)
+  package.json                           (add deps: @anthropic-ai/sdk, @upstash/redis OR @vercel/kv, zod)
+
+§B ACCEPTANCE
+-------------
+B1.  Request shape (validated with zod):
+       POST /api/chat
+       Content-Type: application/json
+       {
+         messages: [{ role: "user" | "assistant", content: string }, ...],
+         topicHints?: string[]
+       }
+
+B2.  Validation rules:
+       - messages.length between 1 and 40
+       - latest message must be role: "user"
+       - each message.content length 1..4000 chars
+       - reject otherwise with 400
+
+B3.  Rate limiter (rateLimiter.ts):
+       - Uses Vercel KV (Upstash Redis) sliding window
+       - Two limits: per-hour (default 20) and per-day (default 100)
+       - Key: ip address (read from x-forwarded-for, fallback to
+         req.ip; if unavailable, treat as global "anon" key with
+         tighter cap of 5/hour)
+       - Returns { allowed: bool, remaining: { hour, day }, resetMs }
+       - When over limit, route returns 429 with Retry-After header.
+
+B4.  Pipeline:
+       1. Validate request (zod) → 400 on bad
+       2. Rate limit → 429 on over
+       3. Get last user message
+       4. retrieve(query, { k: 8, topicHints })
+       5. assemblePrompt({ persona: buildPersona(), retrieved,
+                            history: messages.slice(0, -1),
+                            userMessage: last.content })
+       6. anthropic.messages.stream(...)
+       7. Stream text chunks to the client as Server-Sent Events
+          (event: token, data: <token>)
+       8. After stream end, emit a final event:
+            event: meta
+            data: JSON { citations: [...], usage: {...}, retrievedCount }
+       9. Close
+
+B5.  Error handling:
+       - Anthropic API errors → 502, no streaming, JSON error
+       - Empty retrieval (no chunks above threshold) → still proceed
+         but the assembled prompt warns the model that no corpus
+         context is available; the model can answer in voice but
+         cannot cite. The meta event includes retrievedCount: 0
+         so the UI can flag "no corpus support".
+
+B6.  No streaming for the FIRST 200ms while context is retrieved.
+     The server holds the connection open and starts emitting tokens
+     as soon as Anthropic does. This is intentional — buffering for
+     200ms is invisible to the user.
+
+B7.  Tests (mock the Anthropic SDK + KV):
+       - Happy path: 200, SSE events stream
+       - Bad request: 400
+       - Over rate limit: 429 + Retry-After
+       - Anthropic 500: 502 with safe error body
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/api/chat/route.ts
+  test -f src/lib/llm/rateLimiter.ts
+  npx vitest run src/app/api/chat/route.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT persist conversation history server-side. Sessions are
+    client-state in v2.
+  • Do NOT add user authentication. Public chat with rate limits.
+  • Do NOT use Edge runtime. Use Node runtime for full SDK support.
+    Add `export const runtime = "nodejs";` to route.ts.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

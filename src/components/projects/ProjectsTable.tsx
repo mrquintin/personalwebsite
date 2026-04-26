@@ -6,7 +6,7 @@ import { sortProjects, type SortKey, type SortDir } from "@/lib/projects/sort";
 import { filterByKind, filterByQuery } from "@/lib/projects/filter";
 import StatusPill from "./StatusPill";
 import { useHotkey } from "@/lib/hotkeys/useHotkey";
-import { COPY } from "@/content/microcopy";
+import { microcopy } from "@/content/microcopy";
 
 const KIND_OPTIONS: (ProjectKind | "all")[] = ["all", "company", "book", "research", "software", "website", "other"];
 
@@ -99,7 +99,7 @@ export default function ProjectsTable({ projects }: Props) {
   return (
     <div className="projects-table-wrap">
       <div style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-4)" }}>
-        {COPY.projects.headerPrefix} — {projects.length} loaded · sort: {sortKey} {sortDir === "asc" ? "↑" : "↓"}
+        {microcopy.meta.projectsHeaderPrefix} — {projects.length} loaded · sort: {sortKey} {sortDir === "asc" ? "↑" : "↓"}
       </div>
       <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-4)", fontFamily: "var(--font-mono)", flexWrap: "wrap" }}>
         {KIND_OPTIONS.map((k) => (
@@ -122,7 +122,7 @@ export default function ProjectsTable({ projects }: Props) {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             onBlur={() => { if (!filter) setFilterFocus(false); }}
-            placeholder="filter — esc to clear"
+            placeholder={microcopy.placeholders.projectsFilter}
             style={{
               marginLeft: "auto",
               fontFamily: "var(--font-mono)",
@@ -135,7 +135,7 @@ export default function ProjectsTable({ projects }: Props) {
         )}
       </div>
       {rows.length === 0 ? (
-        <div style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }}>{COPY.projects.emptyFilter}</div>
+        <div style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)" }}>{microcopy.emptyStates.noProjects}</div>
       ) : (
         <table className="projects-table" role="grid" aria-rowcount={rows.length}>
           <thead>
@@ -146,7 +146,7 @@ export default function ProjectsTable({ projects }: Props) {
                   {c.label} {sortKey === c.key ? (sortDir === "asc" ? "↑" : "↓") : ""}
                 </th>
               ))}
-              <th>actions</th>
+              <th>{microcopy.meta.projectsActionsCol}</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +163,7 @@ export default function ProjectsTable({ projects }: Props) {
                   {p.title}
                   {p.visibility === "teaser" && (
                     <span style={{ color: "var(--fg-mute)", marginLeft: "var(--s-3)" }}>
-                      [ in progress · no page yet ]
+                      {microcopy.emptyStates.teaserTag}
                     </span>
                   )}
                 </td>
@@ -174,14 +174,14 @@ export default function ProjectsTable({ projects }: Props) {
                   {p.updatedISO} <span style={{ color: "var(--fg-dim)" }}>· {relSuffix(p.updatedISO)}</span>
                 </td>
                 <td style={{ color: "var(--fg)" }}>{p.stage ?? ""}</td>
-                <td style={{ color: "var(--fg-mute)" }}>{COPY.projects.rowOpen} · {COPY.projects.rowOpenTab}</td>
+                <td style={{ color: "var(--fg-mute)" }}>{microcopy.buttons.rowOpen} · {microcopy.buttons.rowOpenTab}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
       {detail && (
-        <aside className="projects-detail" aria-label="selected project preview">
+        <aside className="projects-detail" aria-label={microcopy.meta.rowSelectedPreviewLabel}>
           <div style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "var(--t-xs-size)" }}>
             {detail.title}
           </div>

@@ -1,0 +1,58 @@
+14/P03 — FOOTER
+=================
+
+GOAL
+----
+A minimal footer. Identifies the site, links to contact / external
+profiles, declares colophon.
+
+§A FILES TOUCHED
+----------------
+  src/components/shell/SiteFooter.tsx    (replace stub)
+  src/content/site/footer.ts             (NEW — link list as data)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/site/footer.ts exports:
+       export const footerLinks = {
+         external: [
+           { label: "GitHub", href: "https://github.com/<user>" },
+           { label: "Email",  href: "mailto:..." },
+           { label: "LinkedIn", href: "https://linkedin.com/in/..." },
+         ],
+         site: [
+           { label: "Colophon", href: "/colophon" },     // optional, omit if no colophon page
+           { label: "Changelog", href: "/changelog" },   // omit if no changelog page in v2
+         ],
+       };
+     The implementer reads existing src/content/about/colophon.ts
+     and identity.ts to populate real values; values are placeholders
+     above.
+
+B2.  Layout: full-width strip at the bottom of every page. Border-top
+     1px var(--line). Inside Container size="wide". Two-column on
+     desktop:
+       Left: copyright line "© 2026 Michael Quintin" in var(--fg-faint),
+             var(--t-sm-size).
+       Right: cluster of links from footerLinks.external (and .site
+              if non-empty), separated by " · " in --fg-faint.
+     Single-column on mobile, stacked.
+
+B3.  External links use Link variant="subtle" external=true (so they
+     open in new tabs and get the ↗ glyph from suite 13/P05).
+
+B4.  No animations. No newsletter signup. No social icons. Plain text.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/shell/SiteFooter.tsx
+  test -f src/content/site/footer.ts
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a "Built with Next.js" line.
+  • Do NOT add an email subscription form.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

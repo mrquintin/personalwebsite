@@ -1,0 +1,59 @@
+21/P03 — ACCESSIBILITY AUDIT
+==============================
+
+GOAL
+----
+WCAG 2.1 AA pass on every route. Automated (axe) + manual (keyboard,
+screen reader spot-check).
+
+§A FILES TOUCHED
+----------------
+  e2e/a11y.spec.ts                       (NEW — axe-playwright sweep)
+  package.json                           (add @axe-core/playwright)
+  docs/v2_a11y.md                        (NEW — audit report)
+
+§B ACCEPTANCE
+-------------
+B1.  e2e/a11y.spec.ts runs axe against every route from suite 14/P04.
+     Asserts zero violations at "wcag2a" and "wcag2aa" levels.
+
+B2.  Manual keyboard test (documented in v2_a11y.md):
+       - Tab through every interactive element on each page.
+       - Verify focus visible at all times.
+       - Verify Escape closes the mobile drawer; Escape stops chat
+         streaming.
+       - Verify skip link works.
+
+B3.  Manual screen reader spot-check (VoiceOver on macOS or NVDA on
+     Windows; pick what's available, document):
+       - Landing: hero is announced as h1, sections are
+         navigable via headings.
+       - Project page: presentation deck announces "phase 2 of 4"
+         on advance.
+       - Chat: assistant messages announced as they complete.
+
+B4.  Color contrast: all foreground/background pairs meet WCAG AA.
+     Re-run the contrast table from suite 13/P02 and confirm.
+
+B5.  Reduced-motion: every animation has a no-motion path. Verify
+     in DevTools by toggling "prefers-reduced-motion" and clicking
+     through every interaction.
+
+B6.  Forms: every form field has an associated label (visible or
+     aria-labelledby). The chat textarea is the only form in v2.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npx playwright test e2e/a11y.spec.ts
+  test -f docs/v2_a11y.md
+
+§D NON-GOALS
+------------
+  • Do NOT pursue WCAG AAA. AA is the v2 floor.
+  • Do NOT add an a11y settings panel; OS-level prefers-reduced-motion
+    + theme is sufficient.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include axe violation count + manual
+notes

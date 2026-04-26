@@ -1,0 +1,70 @@
+/* ---------------------------------------------------------------------------
+ * typography.css — utility classes for the v2 type system.
+ * Two faces only: mono (technical + headlines) and serif (long-form prose).
+ * Sizes/line-heights/tracking come from tokens.css.
+ * --------------------------------------------------------------------------- */
+
+.t-headline {
+  font-family: var(--t-mono);
+  font-size: var(--t-3xl-size);
+  line-height: var(--t-3xl-lh);
+  letter-spacing: var(--t-tight);
+  font-weight: 600;
+}
+
+.t-h1 {
+  font-family: var(--t-mono);
+  font-size: var(--t-2xl-size);
+  line-height: var(--t-2xl-lh);
+  letter-spacing: var(--t-tight);
+  font-weight: 600;
+}
+
+.t-h2 {
+  font-family: var(--t-mono);
+  font-size: var(--t-xl-size);
+  line-height: var(--t-xl-lh);
+  letter-spacing: var(--t-tight);
+  font-weight: 600;
+}
+
+.t-h3 {
+  font-family: var(--t-mono);
+  font-size: var(--t-lg-size);
+  line-height: var(--t-lg-lh);
+  letter-spacing: var(--t-normal);
+  font-weight: 600;
+}
+
+.t-prose {
+  font-family: var(--t-serif);
+  font-size: var(--t-base-size);
+  line-height: var(--t-base-lh);
+  letter-spacing: var(--t-normal);
+  max-width: 64ch;
+}
+
+.t-mono-body {
+  font-family: var(--t-mono);
+  font-size: var(--t-base-size);
+  line-height: var(--t-base-lh);
+  letter-spacing: var(--t-normal);
+}
+
+.t-meta {
+  font-family: var(--t-mono);
+  font-size: var(--t-sm-size);
+  line-height: var(--t-sm-lh);
+  letter-spacing: var(--t-wide);
+  text-transform: uppercase;
+  color: var(--fg-mute);
+}
+
+.t-code {
+  font-family: var(--t-mono);
+  font-size: var(--t-sm-size);
+  line-height: var(--t-sm-lh);
+  background: var(--bg-mute);
+  padding: 0 4px;
+  border-radius: var(--r-1);
+}

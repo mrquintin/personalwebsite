@@ -1,0 +1,27 @@
+PROMPT SET 17 — SIMPLE PRESENTATIONS
+======================================
+
+CONTEXT
+-------
+The user's directive: "I love the little presentations. I think
+that they should be much simpler, though, and much more focused on
+just explaining what the products are and what they do, at a
+relatively simple level, like, not going too deep into them."
+
+v2 presentations are 3-5 phases of pure prose, click-through, no
+inline widgets. Embedded inside each project page (not standalone).
+
+DIFFERENCE FROM PRIOR SUITE 11 (archived)
+-----------------------------------------
+Suite 11 had 7-8 phase decks with pedagogical widgets per phase
+(quadrants, diamonds, sliders). v2 drops the widgets entirely. Per
+principle 4 (words over widgets): a paragraph that conveys the same
+point is preferred to a widget. The chassis stays small.
+
+SCOPE
+-----
+  P01  SimplePresentation chassis
+  P02  HVM 4-phase deck content
+  P03  PRP 4-phase deck content
+  P04  THS 4-phase deck content
+  P05  Mobile + a11y + tests

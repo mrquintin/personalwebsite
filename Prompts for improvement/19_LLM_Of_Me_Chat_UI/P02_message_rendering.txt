@@ -1,0 +1,88 @@
+19/P02 — MESSAGE RENDERING WITH MARKDOWN + CITATIONS
+========================================================
+
+GOAL
+----
+Render assistant messages with markdown formatting (paragraphs,
+emphasis, lists, code) AND citation markers like [c1] resolved to
+inline footnote links + a citations strip at the message footer.
+
+§A FILES TOUCHED
+----------------
+  src/components/llm/Message.tsx             (NEW)
+  src/components/llm/Citation.tsx            (NEW)
+  src/lib/llm/markdownRenderer.ts            (NEW — small markdown→React)
+  package.json                               (consider react-markdown + rehype-* OR a 50-line custom renderer; pick custom for bundle size unless markdown complexity demands otherwise)
+
+§B ACCEPTANCE
+-------------
+B1.  Message component:
+       Props: { role: "user" | "assistant", content: string,
+                citations?: { id: string; chunkId: string; snippet: string;
+                              path: string; heading?: string }[] }
+       Layout:
+         <article data-role={role}>
+           <header className="t-meta">
+             {role === "user" ? "you" : "the LLM"}
+           </header>
+           <div className="message-body">
+             {role === "user" ? <p>{content}</p> : <Markdown>{content}</Markdown>}
+           </div>
+           {citations && <CitationStrip items={citations} />}
+         </article>
+
+B2.  CSS:
+       [data-role="user"]      → mono font, color var(--fg-mute)
+       [data-role="assistant"] → serif font, color var(--fg)
+       Spacing between messages: var(--s-6).
+
+B3.  Markdown support (minimal subset):
+       - paragraphs (blank line separated)
+       - emphasis  *foo* / **foo**
+       - inline code `foo`
+       - fenced code blocks ```lang ... ```
+       - unordered lists - foo
+       - ordered lists 1. foo
+       - links [text](url)
+       - inline citations [c1] [c2] … rendered as superscript
+         <sup><a href="#cite-c1">[c1]</a></sup>
+     Headings (#, ##) are NOT rendered specially — chat answers
+     should be paragraphs, not subdocs. If the assistant emits a
+     heading, treat as a regular paragraph in bold.
+
+B4.  Citation component:
+       <CitationStrip>:
+         Renders below the message body, separated by a 1px var(--line)
+         hairline. For each citation:
+           [c1]  "<heading or filename>"  <kind · date>
+                 <Link href={hrefForChunk(chunkId)} variant="subtle">
+                   open source ↗
+                 </Link>
+       The hrefForChunk function returns a URL or anchor pointing at
+       the source if it's a public-facing site page (e.g., a project
+       page section), else null (in which case "open source ↗" is
+       omitted and only the metadata shows).
+
+B5.  Code blocks render with var(--bg-mute) background, mono font,
+     border-radius 0 (kept square for the techie aesthetic), padding
+     var(--s-3).
+
+B6.  Markdown renderer must NOT execute scripts (no dangerouslySetInnerHTML
+     of arbitrary HTML). All HTML produced is constructed via JSX,
+     no html-string injection.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/llm/Message.tsx
+  test -f src/components/llm/Citation.tsx
+  test -f src/lib/llm/markdownRenderer.ts
+  npx vitest run src/lib/llm/markdownRenderer.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT render images or HTML embeds in chat output.
+  • Do NOT add KaTeX / LaTeX support; flag as future work.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

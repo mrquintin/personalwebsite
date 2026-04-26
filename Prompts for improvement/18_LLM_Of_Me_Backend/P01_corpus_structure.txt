@@ -1,0 +1,96 @@
+18/P01 — CORPUS STRUCTURE AND MANIFEST
+==========================================
+
+GOAL
+----
+Define where the user's source material lives, how it's organized,
+and how the ingestion pipeline finds it.
+
+§A FILES TOUCHED
+----------------
+  corpus/                                (NEW directory at project root)
+  corpus/README.md                       (NEW — author guide)
+  corpus/manifest.schema.json            (NEW — JSON schema for manifest entries)
+  corpus/.gitignore                      (NEW — ignore raw drafts the user does not want public)
+  scripts/llm/manifestTypes.ts           (NEW — TypeScript types matching the schema)
+
+§B ACCEPTANCE
+-------------
+B1.  Directory structure (created empty; user fills):
+       corpus/
+         writings/
+           essays/      (long-form, .md)
+           notes/       (informal, .md or .txt)
+           posts/       (blog-style, .md)
+         conversations/
+           transcripts/ (.json — chat transcripts in a normalized shape)
+         project_notes/
+           hivemind/
+           purposeless-efficiency/
+           theseus/
+         manifest.json  (per-file metadata; see B3)
+
+B2.  README.md (concise, ~80 lines) explains:
+       - What goes where
+       - File formats accepted (.md, .txt, .json — ingest skips
+         .pdf, .docx; user must convert externally)
+       - How to mark a file "private" via the manifest
+       - How the manifest entries are picked up by ingestion
+       - How to mark a chunk "explicitly cite-okay" vs "background
+         only" — only cite-okay chunks may be quoted in chat
+         responses.
+
+B3.  manifest.json structure (validated by manifest.schema.json):
+       {
+         "version": "1",
+         "files": [
+           {
+             "path": "writings/essays/2025-01-coherence.md",
+             "title": "On coherence as a measure",
+             "kind": "essay" | "note" | "post" | "transcript" | "project-note",
+             "date": "2025-01-15",   // ISO 8601
+             "topics": ["hivemind", "coherence"],   // string array
+             "private": false,        // when true, skip ingestion entirely
+             "citeOkay": true,        // when false, embed but never quote
+             "voiceWeight": 1.0       // 0.0-2.0; nudges retrieval toward voice-rich material
+           }
+         ]
+       }
+
+B4.  manifestTypes.ts is the single TypeScript source of truth for
+     manifest entries. The JSON schema is generated FROM the .ts
+     types via a script (scripts/llm/genManifestSchema.ts) so the
+     two stay in sync. Document the regeneration command in README.
+
+B5.  .gitignore inside corpus/:
+       # Files the user does not want in version control:
+       /private/
+       *.private.md
+       *.private.txt
+     Plus instructions in README explaining how to use these.
+
+B6.  An empty seed corpus is committed: place a single example file
+     (a harmless one-paragraph fragment) at
+     corpus/writings/notes/seed.md and one matching manifest entry,
+     so the ingestion pipeline (P02) has something to run against
+     out of the box.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -d corpus
+  test -f corpus/manifest.schema.json
+  test -f corpus/manifest.json
+  test -f corpus/writings/notes/seed.md
+  npx tsx scripts/llm/genManifestSchema.ts && echo SCHEMA_REGENERATED
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT bulk-import all of src/content/ into the corpus
+    automatically. The user must opt files in via the manifest.
+  • Do NOT support PDF/DOCX in this prompt; flag as future work.
+  • Do NOT hard-code any of the user's actual content. The seed.md
+    is illustrative.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

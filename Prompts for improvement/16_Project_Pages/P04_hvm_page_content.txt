@@ -1,0 +1,58 @@
+16/P04 — HVM PROJECT PAGE CONTENT
+====================================
+
+GOAL
+----
+Author the HVM (Hivemind) project page content. Page composition only;
+the simple presentation deck content arrives in suite 17.
+
+§A FILES TOUCHED
+----------------
+  src/content/projects/hivemind/metadata.ts        (NEW)
+  src/components/projects/hivemind/Body.tsx        (NEW)
+  src/components/projects/hivemind/Links.tsx       (NEW)
+  src/content/projects/hivemind/body.ts            (NEW — prose data)
+
+§B ACCEPTANCE
+-------------
+B1.  metadata.ts exports a ProjectMetadata object for HVM. Tagline +
+     framing sourced from src/lib/coherenceEngine/* and existing
+     src/content/projects/hivemind/* (thesis.ts, capabilities.ts,
+     workflow.ts). seedQuestion = "what does Hivemind actually do?".
+
+B2.  body.ts defines the prose narrative as 4-6 sections:
+       - "What is Hivemind"
+       - "The product"
+       - "Why coherence matters"
+       - "What it isn't"
+       - "Status"
+     Each section: 1-3 short paragraphs of serif prose. Source from
+     existing repo content. The implementer flags any section that
+     cannot be sourced.
+
+B3.  Body.tsx renders body.ts via Prose + Anchor primitives. One
+     <Anchor id={slug}> per section heading.
+
+B4.  Links.tsx renders external project links if available
+     (GitHub repo, demo URL, paper) using primitives Cluster + Link
+     external=true. If no real links exist yet, render nothing
+     gracefully (no empty heading).
+
+B5.  Total page word count target: 600-1200 words excluding the
+     presentation deck. Per principle 2, longer pages bury the lede.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/projects/hivemind/metadata.ts
+  test -f src/components/projects/hivemind/Body.tsx
+  test -f src/components/projects/hivemind/Links.tsx
+  # word count rough check
+  wc -w src/content/projects/hivemind/body.ts
+
+§D NON-GOALS
+------------
+  • Do NOT include the simulation or live coherence-engine demo. Suite 18 may revisit if a small pedagogical widget is genuinely needed; this prompt is prose-only.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,63 @@
+16/P08 — RESUME PAGE
+======================
+
+GOAL
+----
+Rebuild /resume from existing content. Mirrors the visual style of
+/about. Includes a "Download as PDF" link.
+
+§A FILES TOUCHED
+----------------
+  src/app/resume/page.tsx                 (rewrite)
+  src/components/resume/                  (refactor v1 components if useful)
+  scripts/resume/build-pdf.ts             (NEW — generates PDF from page at build)
+  public/resume.pdf                       (generated; gitignored OR committed — choice below)
+
+§B ACCEPTANCE
+-------------
+B1.  Layout (top to bottom):
+       Identity header (name, current role, location, email)
+       Summary (1-paragraph)
+       Experience (timeline, reverse-chronological)
+       Skills (categorized list)
+       Education
+       Writing / publications (only if src/content/resume/writing.ts has entries)
+       Download CTA (Link to /resume.pdf with download attribute)
+
+B2.  Read all content from src/content/resume/*.ts. Refactor v1
+     components only if their structure cleanly maps. If not, write
+     fresh v2 components and migrate the data.
+
+B3.  PDF generation:
+       Choice: do you commit /public/resume.pdf or build it on demand?
+         (a) Build at deploy time via scripts/resume/build-pdf.ts.
+             Uses Puppeteer or Playwright headless to print
+             /resume?print=true to PDF. Run as part of `npm run build`
+             prepackage. NOT committed to git.
+         (b) Manually maintained PDF committed at /public/resume.pdf.
+             Lower complexity; user must remember to update.
+       Default: (a). The implementer must add the script and wire it
+       into the build pipeline. Document the choice in
+       docs/v2_dep_decisions.md.
+
+B4.  /resume?print=true is a print-stylesheet variant: hides nav,
+     hides footer, applies a print-friendly column. Reuse
+     src/styles/print.css from v1 if it still applies.
+
+B5.  Metadata: title="Resume", description matching identity.ts
+     summary.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/resume/page.tsx
+  test -f scripts/resume/build-pdf.ts        # if choice (a)
+  npm run build                               # PDF generation runs as part of this
+
+§D NON-GOALS
+------------
+  • Do NOT add interactive resume features (filters, expand/collapse).
+  • Do NOT include private / non-public information.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

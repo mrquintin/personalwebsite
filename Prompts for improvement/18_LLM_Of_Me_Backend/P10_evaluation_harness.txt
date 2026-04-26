@@ -1,0 +1,89 @@
+18/P10 — EVALUATION HARNESS
+==============================
+
+GOAL
+----
+A small evaluation suite that scores the LLM-of-me on two
+dimensions: groundedness (did it actually use the corpus?) and
+voice (does it sound like the user?). Run periodically; not gated
+on every commit.
+
+§A FILES TOUCHED
+----------------
+  evals/llm/                                  (NEW directory)
+  evals/llm/cases.ts                          (NEW — test cases)
+  evals/llm/groundedness.ts                   (NEW — checker)
+  evals/llm/voice.ts                          (NEW — checker)
+  evals/llm/run.ts                            (NEW — harness entry)
+  package.json                                (add "evals:llm" script)
+
+§B ACCEPTANCE
+-------------
+B1.  cases.ts exports 12-20 cases. Each case:
+       {
+         id: string;
+         question: string;
+         expectsRetrieval: boolean;     // should retrieve at least 1 chunk
+         expectsCitation: boolean;      // response should include [c?] markers
+         expectGroundedAt: string[];    // file paths the response should cite from
+         voiceTargets: { tells: number; avoids: number };  // expected min "tells", max "avoids"
+       };
+     Cases cover: project-specific Q (HVM/PRP/THS), bio Q,
+     out-of-scope Q (verifies graceful refusal), short Q, long Q,
+     ambiguous Q.
+
+B2.  groundedness.ts:
+       Given a case + actual response + retrieved citations,
+       computes:
+         - retrievalRecall: (expectGroundedAt ∩ retrieved.paths) / expectGroundedAt
+         - citationCoverage: how many [c?] markers in response
+         - factual deviation: a heuristic — extract NER-ish entities
+           from response, check whether each appears in retrieved
+           chunks. Misses are flagged.
+       Returns a 0-1 score plus per-criterion breakdown.
+
+B3.  voice.ts:
+       Counts occurrences of personaConfig.voice.tells (positive)
+       and personaConfig.voice.avoid (negative). Flags any "avoid"
+       phrase as a fail-stop. Returns a 0-1 score.
+
+B4.  run.ts:
+       For each case:
+         1. POST to /api/chat (or call the assembly pipeline directly
+            in test mode; pick one — direct call is faster and
+            doesn't burn rate limit)
+         2. Collect full response + citations
+         3. Score groundedness + voice
+         4. Aggregate
+       Output a markdown report at evals/llm/reports/<timestamp>.md
+       with per-case results + aggregate scores.
+
+B5.  Aggregate thresholds (advisory, not gating):
+       - Groundedness >= 0.75 across all in-scope cases
+       - Voice >= 0.70 across all cases
+       - Out-of-scope cases: 0 hallucinated facts, refused or
+         deflected gracefully.
+     Below threshold → report flags for human review; not a build
+     failure.
+
+B6.  package.json: "evals:llm": "tsx evals/llm/run.ts"
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -d evals/llm
+  test -f evals/llm/cases.ts
+  test -f evals/llm/run.ts
+  # Live run requires API keys + corpus; document in README that
+  # this is a manual / nightly check.
+
+§D NON-GOALS
+------------
+  • Do NOT add automated alarms / Slack pings yet. The output is
+    a markdown report.
+  • Do NOT use Anthropic-as-judge for voice evaluation. Phrase-list
+    comparison is sufficient at this stage; an LLM-judge can be
+    added in a later iteration.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

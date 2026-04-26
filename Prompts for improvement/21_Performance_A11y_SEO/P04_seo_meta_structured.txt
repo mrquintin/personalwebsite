@@ -1,0 +1,54 @@
+21/P04 — SEO META + STRUCTURED DATA
+=======================================
+
+GOAL
+----
+Every page has correct meta tags + structured data (JSON-LD) so
+search engines and other tools render the site correctly.
+
+§A FILES TOUCHED
+----------------
+  src/app/layout.tsx                     (modify — default metadata)
+  src/app/page.tsx                       (modify — landing metadata)
+  src/app/projects/[slug]/page.tsx       (modify — generateMetadata reads project.metadata)
+  src/app/about/page.tsx                 (metadata)
+  src/app/resume/page.tsx                (metadata)
+  src/app/chat/page.tsx                  (metadata)
+  src/components/seo/JsonLd.tsx          (extend — Person, Article, WebSite schemas)
+
+§B ACCEPTANCE
+-------------
+B1.  layout.tsx exports a metadataBase that reads NEXT_PUBLIC_SITE_URL
+     env var. Default canonical URLs flow from that base.
+
+B2.  Each page exports a generateMetadata or static metadata with:
+       - title (unique per page)
+       - description (unique, 110-155 chars)
+       - openGraph (title, description, type, url)
+       - twitter (card "summary_large_image", title, description)
+       - alternates.canonical (matches the route)
+       - robots (default index, follow; noindex on /styleguide)
+
+B3.  Structured data injected via <JsonLd>:
+       Sitewide (in layout): WebSite + Person schemas
+       Per project page: Article + about schema
+       /about: ProfilePage schema
+     Reference: schema.org. Validate via Google's Rich Results Test
+     after deploy.
+
+B4.  Sitewide Person schema includes:
+       name, jobTitle, url, sameAs (GitHub, LinkedIn from
+       footer.ts), description.
+
+§C VERIFICATION COMMANDS
+------------------------
+  curl -s http://localhost:3000/ | grep -E 'application/ld\+json|og:title|twitter:card' | head -10
+
+§D NON-GOALS
+------------
+  • Do NOT add tracking pixels (Google Analytics, etc.) in this
+    prompt. That's a deployment-time decision.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

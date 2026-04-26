@@ -1,0 +1,95 @@
+18/P05 — VECTOR STORE (POSTGRES + PGVECTOR)
+==============================================
+
+GOAL
+----
+Schema, migrations, and connection module for the corpus chunks
+stored in Vercel Postgres with the pgvector extension.
+
+§A FILES TOUCHED
+----------------
+  src/lib/llm/db.ts                      (NEW — connection)
+  src/lib/llm/store.ts                   (NEW — typed CRUD over chunks)
+  drizzle.config.ts                      (NEW — Drizzle config)
+  src/db/schema.ts                       (NEW — Drizzle schema)
+  src/db/migrations/                     (NEW — generated migration SQL)
+  scripts/llm/migrate.ts                 (NEW — runs migrations)
+  package.json                           (add deps: drizzle-orm, postgres, pgvector)
+
+§B ACCEPTANCE
+-------------
+B1.  Choose Drizzle ORM (lighter and more typed than Prisma; first-class
+     support for pgvector in 2026). Document choice in v2_dep_decisions.md.
+
+B2.  Schema (src/db/schema.ts):
+       chunks
+         id              uuid primary key
+         path            text not null              -- corpus file path
+         content_hash    text not null              -- file's sha256
+         chunk_index     int not null               -- ordinal within file
+         text            text not null
+         heading         text
+         section         text
+         topics          text[]                     -- from manifest
+         kind            text                       -- essay | note | etc
+         date            date
+         cite_okay       boolean not null default true
+         voice_weight    real not null default 1.0
+         embedding       vector(1024) not null
+         created_at      timestamptz default now()
+       indexes:
+         idx_chunks_path
+         idx_chunks_embedding   USING hnsw (embedding vector_cosine_ops)
+
+       ingest_state
+         path              text primary key
+         content_hash      text not null
+         chunk_count       int not null
+         last_ingested     timestamptz default now()
+
+B3.  db.ts initializes a single postgres-js client (read connection
+     string from POSTGRES_URL_NON_POOLING for migrations,
+     POSTGRES_URL for runtime). Drizzle-wraps it. Exports a typed
+     `db` instance.
+
+B4.  store.ts exposes:
+       upsertChunks(rows)
+       deleteChunksByPath(path)
+       getIngestState(path)
+       setIngestState(path, hash, count)
+       searchSimilar(queryEmbedding, k, filters?) — used by the retriever
+
+B5.  searchSimilar uses cosine distance via pgvector (<=> operator)
+     and returns top-k chunks with their metadata + similarity score.
+     Filters supported: kind, topics (any-of), cite_okay (default true).
+
+B6.  scripts/llm/migrate.ts runs Drizzle's migration command on the
+     schema. Adds an entry in package.json:
+       "db:migrate": "tsx scripts/llm/migrate.ts"
+       "db:generate": "drizzle-kit generate"
+
+B7.  pgvector extension creation: the first migration must include
+     `CREATE EXTENSION IF NOT EXISTS vector;`. Document in deployment
+     guide that Vercel Postgres has pgvector available out of the
+     box; if using a different Postgres, the extension must be
+     installed.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/lib/llm/db.ts
+  test -f src/db/schema.ts
+  test -d src/db/migrations
+  npm run db:generate                     # produces migration SQL
+  # Live DB test only runs if POSTGRES_URL is set
+  [ -n "$POSTGRES_URL" ] && npm run db:migrate || echo "Skipping live migration"
+
+§D NON-GOALS
+------------
+  • Do NOT pick Prisma. Drizzle is leaner here.
+  • Do NOT add Pinecone as an alternative implementation in this
+    prompt. The Postgres approach is sufficient and avoids a second
+    vendor.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

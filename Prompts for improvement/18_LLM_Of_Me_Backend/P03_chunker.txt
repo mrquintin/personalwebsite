@@ -1,0 +1,77 @@
+18/P03 — CHUNKER
+==================
+
+GOAL
+----
+Split source documents into chunks suitable for embedding and
+retrieval. Chunks must be self-contained enough that quoting one
+in a chat answer reads as coherent prose, not a sliced fragment.
+
+§A FILES TOUCHED
+----------------
+  scripts/llm/chunker.ts                 (NEW)
+  scripts/llm/chunker.test.ts            (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Function signature:
+       export type Chunk = {
+         text: string;          // ~400-800 tokens of content
+         charStart: number;     // offset in original document
+         charEnd: number;
+         heading?: string;      // nearest enclosing markdown heading
+         section?: string;      // section path "H1 > H2 > H3" if multiple
+       };
+       export function chunkDocument(
+         content: string,
+         opts?: { targetTokens?: number; overlapTokens?: number; format?: "md" | "txt" | "transcript" }
+       ): Chunk[];
+
+B2.  Defaults: targetTokens = 600, overlapTokens = 80.
+
+B3.  Markdown-aware behavior:
+       - Splits prefer paragraph boundaries, then sentence boundaries.
+       - If a heading is encountered, the chunk inherits its heading
+         in chunk.heading.
+       - Headings ATX-style (# ## ###) tracked into chunk.section.
+       - Code fences are kept intact; never split mid-fence.
+       - Inline links are preserved verbatim in chunk text.
+
+B4.  Transcript format (.json):
+       Expected shape:
+         { messages: [{ role: "user" | "assistant", content: string,
+                        timestamp?: string }, ...] }
+       Chunking groups messages into logical exchanges:
+         - Open a chunk on a user turn
+         - Close after at most 3 user-assistant pairs OR when
+           targetTokens reached
+         - chunk.heading = first user turn's first 60 chars
+
+B5.  Tokenization: use Anthropic's official tokenizer
+     (@anthropic-ai/tokenizer or the SDK's count_tokens helper). Do
+     NOT approximate via 4 chars per token — the persona prompt
+     budget depends on accurate counts.
+
+B6.  Tests in chunker.test.ts verify:
+       - Markdown with 3 headings + 5 paragraphs produces chunks
+         with correct .section and .heading
+       - Code fences are not split
+       - A 5000-char document produces multiple chunks with overlap
+       - Transcript with 6 exchanges produces 2 chunks (2 exchanges
+         each, plus overflow)
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f scripts/llm/chunker.ts
+  npx vitest run scripts/llm/chunker.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT use semantic chunking via embeddings (chunk-then-embed
+    approach is sufficient; semantic chunking adds an extra
+    embedding pass per file).
+  • Do NOT support PDF chunking.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

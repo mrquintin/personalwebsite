@@ -1,0 +1,497 @@
+{
+  "config": {
+    "configFile": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/playwright.smoke.config.ts",
+    "rootDir": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 8
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 8
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke-deployed.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "smoke-results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "smoke-deployed.spec.ts",
+      "file": "smoke-deployed.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "deployed smoke",
+          "file": "smoke-deployed.spec.ts",
+          "line": 13,
+          "column": 6,
+          "specs": [
+            {
+              "title": "GET / returns 200 and h1 is visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 558,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.308Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-203bfcec3cef9c57e591",
+              "file": "smoke-deployed.spec.ts",
+              "line": 14,
+              "column": 7
+            },
+            {
+              "title": "GET /projects renders three project cards",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 593,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-dbb41568d022d086f005",
+              "file": "smoke-deployed.spec.ts",
+              "line": 21,
+              "column": 7
+            },
+            {
+              "title": "GET /projects/hivemind returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 147,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.310Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-308d6fec88ec3e9b8e42",
+              "file": "smoke-deployed.spec.ts",
+              "line": 37,
+              "column": 9
+            },
+            {
+              "title": "GET /projects/purposeless-efficiency returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 169,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.294Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-6a4648863b7010a3dcb7",
+              "file": "smoke-deployed.spec.ts",
+              "line": 37,
+              "column": 9
+            },
+            {
+              "title": "GET /projects/theseus returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 156,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.311Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-190cc601619ceef859c5",
+              "file": "smoke-deployed.spec.ts",
+              "line": 37,
+              "column": 9
+            },
+            {
+              "title": "GET /about returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 151,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.302Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-09063497fd1ae48c1c5b",
+              "file": "smoke-deployed.spec.ts",
+              "line": 43,
+              "column": 7
+            },
+            {
+              "title": "GET /resume returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 146,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.304Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-2304931476fb23f98af4",
+              "file": "smoke-deployed.spec.ts",
+              "line": 48,
+              "column": 7
+            },
+            {
+              "title": "GET /chat returns 200 and textarea is visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 566,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.314Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-7cad679b3421297818b1",
+              "file": "smoke-deployed.spec.ts",
+              "line": 53,
+              "column": 7
+            },
+            {
+              "title": "GET /sitemap.xml returns 200 with xml content-type",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 30,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.501Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-0b97c3a574daed7d68ce",
+              "file": "smoke-deployed.spec.ts",
+              "line": 65,
+              "column": 7
+            },
+            {
+              "title": "GET /robots.txt returns 200 and contains a Sitemap entry",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 34,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.501Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-456b28f96d1d3d86889c",
+              "file": "smoke-deployed.spec.ts",
+              "line": 74,
+              "column": 7
+            },
+            {
+              "title": "POST /api/chat streams at least one token (SSE)",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 412,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/event:\\s*token\\r?\\ndata:/\u001b[39m\nReceived string:  \u001b[31m\"event: error\u001b[39m\n\u001b[31mdata: {\\\"error\\\":\\\"stream_failed\\\",\\\"detail\\\":\\\"Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the \\\\\\\"X-Api-Key\\\\\\\" or \\\\\\\"Authorization\\\\\\\" headers to be explicitly omitted\\\"}·\u001b[39m\n\u001b[31m\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/event:\\s*token\\r?\\ndata:/\u001b[39m\nReceived string:  \u001b[31m\"event: error\u001b[39m\n\u001b[31mdata: {\\\"error\\\":\\\"stream_failed\\\",\\\"detail\\\":\\\"Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the \\\\\\\"X-Api-Key\\\\\\\" or \\\\\\\"Authorization\\\\\\\" headers to be explicitly omitted\\\"}·\u001b[39m\n\u001b[31m\"\u001b[39m\n    at /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/smoke-deployed.spec.ts:100:18",
+                        "location": {
+                          "file": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/smoke-deployed.spec.ts",
+                          "column": 18,
+                          "line": 100
+                        },
+                        "snippet": "   98 |     // least one token frame is present. The route emits `event: token`\n   99 |     // followed by a JSON-encoded data line for each token.\n> 100 |     expect(body).toMatch(/event:\\s*token\\r?\\ndata:/);\n      |                  ^\n  101 |   });\n  102 | });\n  103 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/smoke-deployed.spec.ts",
+                            "column": 18,
+                            "line": 100
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/event:\\s*token\\r?\\ndata:/\u001b[39m\nReceived string:  \u001b[31m\"event: error\u001b[39m\n\u001b[31mdata: {\\\"error\\\":\\\"stream_failed\\\",\\\"detail\\\":\\\"Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the \\\\\\\"X-Api-Key\\\\\\\" or \\\\\\\"Authorization\\\\\\\" headers to be explicitly omitted\\\"}·\u001b[39m\n\u001b[31m\"\u001b[39m\n\n   98 |     // least one token frame is present. The route emits `event: token`\n   99 |     // followed by a JSON-encoded data line for each token.\n> 100 |     expect(body).toMatch(/event:\\s*token\\r?\\ndata:/);\n      |                  ^\n  101 |   });\n  102 | });\n  103 |\n    at /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/smoke-deployed.spec.ts:100:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-26T01:38:35.505Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/test-results/smoke-deployed-deployed-sm-9864d-ams-at-least-one-token-SSE--chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/test-results/smoke-deployed-deployed-sm-9864d-ams-at-least-one-token-SSE--chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/smoke-deployed.spec.ts",
+                        "column": 18,
+                        "line": 100
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3e0dd69a93a5dc00e3d5-55f75b721e07b40139da",
+              "file": "smoke-deployed.spec.ts",
+              "line": 83,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-04-26T01:38:34.401Z",
+    "duration": 1720.312,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

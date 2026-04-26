@@ -1,0 +1,85 @@
+17/P01 — SIMPLE PRESENTATION CHASSIS
+=======================================
+
+GOAL
+----
+A small reusable click-through component. 3-5 phases per deck.
+No widgets. No CTA. Plain text, prev/next, dot indicator.
+
+§A FILES TOUCHED
+----------------
+  src/components/presentation/SimplePresentation.tsx     (NEW)
+  src/components/presentation/types.ts                   (NEW)
+  src/components/presentation/__tests__/SimplePresentation.test.tsx (NEW)
+  src/styles/presentation.css                            (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Types:
+       export type Phase = {
+         id: string;
+         heading: string;
+         body: React.ReactNode;
+       };
+       export type DeckProps = {
+         id: string;
+         title: string;
+         phases: Phase[];   // 3-5 phases enforced at runtime
+       };
+
+B2.  Component renders:
+       Surface tone="raise" border padding=6
+         <Cluster gap=3 align="baseline">
+           <h3 className="t-h3">{title}</h3>
+           <span className="t-meta">phase {n} of {N}</span>
+         </Cluster>
+         <h4 className="t-h3" tabIndex={-1} ref={headingRef}>{phase.heading}</h4>
+         <Prose>{phase.body}</Prose>
+         <Cluster gap=3 align="center">
+           <Button onClick={prev} disabled={n===1}>← previous</Button>
+           <Dot indicator />
+           <Button onClick={next} disabled={n===N}>next →</Button>
+         </Cluster>
+
+B3.  Behavior:
+       - Click prev/next or press ←/→
+       - Click a dot to jump
+       - Press 1..5 to jump
+       - Phase transition: opacity fade-out 180ms + fade-in 320ms
+         using --ease-out
+       - Reduced motion: instant swap
+       - Focus moves to the phase heading on advance
+
+B4.  No widget slot. body is React node — author writes JSX or
+     returns a Prose-formatted block from data.
+
+B5.  No "show technical demo" CTA. No onComplete callback. Last
+     phase's next button disables.
+
+B6.  ARIA: role="region", aria-label={title}, phase area has
+     aria-live="polite".
+
+B7.  Tests:
+       - renders phase 1 by default
+       - prev/next navigation works (click + keyboard)
+       - dot click jumps
+       - phases.length < 3 throws
+       - phases.length > 5 throws
+       - focus moves to heading on advance
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/presentation/SimplePresentation.tsx
+  test -f src/components/presentation/types.ts
+  npx vitest run src/components/presentation/__tests__/SimplePresentation.test.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT add widget support.
+  • Do NOT add markdown rendering. body is React; callers compose JSX.
+  • Do NOT add slide/translate transitions. Fade-only.
+  • Do NOT add autoplay, progress timer, or "1 of N" countdown.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

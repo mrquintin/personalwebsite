@@ -1,4 +1,4 @@
-import type { Project } from "./types";
+import type { Project, ProjectMetadata } from "./types";
 import hvm from "@/content/projects/hivemind";
 import prp from "@/content/projects/purposeless-efficiency";
 import ths from "@/content/projects/theseus";
@@ -15,4 +15,19 @@ export function loadProjects(): Project[] {
 
 export function getProject(slug: string): Project | undefined {
   return ALL.find((p) => p.slug === slug);
+}
+
+const KNOWN_SLUGS = new Set(["hivemind", "purposeless-efficiency", "theseus"]);
+
+export async function getProjectMetadata(
+  slug: string,
+): Promise<ProjectMetadata | null> {
+  if (!KNOWN_SLUGS.has(slug)) return null;
+  try {
+    const mod = await import(`@/content/projects/${slug}/metadata`);
+    const meta = (mod.metadata ?? mod.default) as ProjectMetadata | undefined;
+    return meta ?? null;
+  } catch {
+    return null;
+  }
 }

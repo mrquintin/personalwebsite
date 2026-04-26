@@ -1,0 +1,66 @@
+21/P05 — SITEMAP + ROBOTS
+============================
+
+GOAL
+----
+Generate a sitemap.xml and serve a sensible robots.txt.
+
+§A FILES TOUCHED
+----------------
+  next-sitemap.config.js                 (modify if exists, else NEW)
+  public/robots.txt                      (NEW)
+  package.json                           (postbuild hook for next-sitemap if not present)
+
+§B ACCEPTANCE
+-------------
+B1.  next-sitemap config:
+       - siteUrl: process.env.NEXT_PUBLIC_SITE_URL
+       - generateRobotsTxt: true
+       - exclude: ['/styleguide', '/api/*']
+       - additionalPaths: include the three /projects/<slug> URLs
+       - changefreq: monthly for content pages, weekly for /chat
+       - priority: home 1.0, projects 0.8, about/resume 0.7, chat 0.6
+
+B2.  robots.txt content:
+       User-agent: *
+       Allow: /
+       Disallow: /styleguide
+       Disallow: /api/
+
+       # AI crawlers — explicit policy. Default: allow Anthropic and
+       # OpenAI for indexing the public content (the user can revise);
+       # block training crawlers known to ignore the site's intent.
+       User-agent: GPTBot
+       Allow: /
+
+       User-agent: ClaudeBot
+       Allow: /
+
+       User-agent: CCBot
+       Disallow: /
+
+       Sitemap: ${NEXT_PUBLIC_SITE_URL}/sitemap.xml
+
+     The implementer flags any AI-crawler decision the user might
+     want to revise — the defaults above are reasonable but
+     opinionated.
+
+B3.  postbuild script in package.json:
+       "postbuild": "next-sitemap"
+     so a fresh sitemap is generated each deploy.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npm run build
+  test -f public/sitemap.xml || test -f public/sitemap-0.xml
+  test -f public/robots.txt
+  cat public/robots.txt | head -10
+
+§D NON-GOALS
+------------
+  • Do NOT submit to search consoles automatically; that's a manual
+    deployment-time step.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,53 @@
+19/P04 — CONVERSATION HISTORY (IN-SESSION + OPTIONAL PERSIST)
+=================================================================
+
+GOAL
+----
+Conversations live in memory by default. Optional opt-in
+localStorage persistence so the user can return to a chat after
+refresh.
+
+§A FILES TOUCHED
+----------------
+  src/components/llm/useChat.ts          (modify — persistence layer)
+  src/components/llm/ChatHeader.tsx      (modify — add persistence toggle)
+
+§B ACCEPTANCE
+-------------
+B1.  Persistence is OPT-IN via a small toggle in the chat header:
+       "Save this conversation locally"
+     Default: off. When on, useChat persists messages to
+     localStorage["llm.chat.history.v1"] on every state change.
+     When off, messages clear on page navigation.
+
+B2.  On mount, useChat reads localStorage. If history exists AND the
+     toggle preference is on, restore messages. Otherwise, start fresh.
+
+B3.  History size cap: 100 messages. Older messages are trimmed
+     (FIFO). The trimmed messages are NOT sent to the server in
+     subsequent submits — only the last 40 messages are included
+     in the API request payload (matches server-side validation).
+
+B4.  Cross-tab sync: if the user opens /chat in two tabs and persists
+     is on, the second tab observes localStorage events and updates.
+     Optional but cheap; implement only if straightforward.
+
+B5.  Clear-history button (in P05) wipes both in-memory and
+     persisted state.
+
+B6.  Privacy: a small note under the toggle reads:
+       "Saved locally on your device. Never sent to the server."
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -n 'llm.chat.history' src/components/llm/useChat.ts
+
+§D NON-GOALS
+------------
+  • Do NOT persist server-side. Per principle 1's spirit (visitors
+    can always leave) — sessions are ephemeral by default.
+  • Do NOT add export-to-file in this prompt. Future work.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

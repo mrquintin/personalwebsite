@@ -1,0 +1,79 @@
+20/P01 — VOICE GUIDE REFRESH
+==============================
+
+GOAL
+----
+Refresh docs/voice-guide.md to reflect v2's explanatory tone.
+This guide is consulted by every later prompt that authors copy.
+
+§A FILES TOUCHED
+----------------
+  docs/voice-guide.md                    (rewrite)
+  src/content/forbidden-words.ts         (refresh banned-list)
+
+§B ACCEPTANCE
+-------------
+B1.  voice-guide.md sections:
+       ## What v2 sounds like
+         3 paragraphs describing the v2 register: declarative,
+         calibrated, sometimes wry, never grandstanding. The
+         contrast with v1 (which leaned into terminology and
+         atmosphere) is named explicitly.
+
+       ## Diction principles
+         - Concrete over abstract.
+         - One claim per sentence.
+         - Avoid jargon unless defined in the same paragraph.
+         - First person ("I think", "I'm working on") over passive
+           voice or institutional plurals.
+         - Numbers when meaningful; otherwise plain language.
+
+       ## Sentence-length rhythm
+         Vary. The guide gives one example paragraph that
+         demonstrates a long-medium-short cadence.
+
+       ## What to avoid
+         - "synergy", "ecosystem" (corporate-speak)
+         - "literally" as intensifier
+         - "leverage" as verb
+         - exclamation marks
+         - emojis in body copy
+         - hedges that erase the claim ("perhaps maybe possibly")
+         - rhetorical questions in headers
+
+       ## Voice samples
+         3-5 short paragraphs (400-800 words total) drawn from
+         existing repo content (essays, biography, project
+         descriptions) that exemplify the v2 voice. These are also
+         the seed for src/content/llm/voiceSamples.ts (suite 18/P08).
+
+       ## When the LLM-of-me speaks
+         Defines that the LLM uses this same voice. Explicitly notes
+         when the LLM should fall back to plain explanation rather
+         than imitating the register (e.g., when speaking to a
+         clearly novice visitor).
+
+B2.  src/content/forbidden-words.ts updated to enforce the "what to
+     avoid" list. A simple build-time linter (already exists or
+     needs adding via prose-lint script — confirm before adding)
+     scans content/* for matches. Per-occurrence override allowed
+     via /* voice-allow */ comment in the source.
+
+B3.  Tone calibration: every section heading + every example in the
+     guide is itself written in v2 voice. The guide IS its own demo.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f docs/voice-guide.md
+  grep -cE '^## ' docs/voice-guide.md   # at least 6 sections
+  test -f src/content/forbidden-words.ts
+
+§D NON-GOALS
+------------
+  • Do NOT include audio voice samples.
+  • Do NOT mandate first-person everywhere; some site chrome (e.g.,
+    "Resume" page heading) reads better in third-person.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

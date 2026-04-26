@@ -1,0 +1,59 @@
+13/P04 — MOTION TOKENS AND CURVES
+====================================
+
+GOAL
+----
+A small motion vocabulary. Per principle 8: motion is functional.
+Per principle 10: every animation has a no-motion path.
+
+§A FILES TOUCHED
+----------------
+  src/styles/tokens.css                  (replace motion section)
+  docs/v2_motion_guide.md                (NEW — short reference)
+
+§B ACCEPTANCE
+-------------
+B1.  Duration scale:
+       --d-instant:  0ms;
+       --d-tap:      80ms;     (button press feedback)
+       --d-fast:     160ms;    (focus ring, hover state)
+       --d-norm:     280ms;    (page transition fade)
+       --d-slow:     480ms;    (chat message arrival)
+
+B2.  Easing curves:
+       --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);     (everything that decelerates to rest)
+       --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);      (state toggles)
+       --ease-linear: linear;                             (text streaming reveals)
+
+B3.  Reduced-motion override block at the bottom of tokens.css:
+       @media (prefers-reduced-motion: reduce) {
+         :root {
+           --d-tap: 0ms; --d-fast: 0ms; --d-norm: 0ms; --d-slow: 0ms;
+         }
+       }
+     --d-instant intentionally absent (it's already 0).
+
+B4.  docs/v2_motion_guide.md (≤ 80 lines) covers:
+       - The five durations with one example use-case each
+       - The three curves with rationale
+       - The reduced-motion contract (instant fades, no slides, no
+         translate transforms)
+       - "What we don't do": parallax, scroll-driven background
+         animation, decorative orbiting elements, mouse-tracking
+         effects.
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -cE '^\s*--d-(instant|tap|fast|norm|slow):' src/styles/tokens.css   # exactly 5
+  grep -cE '^\s*--ease-(out|in-out|linear):' src/styles/tokens.css        # exactly 3
+  awk '/prefers-reduced-motion/,/^}/' src/styles/tokens.css | grep -cE '0ms'   # at least 4
+  test -f docs/v2_motion_guide.md
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a spring or physics-based easing.
+  • Do NOT introduce framer-motion or GSAP. CSS transitions only.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

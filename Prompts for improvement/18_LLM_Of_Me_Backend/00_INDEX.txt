@@ -1,0 +1,73 @@
+PROMPT SET 18 — LLM-OF-ME BACKEND
+====================================
+
+CONTEXT
+-------
+Build the server-side machinery for an LLM that "represents the
+user's brain" via RAG over their writings, conversations, and notes.
+The user described it as: "a kind of model that represents me, my
+thinking and my thoughts, plugged into using rag, for an LLM to
+generate from that material."
+
+ARCHITECTURE — DEFAULTS
+-----------------------
+LLM:           Anthropic Claude API. The user already pays for this
+               service; using it for chat keeps everything on one
+               provider. Model: claude-opus-4-7 for quality, with
+               an option to fall back to claude-sonnet for cost
+               control during testing.
+Embeddings:    Voyage AI's voyage-3 model (Anthropic's recommended
+               embeddings partner) OR OpenAI text-embedding-3-large.
+               Default: Voyage. Reason: Anthropic's documented
+               recommendation, no second vendor needed for chat
+               vs embeddings if Voyage is acceptable. The user can
+               switch to OpenAI by changing one env var + import.
+Vector store:  Vercel Postgres + pgvector extension. Reasons:
+               Vercel-native (the site hosts there), pgvector is
+               mature in 2026, no separate vendor. Alternative
+               (Pinecone) is flagged in the implementer's choice
+               doc but not the default.
+Persona:       A system prompt assembled from a small "voice
+               document" (src/content/llm/persona.ts) plus retrieved
+               corpus chunks for the specific query.
+Streaming:     Anthropic SDK's stream API, surfaced through a
+               Next.js Route Handler that streams tokens to the
+               client via Server-Sent Events.
+Rate limit:    Per-IP, sliding window, ~20 messages per hour, 100
+               per day. Implemented via Vercel KV (Redis) for low
+               latency.
+
+WHAT THIS SUITE PRODUCES
+-------------------------
+At the end of suite 18, a developer can:
+  1. Drop text/markdown files into corpus/
+  2. Run `npx tsx scripts/llm/ingest.ts`  → embeds + stores chunks
+  3. Hit POST /api/chat with a question → receive a streaming
+     answer grounded in retrieved chunks, in the user's voice,
+     with citations referencing the source chunks.
+
+ENVIRONMENT VARIABLES (set in Vercel + .env.local)
+--------------------------------------------------
+  ANTHROPIC_API_KEY            # the user already has one
+  VOYAGE_API_KEY               # required for embeddings
+  POSTGRES_URL                 # provided by Vercel Postgres integration
+  POSTGRES_URL_NON_POOLING     # provided by Vercel
+  KV_URL or REDIS_URL          # provided by Vercel KV / Upstash
+  KV_REST_API_URL              # provided by Vercel KV
+  KV_REST_API_TOKEN            # provided by Vercel KV
+  LLM_MODEL                    # default "claude-opus-4-7"
+  LLM_RATE_LIMIT_HOUR          # default "20"
+  LLM_RATE_LIMIT_DAY           # default "100"
+
+SCOPE
+-----
+  P01  Corpus structure + manifest
+  P02  Ingestion CLI script
+  P03  Chunker
+  P04  Embedder (Voyage; fallback OpenAI)
+  P05  Vector store schema + connection (Postgres + pgvector)
+  P06  Retriever
+  P07  RAG prompt assembly
+  P08  Persona system prompt
+  P09  Streaming chat API route + rate limiter
+  P10  Evaluation harness (groundedness + voice consistency)

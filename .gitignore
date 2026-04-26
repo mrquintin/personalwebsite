@@ -9,6 +9,10 @@ node_modules/
 out/
 build/
 
+# Generated artifacts
+public/resume.pdf
+scripts/llm/.ingest-state.json
+
 # Misc
 .DS_Store
 Thumbs.db

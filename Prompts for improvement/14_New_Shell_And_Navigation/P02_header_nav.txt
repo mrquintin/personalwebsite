@@ -1,0 +1,67 @@
+14/P02 — HEADER AND PRIMARY NAV
+==================================
+
+GOAL
+----
+A compact, always-visible header carrying the site identity and
+five nav links. Per principle 5: present on every page.
+
+§A FILES TOUCHED
+----------------
+  src/components/shell/SiteHeader.tsx    (replace stub from P01)
+  src/components/shell/NavLink.tsx       (NEW — knows about active state)
+  src/components/shell/SkipLink.tsx      (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Layout: full-width strip, height 56px (desktop) / 52px (mobile).
+     Uses Container size="wide" inside. Border-bottom: 1px var(--line).
+     Background: var(--bg) (matches page bg, no separate header bg).
+
+B2.  Left side: site identity. Mono text, var(--t-md-size), weight 600:
+       "michael quintin"   (lowercase intentional, mono aesthetic)
+     Wraps in <Link href="/" variant="subtle"> — clicking returns
+     to landing. NOT a logo image.
+
+B3.  Right side (desktop, >=768px): horizontal nav with five items
+     using NavLink. Each NavLink:
+       Props: href, label
+       Active state: when pathname starts with href (or === "/" when
+       label === "Home"), the link's text color is var(--fg) and
+       text-decoration is var(--accent) underline 2px. Inactive
+       state: text color var(--fg-mute), no underline.
+       Hover: text color var(--fg), underline appears in --line-strong.
+       Transitions on color/text-decoration over var(--d-fast).
+
+B4.  Right side (mobile, <768px): a hamburger button that opens the
+     mobile drawer (P05 implements the drawer; P02 includes the
+     button stub that toggles a state lifted to a context or zustand
+     slice; pick whatever the project uses for shared state. If
+     none exists, use React context).
+
+B5.  SkipLink renders before everything else, visually-hidden until
+     focused; on focus it appears as a button at the top-left
+     reading "Skip to content". Pressing Enter focuses #main.
+
+B6.  ARIA: header gets role="banner". The nav gets aria-label="Primary".
+     Active nav link gets aria-current="page".
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/shell/SiteHeader.tsx
+  test -f src/components/shell/NavLink.tsx
+  test -f src/components/shell/SkipLink.tsx
+  # active state: check that NavLink reads usePathname
+  grep -n 'usePathname' src/components/shell/NavLink.tsx
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a search box. /chat IS the search interface.
+  • Do NOT make the header sticky on mobile (creates iOS Safari
+    keyboard issues with /chat).
+  • Do NOT animate the nav-link active underline; it appears
+    instantly on route change.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,50 @@
+16/P06 — THS PROJECT PAGE CONTENT
+====================================
+
+GOAL
+----
+Author the THS (Theseus) project page content.
+
+§A FILES TOUCHED
+----------------
+  src/content/projects/theseus/metadata.ts        (NEW)
+  src/components/projects/theseus/Body.tsx        (NEW)
+  src/components/projects/theseus/Links.tsx       (NEW)
+  src/content/projects/theseus/body.ts            (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  metadata.ts: tagline + framing sourced from existing
+     src/lib/theseus/* (ordersDeck.ts, thesisAxes.ts, sources.ts) and
+     src/content/projects/theseus/* (thesis.ts, methodology.ts,
+     principles.ts). seedQuestion = "what does the Theseus project
+     argue about identity?".
+
+B2.  body.ts narrates 4-6 sections:
+       - "The Ship of Theseus, briefly"
+       - "Three orders of identity change"
+       - "Severity"
+       - "Refusal cases"
+       - "Fixed points"
+       - "Status"
+
+B3.  Source-fidelity rule applies. Every named order, every named
+     principle, every example case grounded in existing files.
+
+B4.  Body.tsx + Links.tsx: same patterns as 16/P04.
+
+B5.  Word count: 600-1200.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/projects/theseus/metadata.ts
+  test -f src/components/projects/theseus/Body.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT include PrincipleGraph or NoosphereConsole.
+  • Do NOT add philosophy not in repo content.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

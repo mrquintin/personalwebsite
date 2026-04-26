@@ -1,0 +1,57 @@
+20/P05 — MICROCOPY SWEEP
+===========================
+
+GOAL
+----
+Update every short string the user sees: button labels, error
+messages, empty states, form placeholders, confirmation prompts.
+
+§A FILES TOUCHED
+----------------
+  src/content/microcopy.ts               (rewrite)
+  any component that hardcodes strings   (refactor to read from microcopy.ts)
+
+§B ACCEPTANCE
+-------------
+B1.  microcopy.ts is the single source for visitor-facing strings.
+     Organized by surface:
+       export const microcopy = {
+         nav: { home, projects, about, resume, chat, openMenu, closeMenu, skipToContent, ...},
+         buttons: { ask, retry, clear, copy, copied, stop, prev, next, submit, ... },
+         errors: { rateLimited, serverError, networkLost, validation, empty, ... },
+         emptyStates: { noResults, noConversation, noProjects, ... },
+         confirms: { clearChat, ... },
+         placeholders: { chatInput, ... },
+         meta: { phaseCounter: (n,N) => `phase ${n} of ${N}`, ... },
+       };
+
+B2.  Every string follows the voice guide: lowercase friendly mono
+     for buttons (e.g., "ask" not "Ask"); sentence case for prose;
+     no exclamations.
+
+B3.  Every component that previously hard-coded a label imports
+     microcopy and uses it. Document the migration scope in the
+     IMPL_RESULT (number of strings centralized).
+
+B4.  Forbidden-words linter passes against microcopy.ts.
+
+B5.  Internationalization-ready: keys are stable strings; values
+     can later be wrapped in a translation function. Don't add i18n
+     in this prompt; just leave the door open by structuring keys
+     well.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/microcopy.ts
+  # find component-hardcoded strings (heuristic)
+  grep -nE '"[A-Za-z][^"]{2,40}"' src/components/ | grep -v '/_legacy_v1/' | wc -l
+  # the count should drop substantially after migration; document the before/after.
+
+§D NON-GOALS
+------------
+  • Do NOT add a translation pipeline.
+  • Do NOT touch _legacy_v1 strings.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

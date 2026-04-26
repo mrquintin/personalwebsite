@@ -1,4 +1,37 @@
-/* print stylesheet — clean dossier output */
+/* print stylesheet — clean dossier output
+ * Active when the page is actually being printed (@media print) AND
+ * when /resume?print=true sets `body.print-mode` for headless PDF capture
+ * and the print preview view in a normal browser.
+ */
+
+:where(body.print-mode) {
+  --bg-0: #ffffff; --bg-1: #ffffff; --bg-2: #ffffff; --bg-3: #ffffff;
+  --rule: #000000;
+  --fg: #000000; --fg-hi: #000000; --fg-dim: #222222; --fg-mute: #555555;
+  --accent: #000000; --accent-dim: #000000;
+  background: #ffffff;
+  color: #000000;
+}
+
+body.print-mode .shell-header,
+body.print-mode .shell-footer,
+body.print-mode .shell-mobile-drawer,
+body.print-mode .skip-link,
+body.print-mode [data-affordance],
+body.print-mode [data-skip-print="true"] {
+  display: none !important;
+}
+
+body.print-mode #main {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+body.print-mode a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 @media print {
   :root {
     --bg-0: #ffffff; --bg-1: #ffffff; --bg-2: #ffffff; --bg-3: #ffffff;
@@ -8,6 +41,7 @@
   }
   body { background: #fff; color: #000; }
   .no-print, .status-bar, .top-rail, .palette-mount, .boot-overlay,
+  .shell-header, .shell-footer, .shell-mobile-drawer, .skip-link,
   [data-affordance], [data-skip-print="true"] { display: none !important; }
   a { color: inherit; text-decoration: underline; }
   main { max-width: 100% !important; padding: 0 !important; }

@@ -1,0 +1,74 @@
+18/P02 — INGESTION CLI SCRIPT
+================================
+
+GOAL
+----
+A command-line script that walks the corpus, validates the manifest,
+chunks each non-private file, embeds the chunks, and stores them in
+the vector DB. Idempotent — re-running with no changes does no work.
+
+§A FILES TOUCHED
+----------------
+  scripts/llm/ingest.ts                  (NEW — entry point)
+  scripts/llm/walk.ts                    (NEW — corpus traversal)
+  scripts/llm/state.ts                   (NEW — content-hash → ingested? state)
+  package.json                           (add "ingest" script)
+
+§B ACCEPTANCE
+-------------
+B1.  Entry point CLI:
+       npx tsx scripts/llm/ingest.ts [--dry-run] [--rebuild] [--only=path/glob]
+     Flags:
+       --dry-run    : list what would happen, no DB writes
+       --rebuild    : delete all existing chunks, re-ingest everything
+       --only=...   : limit to files matching glob (relative to corpus/)
+
+B2.  walk.ts reads corpus/manifest.json, enumerates each file entry,
+     skips entries with private:true, returns { entry, content,
+     contentHash } objects. Content hash is sha256 of file bytes.
+
+B3.  state.ts maintains an "ingested chunks" tracking table in the
+     DB (see 18/P05) keyed by file path + content hash. Before
+     ingesting a file, ingest.ts checks state: if the file's current
+     hash matches a recorded hash, skip; if missing or different,
+     re-chunk + re-embed + replace.
+
+B4.  ingest.ts pipeline per file:
+       1. Walk yields { entry, content, contentHash }
+       2. Check state — skip if unchanged (unless --rebuild)
+       3. Chunk via P03's chunker
+       4. Embed each chunk via P04's embedder
+       5. Upsert chunks into vector store (P05)
+       6. Record { path, contentHash, chunkIds } in state
+     Output: a per-file line with status (added | updated | skipped |
+     failed) and chunk count.
+
+B5.  Concurrency: process up to 4 files in parallel. Embedding API
+     calls inside a file are batched (Voyage supports up to 128 at a
+     time per request). Backoff on rate-limit errors.
+
+B6.  Failure handling: a file that fails (e.g., embedding API
+     throwing 500) is logged and skipped; ingest.ts continues with
+     other files. At the end, exit code 0 if all succeeded; 1 if
+     any failed (with the count in the message).
+
+B7.  package.json:
+       "ingest": "tsx scripts/llm/ingest.ts"
+       "ingest:rebuild": "tsx scripts/llm/ingest.ts --rebuild"
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f scripts/llm/ingest.ts
+  test -f scripts/llm/walk.ts
+  test -f scripts/llm/state.ts
+  npm run ingest -- --dry-run        # exits 0 with a summary
+
+§D NON-GOALS
+------------
+  • Do NOT add a watch mode / file-system observer. Ingestion is a
+    deliberate, manual step.
+  • Do NOT inline chunking + embedding logic; those live in P03/P04.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

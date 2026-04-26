@@ -1,0 +1,67 @@
+14/P05 — MOBILE DRAWER NAV
+=============================
+
+GOAL
+----
+A simple slide-in drawer for the mobile nav (<768px). Hamburger
+in the header (P02) toggles it. Per principle 11: same nav items,
+same content access; layout flexes.
+
+§A FILES TOUCHED
+----------------
+  src/components/shell/MobileDrawer.tsx              (NEW)
+  src/components/shell/SiteHeader.tsx                (modify: wire up the toggle)
+  src/components/shell/useNavToggle.tsx              (NEW — context for open/close state)
+
+§B ACCEPTANCE
+-------------
+B1.  useNavToggle is a tiny context: { open: boolean, toggle: () => void, close: () => void }.
+     Provider lives at the root of the layout (so SiteHeader and
+     MobileDrawer can both read/write).
+
+B2.  MobileDrawer renders only when isNarrow. Implementation:
+       - <div role="dialog" aria-modal="true" aria-label="Navigation"
+              data-open={open}>
+       - data-open=true sets transform: translateX(0); data-open=false
+         sets transform: translateX(100%). Transition: var(--d-norm)
+         var(--ease-out).
+       - Backdrop: position fixed, inset 0, bg var(--bg-overlay),
+         pointer-events when open. Click to close.
+       - Drawer panel: width min(320px, 80vw), height 100dvh, bg
+         var(--bg-mute), padding var(--s-6).
+       - Inside: a vertical list of NavLinks. Same five items as
+         desktop. Active state styled identically.
+       - Close button (X) at top-right, mono, aria-label="Close
+         navigation".
+
+B3.  Body scroll lock when open. Apply overflow: hidden to <body>
+     when drawer is open. Remove on close.
+
+B4.  Focus trap: when open, focus moves to the close button. Tab
+     cycles within the drawer. Escape closes. The trap library is
+     not required; a small useEffect that listens for Tab and
+     redirects focus is acceptable.
+
+B5.  Closes on route change. Use Next's usePathname; useEffect that
+     calls close() on pathname change.
+
+B6.  Reduced-motion: drawer uses opacity instead of transform
+     transition.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/shell/MobileDrawer.tsx
+  test -f src/components/shell/useNavToggle.tsx
+  grep -n 'aria-modal="true"' src/components/shell/MobileDrawer.tsx
+  grep -n 'usePathname' src/components/shell/MobileDrawer.tsx
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT use a third-party drawer/dialog library.
+  • Do NOT add gesture-based open/close (swipe-from-edge). Tap-only.
+  • Do NOT animate the hamburger icon morphing into an X. Plain
+    toggle.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,53 @@
+17/P04 — THS SIMPLE PRESENTATION
+===================================
+
+GOAL
+----
+A 4-phase deck for the THS project page slot.
+
+§A FILES TOUCHED
+----------------
+  src/content/presentations/ths.tsx                  (NEW)
+  src/components/projects/theseus/Presentation.tsx   (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  EXACTLY 4 phases:
+
+       Phase 1 — "The Ship of Theseus, plainly"
+         Body: 2 paragraphs. The thought experiment in 60 seconds.
+         Why it matters beyond the puzzle.
+
+       Phase 2 — "The frame I'm using"
+         Body: 2 paragraphs. The project's high-level frame for
+         identity-under-change — orders of change, severity, fixed
+         points. Surface-level only; do not name the three orders
+         individually.
+
+       Phase 3 — "What's in the project"
+         Body: 2 paragraphs. What I've actually written — sources,
+         principles, methodology. Where to read.
+
+       Phase 4 — "Status & where to go"
+         Body: 1-2 paragraphs. Status, links, /chat CTA.
+
+B2.  Total deck word count: 250-450.
+
+B3.  Source-fidelity rule. No invented philosophy.
+
+B4.  Wrapper component as in P02.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/presentations/ths.tsx
+  test -f src/components/projects/theseus/Presentation.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT name the three orders individually in this deck (too
+    deep). The project page body (16/P06) is where the orders live.
+  • Do NOT exceed 4 phases.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

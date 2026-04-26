@@ -1,0 +1,43 @@
+PROMPT SET 14 — NEW SHELL AND NAVIGATION
+==========================================
+
+CONTEXT
+-------
+Replace the v1 accordion shell with a conventional Next.js app
+shell: a global header with nav links, a global footer, page-level
+routes for content, a mobile drawer, page transitions, and a
+theme toggle.
+
+Per principle 1 (Pages, not panels): the navigation primitive is
+the URL. Per principle 5 (The visitor can always leave): the global
+nav is present on every page.
+
+ROUTES IN V2
+------------
+  /                          landing (suite 15)
+  /projects                  index (links to per-project pages)
+  /projects/hivemind         HVM (suite 16)
+  /projects/purposeless-efficiency  PRP
+  /projects/theseus          THS
+  /about                     ABT
+  /resume                    CV
+  /chat                      LLM-of-me (suite 19)
+  /styleguide                dev-only
+
+NAV ITEMS (visible in header)
+-----------------------------
+  Home → /
+  Projects → /projects
+  About → /about
+  Resume → /resume
+  Chat → /chat
+
+SCOPE
+-----
+  P01  Root layout (html/head, fonts, body chrome)
+  P02  Header / primary nav
+  P03  Footer
+  P04  Routing structure / projects index
+  P05  Mobile drawer nav
+  P06  Page transitions
+  P07  Theme toggle + persistence

@@ -1,0 +1,16 @@
+PROMPT SET 22 — SHIP GATE AND DEPLOYMENT
+==========================================
+
+CONTEXT
+-------
+Final suite. Closes out the v2 work with environment configuration,
+deployment documentation, smoke tests, visual regression baseline,
+and the sitewide ship gate.
+
+SCOPE
+-----
+  P01  Environment variables + secrets
+  P02  Deployment doc (Vercel project, Postgres, KV)
+  P03  Smoke tests (deployed-environment basics)
+  P04  Visual regression baseline
+  P05  Final ship gate (every suite green + manual checklist)

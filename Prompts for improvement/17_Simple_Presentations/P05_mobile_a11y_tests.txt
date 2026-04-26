@@ -1,0 +1,63 @@
+17/P05 — PRESENTATIONS MOBILE + A11Y + TESTS
+==============================================
+
+GOAL
+----
+Verify decks work on mobile, satisfy WCAG 2.1 AA basics, and have
+content-shape tests for the three project decks.
+
+§A FILES TOUCHED
+----------------
+  src/components/presentation/__tests__/decks.test.ts  (NEW)
+  src/styles/presentation.css                          (modify — narrow viewport)
+  e2e/presentations.spec.ts                            (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Mobile (< 640px):
+       - Phase headings stay on one line if possible; allow wrap
+         otherwise
+       - Phase counter ("phase 2 of 4") displays inline
+       - Prev/next buttons are 44×44px min, full-width OR equal
+         flex; whichever reads cleaner — pick equal flex with min
+         width 96px each
+       - Dot indicator dots are 12×12px (up from 8 on desktop) for
+         touch
+       - Vertical padding inside Surface reduces from var(--s-6) to
+         var(--s-5)
+
+B2.  A11y:
+       - aria-live polite announcement on phase change
+       - Focus moves to phase heading
+       - Buttons have explicit type="button"
+       - Disabled prev/next have aria-disabled, are not focusable
+       - Keyboard: Tab cycles within deck; Escape does NOT close
+         (decks are not modals)
+
+B3.  decks.test.ts: for each of [hvmPhases, prpPhases, thsPhases]:
+       - length === 4
+       - every phase has non-empty heading and body
+       - heading length 1..60 chars
+       - body word count between 30 and 200 per phase
+
+B4.  e2e/presentations.spec.ts: for each project page:
+       - presentation deck visible
+       - phase 1 heading visible by default
+       - clicking next reveals phase 2 heading; phase 1 heading no
+         longer in viewport
+       - keyboard ArrowRight advances
+       - dots are clickable
+
+§C VERIFICATION COMMANDS
+------------------------
+  npx vitest run src/components/presentation/__tests__/decks.test.ts
+  npx playwright test e2e/presentations.spec.ts
+
+§D NON-GOALS
+------------
+  • Do NOT add per-deck e2e timing tuning. The decks are simple
+    enough to share one spec.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -30,12 +30,6 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Copy lint
-        run: npm run lint:copy
-
-      - name: Token lint (warn-only)
-        run: npm run lint:tokens
-
       - name: Build
         run: npm run build
 

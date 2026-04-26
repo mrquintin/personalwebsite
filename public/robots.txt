@@ -1,6 +1,20 @@
 # *
 User-agent: *
 Allow: /
+Disallow: /styleguide
+Disallow: /api/
+
+# GPTBot
+User-agent: GPTBot
+Allow: /
+
+# ClaudeBot
+User-agent: ClaudeBot
+Allow: /
+
+# CCBot
+User-agent: CCBot
+Disallow: /
 
 # Host
 Host: https://personalwebsite-beta-nine.vercel.app

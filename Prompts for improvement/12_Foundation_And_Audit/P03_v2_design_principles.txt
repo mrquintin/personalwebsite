@@ -1,0 +1,128 @@
+12/P03 — V2 DESIGN PRINCIPLES
+================================
+
+GOAL
+----
+Write a brief, opinionated design-principles document the rest of
+suites 13-22 must conform to. Each principle is one paragraph. Each
+principle is FALSIFIABLE — a future change either conforms or it
+doesn't, and the document tells you which.
+
+§A FILES TOUCHED
+----------------
+  docs/v2_principles.md                  (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  The document opens with a one-paragraph intent statement that
+     references the user's verbatim "completely unusable" feedback
+     and the goal of v2: a site a non-technical visitor can navigate,
+     read, and converse with in under 5 minutes.
+
+B2.  The document contains EXACTLY these eleven principles, in order,
+     each as a heading + 2-4 sentence paragraph + a "Falsified by:"
+     line stating what would violate the principle:
+
+       1. Pages, not panels.
+          Visitors arrive at URLs and scroll. No accordions, no
+          left-right reveal, no nested toggles. Each project gets a
+          dedicated /projects/<slug> URL.
+          Falsified by: any v2 component that animates layout when
+          the visitor selects a project.
+
+       2. Content first; chrome last.
+          Every page leads with the content (heading + first
+          paragraph) within the first 600 pixels. Site chrome
+          (header, nav) sits above; ambient detail sits below.
+          Falsified by: a hero block that pushes the first
+          paragraph below the fold.
+
+       3. One idea per screen.
+          Presentations advance one teach-worthy idea per phase.
+          No phase asks the visitor to track two new concepts.
+          Falsified by: a phase introducing more than one new term
+          without grounding the previous.
+
+       4. Words over widgets.
+          v2 prefers prose with anchors and links over inline
+          interactive widgets. A widget appears only when prose
+          cannot convey the same point in fewer characters.
+          Falsified by: a widget added when its caption could
+          replace it.
+
+       5. The visitor can always leave.
+          Every page exposes the same primary nav. There are no
+          modal traps, no hover-only menus, no states the visitor
+          can reach but not retreat from.
+          Falsified by: a state that hides the global nav.
+
+       6. Mono is the body face for technical content; serif for
+          long-form narrative.
+          Code-adjacent content uses the mono family. Essays,
+          biographies, project narratives use the serif family.
+          Headlines use mono.
+          Falsified by: serif inside a project-pitch or chat
+          message; mono inside an essay paragraph.
+
+       7. Dark is default; light is supported.
+          The site ships dark-first because the user prefers it,
+          but a light variant exists and respects
+          prefers-color-scheme.
+          Falsified by: any dark-only color value not paired with
+          a light counterpart in tokens.css.
+
+       8. Motion is functional, never decorative.
+          Animations communicate state changes (page transition,
+          message arrival, focus). There is no parallax, no
+          ambient drift, no unprompted motion.
+          Falsified by: motion without a state change behind it.
+
+       9. The LLM-of-me has citations.
+          The chat surface always shows which corpus chunks fed a
+          given response. The LLM may be wrong; citations let the
+          visitor judge.
+          Falsified by: a chat response without a chunk-citation
+          footer.
+
+       10. Reduced motion is a first-class path, not an
+           afterthought.
+           Every animation has a no-motion equivalent that ships
+           the same information. Page transitions become instant.
+           Streaming chat responses still stream (token-by-token
+           text reveal is information, not motion), but layout
+           shifts use opacity-only.
+           Falsified by: an animation with no equivalent under
+           prefers-reduced-motion: reduce.
+
+       11. Mobile is not a downgrade.
+           The narrow viewport gets the same content, the same
+           navigation, the same chat. Layout flexes; content does
+           not shrink or hide.
+           Falsified by: a section hidden on mobile, or a feature
+           reachable only on desktop.
+
+B3.  At the end, a section "## How to use this document" gives one
+     concrete example of a v2 prompt invoking a principle to justify
+     a decision (e.g., "Per principle 4, the diamond widget is
+     replaced by a paragraph"). This section trains future sessions
+     to cite principles by number.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f docs/v2_principles.md
+  grep -cE '^\s*[0-9]+\.\s' docs/v2_principles.md   # exactly 11 numbered items
+  grep -c 'Falsified by:' docs/v2_principles.md    # exactly 11 falsifiability clauses
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add more than 11 principles. Each must earn its slot.
+  • Do NOT write principles in passive or hedged voice ("we should
+    consider..."). Direct, falsifiable.
+  • Do NOT include implementation details (token names, durations).
+    Those live in suite 13.
+
+§E REPORT
+---------
+End your response with:
+    IMPL_RESULT: PASS
+ or IMPL_RESULT: FAIL (reasons above)

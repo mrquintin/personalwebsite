@@ -1,0 +1,76 @@
+19/P01 — CHAT SURFACE LAYOUT
+==============================
+
+GOAL
+----
+The /chat page composition.
+
+§A FILES TOUCHED
+----------------
+  src/app/chat/page.tsx                  (rewrite from stub)
+  src/components/llm/ChatSurface.tsx     (NEW — full-page client component)
+  src/components/llm/ChatHeader.tsx      (NEW)
+  src/components/llm/ChatInput.tsx       (NEW)
+  src/components/llm/ChatMessageList.tsx (NEW — populated by P02)
+  src/styles/chat.css                    (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  /chat page is a server component that renders ChatSurface (client).
+     Metadata: title="Chat", description="<one line about RAG-backed
+     LLM grounded in the user's writings>".
+
+B2.  ChatSurface layout (Container size="narrow", flex column,
+     min-height: calc(100dvh - <header+footer height>)):
+       ChatHeader     (heading + brief explainer + "what's grounding
+                       this" link)
+       ChatMessageList (flex: 1, overflow-y: auto)
+       ChatInput      (sticky bottom, full width, mono input + send)
+
+B3.  ChatHeader content:
+       Heading: "Ask my LLM about my work"
+       Subhead: 1-2 sentence framing — what it can/can't do, that
+       it cites the corpus, that it's not the user themselves.
+       Link: "What's grounding this →" jumps to /about#llm or
+       displays a popover listing the corpus categories.
+
+B4.  ChatInput:
+       <form onSubmit={...}>
+         <textarea
+           rows={2}
+           autoResize
+           placeholder="Ask anything about my work or thinking…"
+           maxLength={4000}
+         />
+         <Cluster gap=2>
+           <Button type="submit" variant="solid" tone="accent" disabled={!canSubmit}>
+             ask
+           </Button>
+           <span className="t-meta">{charCount} / 4000</span>
+         </Cluster>
+       </form>
+     Pressing Enter (without shift) submits. Shift+Enter inserts
+     newline. Disabled while a stream is in flight.
+
+B5.  Layout vertical adjustments:
+       - On the /chat page, the SiteFooter is hidden (chat is the
+         primary content; visitors leave by pressing Back or via
+         the header nav). Implement via a layout-level `data-page="chat"`
+         attribute the footer can read, or via per-route layout.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/chat/page.tsx
+  test -f src/components/llm/ChatSurface.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT add a sidebar of past sessions (out of scope; v2 chat
+    is in-session only, see P04).
+  • Do NOT add a model picker. Single model.
+  • Do NOT auto-focus the textarea on mount; iOS keyboards opening
+    automatically is annoying. The user taps to focus.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

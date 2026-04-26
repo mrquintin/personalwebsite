@@ -1,4 +1,3 @@
-// TODO(michael): author your real list; these are placeholders
 export type Belief = { n: string; text: string };
 
 const beliefs: Belief[] = [

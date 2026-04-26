@@ -83,3 +83,5 @@ Strategic analytical software.
 
 The discipline is not minimalism for its own sake. It is the visual
 consequence of caring about what the visitor reads.
+
+## v2 status: under revision (suite 13/20 updates this)

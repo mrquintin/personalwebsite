@@ -1,0 +1,23 @@
+.chat-preview__exchange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.chat-preview__q {
+  font-family: var(--t-mono);
+  color: var(--fg);
+}
+.chat-preview__q::before {
+  content: "you ask: ";
+  color: var(--fg-mute);
+}
+
+.chat-preview__a {
+  font-family: var(--t-serif);
+}
+.chat-preview__a::before {
+  content: "the LLM: ";
+  color: var(--fg-mute);
+  font-family: var(--t-mono);
+}

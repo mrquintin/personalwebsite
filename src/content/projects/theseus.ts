@@ -1,10 +1,11 @@
-import type { Project } from "@/lib/projects/types";
+import type { Project, ProjectMetadata } from "@/lib/projects/types";
 
 export const project: Project = {
   slug: "theseus",
   code: "THS",
   title: "Theseus",
-  tagline: "A knowledge system for monitoring ideological contradiction.",
+  tagline:
+    "A knowledge system that flags contradictions between your stated principles.",
   kind: "research",
   status: "active",
   startedISO: "2024-09-01",
@@ -18,7 +19,19 @@ export const project: Project = {
     { label: "michael@hivemind.ai", href: "mailto:michael@hivemind.ai" },
   ],
   summary:
-    "Theseus extracts first principles from discussion and writing, represents them as a graph, and uses a model called Noosphere to surface contradictions and ask refining questions.",
+    "Theseus is software that takes the principles you have stated in writing and conversation, links them into a graph of supports and tensions, and flags where they contradict each other. The product is a slow, structured collaborator — not a chatbot — for anyone who needs to know, at any given moment, where their stated commitments contradict themselves. It is built for the operator-philosopher who would rather argue with their own positions before someone else does.",
+};
+
+export const meta: Pick<
+  ProjectMetadata,
+  "slug" | "code" | "title" | "tagline" | "framing" | "status"
+> = {
+  slug: project.slug,
+  code: project.code,
+  title: project.title,
+  tagline: project.tagline,
+  framing: project.summary,
+  status: "shipped",
 };
 
 export default project;

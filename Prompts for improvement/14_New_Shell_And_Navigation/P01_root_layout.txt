@@ -1,0 +1,71 @@
+14/P01 — ROOT LAYOUT
+======================
+
+GOAL
+----
+Replace v1's RootLayout with a clean v2 layout: head metadata,
+fonts, theme initialization, body chrome (header + main + footer).
+
+§A FILES TOUCHED
+----------------
+  src/app/layout.tsx                     (rewrite)
+  src/app/globals.css                    (replace; tokens-only imports + base resets)
+  src/components/shell/SiteHeader.tsx    (NEW — populated by P02)
+  src/components/shell/SiteFooter.tsx    (NEW — populated by P03)
+  src/components/shell/ThemeInit.tsx     (NEW — pre-hydration theme injection)
+
+§B ACCEPTANCE
+-------------
+B1.  layout.tsx structure:
+       <html lang="en" suppressHydrationWarning>
+         <head>
+           <ThemeInit />   {/* injects data-theme before paint */}
+         </head>
+         <body className={...font variables...}>
+           <SiteHeader />
+           <main id="main">{children}</main>
+           <SiteFooter />
+         </body>
+       </html>
+
+B2.  ThemeInit emits an inline <script> that reads localStorage
+     "theme" or matchMedia and sets data-theme on <html> before
+     hydration. This avoids a flash of wrong theme. The script is
+     small (<1KB), inlined via dangerouslySetInnerHTML.
+
+B3.  globals.css imports (in order):
+       @import "./styles/reset.css";
+       @import "./styles/tokens.css";
+       @import "./styles/typography.css";
+       @import "./styles/primitives.css";
+     Plus base body rules: bg = var(--bg), color = var(--fg),
+     font = var(--t-mono), antialiasing.
+
+B4.  <main id="main"> is the skip-link target. SiteHeader (P02)
+     renders a "Skip to content" link as the first focusable element.
+
+B5.  Metadata: layout.tsx defines a default <Metadata> export with
+     title.template = "%s — Michael Quintin" (or whatever the user's
+     name is in src/content/about/identity.ts) and
+     title.default = "Michael Quintin".
+
+B6.  Viewport: <meta name="viewport" content="width=device-width,
+     initial-scale=1, viewport-fit=cover"> for mobile + iOS notch.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/layout.tsx
+  test -f src/components/shell/ThemeInit.tsx
+  grep -n 'id="main"' src/app/layout.tsx
+  grep -n 'data-theme' src/components/shell/ThemeInit.tsx
+  npm run build
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a global container in layout.tsx. Each page applies
+    its own Container primitive.
+  • Do NOT hard-code page titles in layout; use Next's metadata API.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

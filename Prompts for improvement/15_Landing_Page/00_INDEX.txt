@@ -1,0 +1,26 @@
+PROMPT SET 15 — LANDING PAGE
+==============================
+
+CONTEXT
+-------
+The home page (/) is the visitor's first impression. It must answer:
+who is this person, what do they work on, can I talk to them. Per
+principle 2 (content first; chrome last): the landing leads with
+the user's name + one-line + project links + LLM chat surface.
+
+LAYOUT (top to bottom)
+----------------------
+  Hero         - name, role, one-line, CTA to /chat
+  Bio          - 2-3 sentence framing of who and what
+  Projects     - three Card components (HVM, PRP, THS)
+  Chat preview - inline mini-chat OR static prompt-and-response
+                 example with CTA to /chat
+  Resume CTA   - link to /resume
+
+SCOPE
+-----
+  P01  Hero block
+  P02  Bio block
+  P03  Project teaser grid
+  P04  LLM-of-me CTA (inline preview + link)
+  P05  Page integration + e2e

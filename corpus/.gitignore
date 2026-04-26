@@ -1,0 +1,4 @@
+# Files the user does not want in version control:
+/private/
+*.private.md
+*.private.txt

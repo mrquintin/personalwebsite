@@ -1,0 +1,48 @@
+name: Visual Regression
+
+# suite 22/P04 — diffs the visual baselines committed under
+# e2e/__screenshots__/ against a fresh capture of the production build.
+# Failures upload the diff/expected/actual triplet so a maintainer can
+# eyeball the drift before re-baselining via `npm run visual:update`.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Visual diff
+        run: npm run visual
+
+      - name: Upload visual diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14

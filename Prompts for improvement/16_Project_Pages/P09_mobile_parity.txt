@@ -1,0 +1,47 @@
+16/P09 — MOBILE PARITY FOR PROJECT PAGES
+==========================================
+
+GOAL
+----
+Per principle 11: same content, same nav, same chat. The narrow
+viewport gets a single-column flow; touch targets are 44×44px min;
+no hover-only interactions.
+
+§A FILES TOUCHED
+----------------
+  src/styles/prose.css                       (responsive adjustments)
+  src/components/projects/ProjectShell.tsx   (modify — narrow-viewport spacing)
+  src/components/projects/ProjectHero.tsx    (modify — title size scale)
+
+§B ACCEPTANCE
+-------------
+B1.  At <640px:
+       - Hero: title scales from --t-3xl-size down to --t-2xl-size
+       - Container horizontal padding: var(--s-4) instead of var(--s-6)
+       - Section vertical gaps: 80% of desktop (i.e., var(--s-7) → var(--s-6))
+       - Prose max-width: 100% (no clamp); rely on container padding
+
+B2.  Touch targets: every interactive element (Link, Button) has
+     min-height 44px and min-width 44px. Verify with the audit
+     checklist in docs/v2_audit.md.
+
+B3.  Anchor (#section-link) hover-only "#" affordance becomes always-
+     visible on narrow viewports (since hover is unavailable).
+
+B4.  Aside callouts: full-bleed (no horizontal margin) on narrow
+     viewports, with internal padding instead of external margin.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npx playwright test e2e/projects-mobile.spec.ts   # add a small spec
+  # quick visual: view a project page in a 375px viewport via DevTools
+
+§D NON-GOALS
+------------
+  • Do NOT hide content on mobile.
+  • Do NOT swap to a separate "mobile" page tree; same routes, same
+    components.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

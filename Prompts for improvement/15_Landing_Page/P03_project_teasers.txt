@@ -1,0 +1,50 @@
+15/P03 — PROJECT TEASER GRID
+==============================
+
+GOAL
+----
+Three Card components linking to /projects/<slug>, plus a "see all"
+link to /projects.
+
+§A FILES TOUCHED
+----------------
+  src/components/landing/ProjectTeasers.tsx   (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Reads src/content/projects/index.ts (created in 14/P04).
+
+B2.  Layout:
+       Container size="wide"
+         <h2 className="t-h2">Projects</h2>
+         <Cluster gap=4 align="stretch">
+           {projects.map(p => <Card href={"/projects/" + p.slug}
+                                    title={p.title}
+                                    meta={p.code + " · " + p.status}>
+             {p.tagline}
+           </Card>)}
+         </Cluster>
+         <Link href="/projects" variant="subtle">See all projects ↗</Link>
+
+B3.  Cards stack vertically on mobile (<768px), three-column on
+     desktop (>=900px). Two-column on the 768-900 band.
+
+B4.  Vertical section padding: var(--s-7) above and below.
+
+B5.  Each Card hover state per 13/P05: border transitions to
+     --line-strong over var(--d-fast).
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/landing/ProjectTeasers.tsx
+  grep -n 'projects/index' src/components/landing/ProjectTeasers.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT include thumbnails on the cards. Text only.
+  • Do NOT add filtering or sorting controls — there are three
+    projects.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

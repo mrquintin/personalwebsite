@@ -1,0 +1,58 @@
+21/P06 — OPENGRAPH AND SOCIAL CARDS
+========================================
+
+GOAL
+----
+Generate dynamic OpenGraph images per page so social shares look
+intentional.
+
+§A FILES TOUCHED
+----------------
+  src/app/opengraph-image.tsx                  (NEW — sitewide default)
+  src/app/projects/[slug]/opengraph-image.tsx  (NEW — per project)
+  src/app/about/opengraph-image.tsx            (NEW)
+  src/app/twitter-image.tsx                    (NEW — for X / Twitter)
+
+§B ACCEPTANCE
+-------------
+B1.  Use Next.js's ImageResponse API (built-in to next/og). Each
+     opengraph-image route generates a 1200×630 image at request time.
+
+B2.  Image design (sitewide default):
+       - background: var(--bg) equivalent (#0c0e10)
+       - top-left: site name "michael quintin" mono, var(--accent)
+       - center: the site tagline, mono, large
+       - bottom-right: a small "↗" mark, accent
+     No portrait, no logo. Pure type.
+
+B3.  Per project page image:
+       - same chassis
+       - center: project title + tagline
+       - top-left: site name
+       - small badge: status
+
+B4.  Per /about:
+       - top: name in large mono
+       - center: identity tagline
+
+B5.  Twitter image identical to OG image.
+
+B6.  Verify each generated image with a tool like
+     https://opengraph.xyz/ pointing at the deployed URL after
+     ship. Document URLs of test pages in IMPL_RESULT.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/opengraph-image.tsx
+  test -f src/app/projects/[slug]/opengraph-image.tsx
+  npm run build      # Next builds the OG generation handlers
+
+§D NON-GOALS
+------------
+  • Do NOT use a third-party OG service (e.g., Cloudinary). The
+    Next ImageResponse API is sufficient.
+  • Do NOT include the user's photograph in OG images by default.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

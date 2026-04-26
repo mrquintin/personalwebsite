@@ -1,0 +1,64 @@
+22/P04 — VISUAL REGRESSION BASELINE
+=========================================
+
+GOAL
+----
+Baseline screenshots of every route in dark + light themes + mobile
+viewport. Future PRs that visually drift from baseline are flagged.
+
+§A FILES TOUCHED
+----------------
+  e2e/visual.spec.ts                     (NEW)
+  e2e/__screenshots__/                   (NEW directory; baselines committed)
+  package.json                           (visual:update script)
+  .github/workflows/visual.yml           (NEW — visual diff on PRs)
+
+§B ACCEPTANCE
+-------------
+B1.  Visual matrix (route × theme × viewport):
+       routes: /, /projects, /projects/hivemind,
+               /projects/purposeless-efficiency,
+               /projects/theseus, /about, /resume, /chat
+       themes: dark, light
+       viewports: 375 × 700 (mobile), 1280 × 800 (desktop)
+     Total: 8 × 2 × 2 = 32 screenshots.
+
+B2.  e2e/visual.spec.ts uses Playwright's toMatchSnapshot or
+     argos / chromatic (pick toMatchSnapshot for zero-vendor;
+     document the choice).
+
+B3.  Pre-screenshot setup per test:
+       - disable transitions (set prefers-reduced-motion via
+         DevTools Protocol or media-feature emulation)
+       - mask the chat-CTA timestamp area if any (avoid spurious
+         diffs from transient content)
+       - wait for fonts.ready
+       - wait for network idle
+
+B4.  Baseline images are committed to e2e/__screenshots__/. CI
+     compares with a 0.1% pixel tolerance.
+
+B5.  package.json:
+       "visual": "playwright test e2e/visual.spec.ts"
+       "visual:update": "playwright test e2e/visual.spec.ts --update-snapshots"
+
+B6.  Document in IMPL_RESULT that screenshots are captured locally
+     once and committed; if they're produced in a different
+     environment than CI, expected drift may surface and require
+     re-baselining via visual:update.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f e2e/visual.spec.ts
+  ls e2e/__screenshots__/ 2>/dev/null | wc -l    # at least 32 once captured
+
+§D NON-GOALS
+------------
+  • Do NOT skip /chat from visual coverage. The chat-empty state
+    has a deterministic baseline.
+  • Do NOT use third-party visual review services (Percy, Chromatic).
+    Local snapshot diffing is sufficient for v2 scale.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

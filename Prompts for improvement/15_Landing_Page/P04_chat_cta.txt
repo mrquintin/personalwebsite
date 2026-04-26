@@ -1,0 +1,74 @@
+15/P04 — LLM-OF-ME CTA / INLINE PREVIEW
+==========================================
+
+GOAL
+----
+A prominent surface on the landing page that previews the LLM-of-me
+and links into /chat. Per the user's stated importance ("incorporate
+an LLM into the website that represents my brain"), this surface is
+the most visually weighted element after the hero.
+
+§A FILES TOUCHED
+----------------
+  src/components/landing/ChatPreview.tsx       (NEW)
+  src/content/landing/chat_preview.ts          (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/landing/chat_preview.ts contains TWO modes:
+       export const chatPreview = {
+         mode: "static" | "live",   // default "static"; suite 19 may flip to "live" once API is wired
+         heading: "Ask my LLM about my work",
+         lede: "<one paragraph: 'an LLM grounded in my essays, project notes, and conversations. ask anything.'>",
+         exampleExchange: {
+           question: "<example question — sourced from likely visitor curiosities; e.g., 'what does Hivemind actually do?'>",
+           answer: "<illustrative answer ≤ 3 sentences, written in the user's voice>",
+         },
+         cta: { label: "Open the full chat", href: "/chat" },
+       };
+     Example exchange is hard-coded illustrative content (not a live
+     query) until suite 18 ships the backend.
+
+B2.  ChatPreview component layout:
+       <Surface tone="raise" padding={7} border>
+         <Stack gap=5>
+           <h2 className="t-h2">{heading}</h2>
+           <p className="t-prose">{lede}</p>
+           <div className="chat-preview__exchange">
+             <p className="chat-preview__q">{exampleExchange.question}</p>
+             <p className="chat-preview__a">{exampleExchange.answer}</p>
+           </div>
+           <Link href={cta.href}>{cta.label} →</Link>
+         </Stack>
+       </Surface>
+
+     CSS (in src/styles/chat-preview.css, NEW, imported via globals):
+       .chat-preview__q { font-family: var(--t-mono); color: var(--fg); }
+       .chat-preview__q::before { content: "you ask: "; color: var(--fg-mute); }
+       .chat-preview__a { font-family: var(--t-serif); }
+       .chat-preview__a::before { content: "the LLM: "; color: var(--fg-mute); font-family: var(--t-mono); }
+
+B3.  When mode === "live" (post suite 18+19), the example exchange
+     is replaced by a single-input field. Visitor types a question;
+     answer streams in via /api/chat. This branch is gated and not
+     active in suite 15. Add a TODO comment pointing to suite 19.
+
+B4.  Vertical section padding: var(--s-8) above and below — this
+     section gets the most visual weight.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/landing/ChatPreview.tsx
+  test -f src/content/landing/chat_preview.ts
+  grep -n 'mode === "live"' src/components/landing/ChatPreview.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT wire a real API call from the landing in this prompt.
+    That's suite 19's responsibility.
+  • Do NOT add a chat-history widget on the landing. Full history
+    lives only on /chat.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

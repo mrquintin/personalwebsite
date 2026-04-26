@@ -1,0 +1,53 @@
+16/P07 — ABOUT PAGE
+=====================
+
+GOAL
+----
+Replace the v1 about stub with a v2 about page using existing
+content + the new prose primitives.
+
+§A FILES TOUCHED
+----------------
+  src/app/about/page.tsx                  (rewrite)
+  src/components/about/AboutHero.tsx      (NEW)
+  src/components/about/AboutBody.tsx      (NEW)
+  src/components/about/Beliefs.tsx        (NEW — refactor of v1 BeliefsList if useful)
+  src/components/about/ColophonBlock.tsx  (NEW — refactor of v1 Colophon)
+
+§B ACCEPTANCE
+-------------
+B1.  Layout (top to bottom):
+       AboutHero       (name + role + portrait or text-only — text-only default)
+       AboutBody       (long-form bio prose, sourced from
+                        src/content/about/biography.ts)
+       Beliefs         (existing BeliefsList content surfaced via
+                        src/content/about/beliefs.ts)
+       ColophonBlock   (site colophon — fonts, frameworks, hosting)
+       External links  (GitHub, LinkedIn, Email — Cluster of subtle
+                        Links external=true)
+
+B2.  Reuses Prose primitive for the bio body. Beliefs uses
+     Surface tone="mute" + a list. Colophon uses Stack + small mono
+     text.
+
+B3.  Metadata: title="About", description from identity.ts.
+
+B4.  No images. Optional: a portrait image is allowed if user provides
+     one in /public/portrait.jpg; otherwise the page is text-only.
+     Detect file presence at build time (src/lib/site/portrait.ts
+     exports presence flag) and conditionally render.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/about/page.tsx
+  test -f src/components/about/AboutHero.tsx
+  curl -s http://localhost:3000/about | grep -q '<h1'   # after dev server
+
+§D NON-GOALS
+------------
+  • Do NOT add a contact form. Email link is sufficient.
+  • Do NOT add a blog/posts section. Out of scope.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

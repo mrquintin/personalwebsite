@@ -1,0 +1,95 @@
+PROMPT SET 12 — FOUNDATION AND AUDIT
+======================================
+
+CONTEXT — THE OVERHAUL DECISION
+-------------------------------
+The user's verbatim assessment of the current site (2026-04-25):
+
+  "I think we need to do a significant redesign at the website. I
+   think it's just completely, completely unusable. It's so hard to
+   understand. I like the kind of techie lean to it, but it's just
+   completely confusing. So I think that we need to redesign the way
+   it presents my projects... I love the little presentations. I
+   think that they should be much simpler, though, and much more
+   focused on just explaining what the products are and what they do,
+   at a relatively simple level, like, not going too deep into them.
+   ... I would love to build a kind of model that represents me, my
+   thinking and my thoughts, plugged into using rag, for an LLM to
+   generate from that material."
+
+DIAGNOSIS
+---------
+The current shell uses a five-panel horizontal accordion with an
+experience/dossier toggle inside each project panel. The user finds
+this confusing despite liking the techie aesthetic. The simulation
+components inside each project panel ("Coherence Receiver", "Galley",
+"Reflection Lab") are too deep for a portfolio-site visitor to make
+sense of. The entire interaction model needs to be replaced with
+conventional page-based navigation while preserving the typographic
+and visual character.
+
+WHAT V2 KEEPS
+-------------
+  • Mono/serif typographic character ("techie lean")
+  • Dark-first colour scheme
+  • Sparse rules, restrained motion, deliberate composition
+  • The five projects (HVM, PRP, THS, ABT, CV) — these are the user's
+    actual work and don't change
+  • The idea of small click-through presentations explaining each
+    project at a surface level
+
+WHAT V2 ABANDONS
+----------------
+  • The horizontal accordion shell as the primary navigation
+  • The ExperienceHost / experience-dossier toggle pattern
+  • The "Coherence Receiver", "Galley", "Reflection Lab"
+    simulations as default views
+  • The deep-dive multi-mode interactives (PrincipleGraph,
+    NoosphereConsole, etc.)
+
+WHAT V2 ADDS
+------------
+  • Conventional Next.js page routes as the navigation primitive
+    (/, /projects/[slug], /about, /resume, /chat)
+  • A simple landing page that explains who the user is and surfaces
+    the LLM-of-me prominently
+  • A LLM-of-me chat (RAG over the user's writings + conversations)
+    powered by Anthropic Claude, hosted on Vercel
+  • A simpler 3-5 phase presentation per project, embedded inside
+    that project's page
+
+SCOPE OF SUITE 12
+-----------------
+  P01  Audit current unusability with concrete enumeration. Produce
+       an audit document the rest of the suites can reference.
+  P02  Demolish the accordion shell, the experience/dossier toggle,
+       and the simulation components. Move them to an archive
+       directory; do not delete (preserve work for posterity).
+  P03  Establish v2 design principles. Brief manifesto. Drives every
+       later suite's decisions.
+  P04  Repository hygiene: remove dead routes, consolidate naming,
+       prune unused dependencies that only the simulations needed.
+
+CANONICAL PATHS REFERENCED ACROSS SUITES 12–22
+----------------------------------------------
+  src/app/page.tsx                        landing
+  src/app/projects/[slug]/page.tsx        per-project page
+  src/app/about/page.tsx                  about
+  src/app/resume/page.tsx                 resume
+  src/app/chat/page.tsx                   LLM-of-me chat (NEW)
+  src/app/api/chat/route.ts               streaming chat endpoint (NEW)
+  src/components/shell/                   v2 shell (rewritten)
+  src/components/llm/                     LLM chat components (NEW)
+  src/components/presentation/            simpler presentation chassis
+  src/lib/llm/                            RAG + retrieval + persona (NEW)
+  src/styles/tokens.css                   design tokens
+  scripts/llm/ingest.ts                   corpus ingestion CLI (NEW)
+  corpus/                                 user's source material (NEW)
+
+DELIVERABLE STYLE (used in every prompt across 12–22)
+-----------------------------------------------------
+§A FILES TOUCHED   — exact paths
+§B ACCEPTANCE      — clauses, each independently verifiable
+§C VERIFICATION    — concrete commands the implementer runs
+§D NON-GOALS       — explicit bans
+§E REPORT          — IMPL_RESULT: PASS or IMPL_RESULT: FAIL line

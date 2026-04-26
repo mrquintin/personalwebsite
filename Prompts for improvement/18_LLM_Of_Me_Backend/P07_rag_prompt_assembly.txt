@@ -1,0 +1,90 @@
+18/P07 — RAG PROMPT ASSEMBLY
+==============================
+
+GOAL
+----
+Compose the prompt sent to Claude: system prompt (persona) +
+retrieved context + chat history + user message. Manage token budget
+so the request stays within Claude's context window with margin.
+
+§A FILES TOUCHED
+----------------
+  src/lib/llm/promptAssembly.ts          (NEW)
+  src/lib/llm/promptAssembly.test.ts     (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Function:
+       export type AssembledPrompt = {
+         system: string;
+         messages: { role: "user" | "assistant", content: string }[];
+         citations: { id: string; chunkId: string; snippet: string }[];
+         tokenBudget: { used: number; max: number };
+       };
+       export async function assemblePrompt(args: {
+         persona: string;            // from P08
+         retrieved: Retrieved[];     // from P06
+         history: { role: "user" | "assistant", content: string }[];
+         userMessage: string;
+         maxContextTokens?: number;  // default 16000 (well below claude-opus limit, leaves room for response)
+       }): Promise<AssembledPrompt>;
+
+B2.  System prompt structure (assembled, NOT hard-coded):
+       <persona>
+
+       You answer using ONLY the retrieved context below when making
+       claims about the speaker's specific work, opinions, or
+       experiences. If the context does not support an answer, say
+       so. Do not fabricate.
+
+       Cite each retrieved chunk you use by its [id]. Place
+       citations inline immediately after the claim they support.
+
+       Voice: write in the speaker's voice. The retrieved chunks
+       are samples of that voice; mirror their cadence, register,
+       and word choice.
+
+       <retrieved_context>
+       [c1] from "<heading>" (essay, 2025-01)
+       <chunk text>
+
+       [c2] from "<heading>" (note, 2024-11)
+       <chunk text>
+
+       ...
+       </retrieved_context>
+
+B3.  Budget management:
+       - Reserve 4000 tokens for the response
+       - Reserve persona budget (typically 800 tokens)
+       - Reserve last 6 turns of history (typically 2000 tokens)
+       - Use remaining tokens for retrieved context
+       - If retrieved context overflows, drop chunks lowest-score-first
+       - Returned tokenBudget shows actual usage
+
+B4.  Citation IDs in the prompt are [c1], [c2], etc. (NOT chunk
+     UUIDs). The citations array maps these short IDs back to
+     chunkId for the chat UI to render source links.
+
+B5.  Tests:
+       - Empty retrieved → system prompt still well-formed, no
+         <retrieved_context> block
+       - Overflow case: 20 chunks each 1000 tokens → only top
+         fitting fit, lowest scores dropped
+       - History truncation: 20 turns → last 6 kept
+       - Citation IDs are sequential and unique within a prompt
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/lib/llm/promptAssembly.ts
+  npx vitest run src/lib/llm/promptAssembly.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT use Claude's prompt-caching API in this prompt. Suite 21
+    perf pass may revisit if costs warrant.
+  • Do NOT pass tools/function calls. v2 is text-in, text-out.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

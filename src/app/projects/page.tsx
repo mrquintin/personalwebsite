@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import ProjectsTable from "@/components/projects/ProjectsTable";
-import { loadProjects } from "@/lib/projects/loader";
+import Container from "@/components/primitives/Container";
+import Card from "@/components/primitives/Card";
+import { projects } from "@/content/projects";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -9,15 +9,22 @@ export const metadata: Metadata = {
 };
 
 export default function ProjectsPage() {
-  const projects = loadProjects();
   return (
-    <div className="dossier">
-      <h1 className="sr-only">Projects</h1>
-      <Suspense fallback={<div className="sr-only">Loading projects…</div>}>
-        <div className="projects-layout">
-          <ProjectsTable projects={projects} />
-        </div>
-      </Suspense>
-    </div>
+    <Container size="base">
+      <h1>Projects</h1>
+      <div className="stack">
+        {projects.map((p) => (
+          <Card
+            key={p.slug}
+            href={`/projects/${p.slug}`}
+            title={p.title}
+            titleAs="h2"
+            meta={`${p.code} · ${p.status}`}
+          >
+            {p.tagline}
+          </Card>
+        ))}
+      </div>
+    </Container>
   );
 }

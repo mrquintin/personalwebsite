@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://corpus.local/manifest.schema.json",
+  "title": "Corpus Manifest",
+  "description": "Generated from scripts/llm/manifestTypes.ts. Do not edit by hand; run `npx tsx scripts/llm/genManifestSchema.ts` to regenerate.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Path relative to corpus/ root."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable title."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "essay",
+              "note",
+              "post",
+              "transcript",
+              "project-note"
+            ],
+            "description": "Content category."
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Authoring or publication date in ISO 8601."
+          },
+          "topics": {
+            "default": [],
+            "description": "Free-form topic tags used by retrieval.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "private": {
+            "default": false,
+            "description": "When true, ingestion skips this file entirely.",
+            "type": "boolean"
+          },
+          "citeOkay": {
+            "default": true,
+            "description": "When false, the file may be embedded for background context but never quoted.",
+            "type": "boolean"
+          },
+          "voiceWeight": {
+            "default": 1,
+            "description": "Retrieval nudge toward voice-rich material (0.0 to 2.0).",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "path",
+          "title",
+          "kind",
+          "date",
+          "topics",
+          "private",
+          "citeOkay",
+          "voiceWeight"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "files"
+  ],
+  "additionalProperties": false
+}

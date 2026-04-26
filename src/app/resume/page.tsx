@@ -1,81 +1,71 @@
 import type { Metadata } from "next";
-import DossierHeader from "@/components/dossier/Header";
-import IdentityHeader from "@/components/resume/IdentityHeader";
-import ExperienceList from "@/components/resume/ExperienceList";
-import SkillsTable from "@/components/resume/SkillsTable";
-import DownloadActions from "@/components/resume/DownloadActions";
-import ArtifactsBlock from "@/components/dossier/ArtifactsBlock";
-import WorkLedger from "@/components/about/WorkLedger";
-import identity from "@/content/resume/identity";
-import summary from "@/content/resume/summary";
-import experience from "@/content/resume/experience";
+import { Suspense } from "react";
+import Container from "@/components/primitives/Container";
+import Stack from "@/components/primitives/Stack";
+import DownloadCTA from "@/components/resume/DownloadCTA";
+import PrintMode from "@/components/resume/PrintMode";
+import ResumeIdentity from "@/components/resume/ResumeIdentity";
+import ResumeSkills from "@/components/resume/ResumeSkills";
+import ResumeSummary from "@/components/resume/ResumeSummary";
+import ResumeTimeline from "@/components/resume/ResumeTimeline";
+import ResumeWriting from "@/components/resume/ResumeWriting";
 import education from "@/content/resume/education";
-import writing from "@/content/resume/writing";
+import experience from "@/content/resume/experience";
+import identity from "@/content/resume/identity";
 import skills from "@/content/resume/skills";
-import { COPY } from "@/content/microcopy";
+import summary from "@/content/resume/summary";
+import writing from "@/content/resume/writing";
+
+const RESUME_DESCRIPTION =
+  "Resume of Michael Quintin — founder of Hivemind and author of Purposeless Efficiency. Experience, skills, education, and selected writing.";
 
 export const metadata: Metadata = {
-  title: "Curriculum vitae",
-  description: "Curriculum vitae of Michael Quintin.",
+  title: "Resume",
+  description: RESUME_DESCRIPTION,
+  alternates: { canonical: "/resume" },
+  openGraph: {
+    type: "profile",
+    url: "/resume",
+    title: `Resume — ${identity.name}`,
+    description: RESUME_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Resume — ${identity.name}`,
+    description: RESUME_DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function ResumePage() {
-  const updated = "2026-04-12"; // TODO(michael): wire to PDF mtime when scripts/stamp-resume runs
   return (
-    <div className="dossier">
-      <DossierHeader
-        title="MICHAEL QUINTIN"
-        tagline={`Curriculum vitae · last updated ${updated}`}
-        breadcrumb="~/resume/CV.pdf"
-        classification="public"
-        rightAction={<DownloadActions />}
-      />
-
-      <IdentityHeader {...identity} />
-
-      <section style={{ marginBottom: "var(--s-6)" }}>
-        <p className="synopsis">{summary}</p>
-      </section>
-
-      <section style={{ marginBottom: "var(--s-7)" }}>
-        <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── EXPERIENCE ──</h2>
-        <ExperienceList items={experience} />
-      </section>
-
-      <section style={{ marginBottom: "var(--s-7)" }}>
-        <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── PROJECTS ──</h2>
-        <WorkLedger />
-      </section>
-
-      <section style={{ marginBottom: "var(--s-7)" }}>
-        <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── EDUCATION ──</h2>
-        <ExperienceList items={education} />
-      </section>
-
-      {writing.length > 0 && (
-        <section style={{ marginBottom: "var(--s-7)" }}>
-          <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── WRITING ──</h2>
-          <ul style={{ fontFamily: "var(--font-mono)", fontSize: "var(--t-sm-size)" }}>
-            {writing.map((w, i) => (
-              <li key={i}>{w.date} · {w.title} <span style={{ color: "var(--fg-mute)" }}>· {w.venue}</span></li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section style={{ marginBottom: "var(--s-7)" }}>
-        <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── SKILLS ──</h2>
-        <SkillsTable groups={skills} />
-      </section>
-
-      <section style={{ marginBottom: "var(--s-7)" }}>
-        <h2 style={{ fontFamily: "var(--font-mono)", color: "var(--fg-mute)", marginBottom: "var(--s-3)" }}>── REFERENCES ──</h2>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--t-sm-size)" }}>{COPY.resume.references}</p>
-      </section>
-
-      <ArtifactsBlock items={[
-        { kind: "resume", label: "/resume.pdf", href: "/resume.pdf" },
-      ]} />
-    </div>
+    <>
+      <Suspense fallback={null}>
+        <PrintMode />
+      </Suspense>
+      <Container
+        as="main"
+        size="base"
+        style={{ paddingTop: "var(--s-7)", paddingBottom: "var(--s-9)" }}
+      >
+        <Stack gap={7}>
+          <ResumeIdentity
+            name={identity.name}
+            role={identity.role}
+            email={identity.email}
+            location={identity.location}
+            links={identity.links}
+          />
+          <ResumeSummary text={summary} />
+          <ResumeTimeline heading="experience" items={experience} />
+          <ResumeSkills groups={skills} />
+          {education.length > 0 && (
+            <ResumeTimeline heading="education" items={education} />
+          )}
+          {writing.length > 0 && <ResumeWriting items={writing} />}
+          <DownloadCTA />
+        </Stack>
+      </Container>
+    </>
   );
 }

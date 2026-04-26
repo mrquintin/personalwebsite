@@ -1,0 +1,75 @@
+22/P05 — FINAL SHIP GATE
+==========================
+
+GOAL
+----
+A single command that asserts every suite-level gate from suites
+12-22 has passed. If `npm run ship-gate` exits 0, v2 is shippable.
+
+§A FILES TOUCHED
+----------------
+  scripts/ship-gates/all.ts              (NEW — orchestrator)
+  package.json                           (add "ship-gate" script)
+  docs/v2_ship_checklist.md              (NEW — manual review checklist)
+
+§B ACCEPTANCE
+-------------
+B1.  scripts/ship-gates/all.ts runs each upstream gate in sequence
+     and reports per-gate pass/fail:
+
+       Gate 12   typecheck + build clean (no _legacy_v1 imports leak into prod bundle)
+       Gate 13   tokens.css contains required tokens; primitive tests pass
+       Gate 14   shell pages all return 200 in a local dev run
+       Gate 15   landing e2e passes
+       Gate 16   `npm run ship-gate:projects` passes
+       Gate 17   presentations e2e passes
+       Gate 18   ingest dry-run completes; chat API unit tests pass
+       Gate 19   chat e2e passes; a11y on /chat passes
+       Gate 20   forbidden-words lint passes; no string left
+                 hardcoded outside microcopy.ts
+       Gate 21   Lighthouse CI hits all targets; axe a11y zero violations;
+                 sitemap + robots present
+       Gate 22   smoke test against http://localhost:3000 passes;
+                 visual regression matches baselines
+
+     Each gate is captured as a sub-script call; failure of any
+     emits the failing gate name and the underlying error.
+
+B2.  package.json:
+       "ship-gate": "tsx scripts/ship-gates/all.ts"
+
+B3.  docs/v2_ship_checklist.md is the MANUAL portion (things that
+     can't be programmatically verified):
+       [ ] Read every project page top to bottom.
+       [ ] Click through every presentation deck.
+       [ ] Send 5 different chat questions; verify citations appear
+           on grounded answers.
+       [ ] Send an out-of-scope question; verify graceful refusal.
+       [ ] Switch to light theme on every page; nothing breaks.
+       [ ] Use only keyboard for 5 minutes; no traps.
+       [ ] Open on a real iPhone; chat works, drawer opens, fonts
+           render.
+       [ ] Share landing on Twitter / Slack; OG card looks intentional.
+       [ ] Lighthouse mobile run on each route from a fresh tab.
+       [ ] Manually inspect docs/voice-guide.md against three random
+           pages of copy; flag any drift.
+     Plus a "[ ] User signed off" line at the bottom.
+
+B4.  At the top of v2_ship_checklist.md, restate the user's verbatim
+     diagnosis ("completely unusable"). The ship gate is a
+     definitional one: v2 ships when this complaint is no longer
+     defensible by an honest reading of the deployed site.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npm run ship-gate     # the only command needed if v2 is healthy
+  cat docs/v2_ship_checklist.md
+
+§D NON-GOALS
+------------
+  • Do NOT auto-ship on green ship-gate. Manual checklist + user
+    signoff still required.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include per-gate timing

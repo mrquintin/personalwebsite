@@ -1,0 +1,68 @@
+16/P01 — PROJECT PAGE CHASSIS
+================================
+
+GOAL
+----
+A reusable layout component that every /projects/<slug> page consumes.
+
+§A FILES TOUCHED
+----------------
+  src/components/projects/ProjectPage.tsx     (NEW)
+  src/components/projects/ProjectShell.tsx    (NEW — slot composition)
+  src/lib/projects/loader.ts                  (modify or replace v1 loader)
+  src/lib/projects/types.ts                   (modify; v2 types)
+
+§B ACCEPTANCE
+-------------
+B1.  src/lib/projects/types.ts (replace v1):
+       export type ProjectMetadata = {
+         slug: string;
+         code: string;
+         title: string;
+         tagline: string;
+         status: "exploration" | "in-progress" | "shipped";
+         framing: string;        // 2-3 sentences
+         externalLinks?: { label: string; href: string }[];
+         seedQuestion?: string;  // pre-filled chat seed for the footer CTA
+       };
+
+B2.  loader.ts exposes getProjectMetadata(slug) that reads
+     src/content/projects/<slug>/metadata.ts (NEW per project; written
+     in 16/P04-P06). Returns null for unknown slugs.
+
+B3.  ProjectShell composes named slots:
+       <ProjectShell
+         metadata={metadata}
+         presentation={<HivemindPresentation />}
+         body={<HivemindProse />}
+         relatedLinks={<HivemindLinks />}
+       />
+     Slots are just children; ProjectShell renders them in canonical
+     order with vertical rhythm.
+
+B4.  ProjectPage is a server component that, given a slug, loads
+     metadata via getProjectMetadata, and dynamically imports the
+     presentation, body, and links components from
+     src/components/projects/<slug>/. If a component doesn't exist
+     yet, ProjectPage renders a StubPlaceholder for that slot.
+
+B5.  src/app/projects/[slug]/page.tsx becomes:
+       export default function Page({ params }) {
+         return <ProjectPage slug={params.slug} />;
+       }
+     Plus generateMetadata that reads tagline + framing into <head>.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/projects/ProjectPage.tsx
+  test -f src/components/projects/ProjectShell.tsx
+  grep -n 'getProjectMetadata' src/lib/projects/loader.ts
+
+§D NON-GOALS
+------------
+  • Do NOT inline project content in ProjectPage. All content lives
+    under src/content/projects/<slug>/ and src/components/projects/<slug>/.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

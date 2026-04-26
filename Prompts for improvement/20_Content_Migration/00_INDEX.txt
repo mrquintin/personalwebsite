@@ -1,0 +1,20 @@
+PROMPT SET 20 — CONTENT MIGRATION
+====================================
+
+CONTEXT
+-------
+v1's content reflected the simulation paradigm. v2's content reflects
+the explanatory paradigm. This suite refreshes the voice guide and
+rewrites every visitor-facing copy surface.
+
+The user's directive: "much more focused on just explaining what the
+products are and what they do, at a relatively simple level, like,
+not going too deep into them."
+
+SCOPE
+-----
+  P01  Voice guide refresh
+  P02  About / bio rewrite
+  P03  Resume rewrite
+  P04  Project descriptions rewrite (HVM/PRP/THS)
+  P05  Microcopy sweep (errors, empty states, CTAs)

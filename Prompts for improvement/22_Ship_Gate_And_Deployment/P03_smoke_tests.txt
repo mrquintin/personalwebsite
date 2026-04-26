@@ -1,0 +1,61 @@
+22/P03 — DEPLOYED-ENVIRONMENT SMOKE TESTS
+=============================================
+
+GOAL
+----
+A small set of tests that run against the live deployed URL
+(staging or production) and verify the site is functional. Run
+on every deploy via a GitHub Action or Vercel hook.
+
+§A FILES TOUCHED
+----------------
+  e2e/smoke-deployed.spec.ts             (NEW)
+  scripts/smoke/run-against.ts           (NEW — CLI: node script <url>)
+  .github/workflows/smoke.yml            (NEW — runs on Vercel deploy success)
+  package.json                           (smoke script)
+
+§B ACCEPTANCE
+-------------
+B1.  e2e/smoke-deployed.spec.ts (Playwright):
+       For URL = process.env.SMOKE_URL:
+         - GET / → 200, h1 visible
+         - GET /projects → 200, three project cards visible
+         - GET /projects/hivemind → 200
+         - GET /projects/purposeless-efficiency → 200
+         - GET /projects/theseus → 200
+         - GET /about → 200
+         - GET /resume → 200
+         - GET /chat → 200, textarea visible
+         - GET /sitemap.xml → 200, content-type xml
+         - GET /robots.txt → 200, contains "Sitemap:"
+         - POST /api/chat with a benign question → 200, SSE stream
+           returns at least one token. Use a topic from the seed
+           corpus so retrieval has a chance to fire.
+
+B2.  scripts/smoke/run-against.ts wraps Playwright run, allows
+     SMOKE_URL override, exits non-zero on failure with a JSON
+     summary.
+
+B3.  .github/workflows/smoke.yml triggers on
+     "deployment_status" event when state == "success" against
+     production environment. Runs scripts/smoke/run-against.ts.
+
+B4.  Failure response: smoke fails → optional Slack/email alert
+     (out of scope for this prompt; document the hook-up in
+     v2_deployment.md ## Smoke alerts).
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f e2e/smoke-deployed.spec.ts
+  test -f scripts/smoke/run-against.ts
+  SMOKE_URL=http://localhost:3000 npm run smoke
+
+§D NON-GOALS
+------------
+  • Do NOT make smoke tests destructive (no POST that changes state).
+  • Do NOT use production traffic for smoke; the chat smoke uses a
+    benign question that will exercise the rate limit minimally.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

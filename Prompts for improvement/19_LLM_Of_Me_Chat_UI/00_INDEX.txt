@@ -1,0 +1,29 @@
+PROMPT SET 19 — LLM-OF-ME CHAT UI
+====================================
+
+CONTEXT
+-------
+Front-end for the chat backend (suite 18). Lives at /chat as the
+full surface, plus the inline mini-chat preview on the landing page.
+
+DESIGN PROPERTIES
+-----------------
+  • Mono for input, serif for assistant output (per principle 6 —
+    code-adjacent / interactive feels mono; long-form answer reads
+    serif)
+  • Streaming token reveal — text appears as Anthropic streams
+  • Citations are visible — every chunk the answer drew from is
+    listed below the message with the source path
+  • No avatars / chat bubbles; just labeled paragraphs
+  • Mobile parity: full content, full controls, soft keyboard
+    behaves correctly on iOS
+
+SCOPE
+-----
+  P01  Chat surface layout
+  P02  Message rendering with markdown + citations
+  P03  Streaming display + state machine
+  P04  Conversation history (in-session, optional persistence)
+  P05  Controls (clear, retry, scroll-to-bottom, copy)
+  P06  Mobile + responsive
+  P07  A11y, error states, rate-limit messaging

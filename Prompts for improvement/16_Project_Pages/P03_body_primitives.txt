@@ -1,0 +1,58 @@
+16/P03 — BODY COMPOSITION PRIMITIVES
+=======================================
+
+GOAL
+----
+Three small primitives every project body uses: Prose, Anchor, Aside.
+
+§A FILES TOUCHED
+----------------
+  src/components/prose/Prose.tsx          (NEW)
+  src/components/prose/Anchor.tsx         (NEW)
+  src/components/prose/Aside.tsx          (NEW)
+  src/styles/prose.css                    (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Prose:
+       Wraps children in a div.t-prose with max-width 64ch, applies
+       generous line-height (var(--t-base-lh)), and resets default
+       browser styles for <p>, <h2>, <h3>, <ul>, <ol>, <a>.
+       Headings inside Prose use mono (var(--t-mono)); body uses
+       serif (var(--t-serif)) per principle 6.
+       Inline code uses .t-code from suite 13/P01.
+
+B2.  Anchor:
+       Renders <h2 id={slug}> with a leading "§" mono character and
+       a "#" hover target that copies a link to the section. Used for
+       section markers in long-form project bodies.
+
+B3.  Aside:
+       A pulled-out callout box. Renders Surface tone="mute" border
+       padding=5 with a small mono label at the top:
+         tone="note" | "warn" | "voice"
+       — "voice" is the user's first-person commentary inset, in
+       slightly smaller serif.
+
+B4.  The Prose primitive supports nesting Anchor and Aside without
+     breaking margin rhythm. Test by rendering Prose with both inside
+     and snapshotting.
+
+B5.  Tests in src/components/prose/__tests__/ verifying:
+       - Prose enforces max-width
+       - Anchor anchors render with proper id
+       - Aside renders with the correct tone label
+
+§C VERIFICATION COMMANDS
+------------------------
+  for f in Prose Anchor Aside; do test -f src/components/prose/$f.tsx; done
+  npx vitest run src/components/prose/__tests__/
+
+§D NON-GOALS
+------------
+  • Do NOT add MDX support yet. Project body is JSX (or imports
+    plain .ts modules with React-node exports).
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

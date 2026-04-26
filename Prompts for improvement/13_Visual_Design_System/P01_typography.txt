@@ -1,0 +1,76 @@
+13/P01 — TYPOGRAPHY SCALE AND FACES
+======================================
+
+GOAL
+----
+Define the v2 typography: two faces (mono + serif), a numerical
+scale, line-height pairs, and consumption rules. Per principle 6:
+mono for technical content + headlines; serif for long-form
+narrative.
+
+§A FILES TOUCHED
+----------------
+  src/styles/tokens.css                  (replace existing typography section)
+  src/app/layout.tsx                     (font loading via next/font)
+  src/styles/typography.css              (NEW — scoped utility classes)
+
+§B ACCEPTANCE
+-------------
+B1.  Two faces loaded via next/font/google or next/font/local:
+       --font-mono   → JetBrains Mono (or Berkeley Mono if licensed; pick JetBrains as default — free, readable, technical)
+       --font-serif  → Source Serif 4 (free, designed for screen long-form)
+
+     Variable fonts only. No additional faces.
+
+B2.  Tokens.css typography section (replace existing):
+       --t-mono:  var(--font-mono),  ui-monospace, monospace;
+       --t-serif: var(--font-serif), Georgia, serif;
+
+       /* size scale — base 16px, ratio 1.25, 7 steps */
+       --t-sm-size:    13px;  --t-sm-lh:    20px;
+       --t-base-size:  16px;  --t-base-lh:  26px;
+       --t-md-size:    18px;  --t-md-lh:    28px;
+       --t-lg-size:    22px;  --t-lg-lh:    32px;
+       --t-xl-size:    28px;  --t-xl-lh:    36px;
+       --t-2xl-size:   36px;  --t-2xl-lh:   44px;
+       --t-3xl-size:   48px;  --t-3xl-lh:   56px;
+
+       /* tracking */
+       --t-tight:  -0.01em;
+       --t-normal: 0;
+       --t-wide:   0.05em;
+
+B3.  src/styles/typography.css defines utility classes:
+       .t-headline   { font-family: var(--t-mono); font-size: var(--t-3xl-size); line-height: var(--t-3xl-lh); letter-spacing: var(--t-tight); font-weight: 600; }
+       .t-h1, .t-h2, .t-h3 — descending mono headings
+       .t-prose      — serif body, base size, generous lh, max-width: 64ch
+       .t-mono-body  — mono body for code-adjacent content
+       .t-meta       — mono small (--t-sm-size), used for captions, timestamps, breadcrumbs
+       .t-code       — mono, slight background tint via --bg-mute (defined in P02)
+
+B4.  layout.tsx loads both fonts with `display: 'swap'` and assigns
+     CSS variables on <html>. No other font loading anywhere.
+
+B5.  /styleguide page (suite 13/P06) renders every type role; for
+     this prompt the styleguide rendering is left to P06.
+
+B6.  Reduced-motion does not affect typography. No animation tokens
+     here.
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -n 'font-mono\|font-serif' src/app/layout.tsx
+  grep -nE '^\s*--t-(mono|serif|sm-size|base-size|md-size|lg-size|xl-size|2xl-size|3xl-size):' src/styles/tokens.css
+  test -f src/styles/typography.css
+  npm run build && echo BUILD_OK
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a third font. Two faces, period.
+  • Do NOT use system-ui in the cascade. The intent is consistent
+    rendering across visitors.
+  • Do NOT include @font-face declarations directly; use next/font.
+
+§E REPORT
+---------
+End with: IMPL_RESULT: PASS or IMPL_RESULT: FAIL (reasons above)

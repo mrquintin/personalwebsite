@@ -1,37 +1,83 @@
-import { notFound, redirect } from "next/navigation";
-import { getProject, loadProjects } from "@/lib/projects/loader";
-import DossierHeader from "@/components/dossier/Header";
-import MetadataPane from "@/components/dossier/MetadataPane";
-import Synopsis from "@/components/dossier/Synopsis";
-import MediaSlot from "@/components/dossier/MediaSlot";
-import ArtifactsBlock from "@/components/dossier/ArtifactsBlock";
+import type { Metadata } from "next";
+import ProjectPage from "@/components/projects/ProjectPage";
+import { JsonLd, articleSchema } from "@/components/seo/JsonLd";
+import identity from "@/content/about/identity";
+import { projects } from "@/content/projects";
+import { getProjectMetadata } from "@/lib/projects/loader";
+import type { ProjectMetadata } from "@/lib/projects/types";
 
-export function generateStaticParams() {
-  return loadProjects().map((p) => ({ slug: p.slug }));
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.SITE_URL ??
+  "https://personalwebsite-beta-nine.vercel.app";
+
+// Build a 110-155 char description from the project's tagline + first
+// sentence of its framing. Long taglines+framings get truncated at the
+// nearest word boundary.
+function buildDescription(meta: ProjectMetadata): string {
+  const firstSentence = meta.framing.match(/^[^.!?]+[.!?]/)?.[0] ?? meta.framing;
+  const candidate = `${meta.tagline} ${firstSentence}`.replace(/\s+/g, " ").trim();
+  if (candidate.length <= 155) return candidate;
+  const slice = candidate.slice(0, 152);
+  const lastSpace = slice.lastIndexOf(" ");
+  return `${slice.slice(0, lastSpace > 0 ? lastSpace : 152)}…`;
 }
 
-export default async function GenericProjectPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const p = getProject(slug);
-  if (!p) notFound();
-  if (p.customPage) redirect(p.customPage);
+export function generateStaticParams() {
+  return projects.map((p) => ({ slug: p.slug }));
+}
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const meta = await getProjectMetadata(slug);
+  if (!meta) return {};
+  const description = buildDescription(meta);
+  const path = `/projects/${slug}`;
+  const title = `${meta.title} — ${meta.tagline}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      type: "article",
+      url: path,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const meta = await getProjectMetadata(slug);
+  const ld = meta
+    ? articleSchema({
+        url: `${SITE_URL}/projects/${slug}`,
+        headline: `${meta.title} — ${meta.tagline}`,
+        description: buildDescription(meta),
+        authorName: identity.fullName,
+        authorUrl: SITE_URL,
+        about: meta.title,
+      })
+    : null;
   return (
-    <div className="dossier">
-      <DossierHeader
-        title={p.title.toUpperCase()}
-        tagline={p.tagline}
-        breadcrumb={`~/projects/${p.slug}/README`}
-        classification={p.classification ?? "public"}
-      />
-      <div className="dossier-grid">
-        <MetadataPane project={p} />
-        <div>
-          <Synopsis text={p.summary} />
-          <MediaSlot src={p.mediaHeroSrc} alt={p.title} />
-        </div>
-      </div>
-      <ArtifactsBlock items={p.links.map((l) => ({ kind: l.label, label: l.href.replace(/^https?:\/\//, ""), href: l.href, glyph: l.external ? "ext" : undefined }))} />
-    </div>
+    <>
+      {ld ? <JsonLd data={ld} /> : null}
+      <ProjectPage slug={slug} />
+    </>
   );
 }

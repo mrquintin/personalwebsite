@@ -1,0 +1,66 @@
+21/P01 — PERFORMANCE BUDGET + BUNDLE ANALYSIS
+================================================
+
+GOAL
+----
+Define perf budgets, install bundle analyzer, identify and fix
+budget violations.
+
+§A FILES TOUCHED
+----------------
+  package.json                              (add @next/bundle-analyzer)
+  next.config.ts                            (wire analyzer behind ANALYZE flag)
+  docs/v2_perf_budget.md                    (NEW — budgets + measurements)
+
+§B ACCEPTANCE
+-------------
+B1.  Budget targets (per route on first load, gzipped):
+       /                  250 KB
+       /projects          200 KB
+       /projects/<slug>   280 KB (presentation chassis adds bytes)
+       /about             200 KB
+       /resume            220 KB
+       /chat              260 KB (chat surface + markdown renderer)
+     Background JS at the route level under these caps. Static assets
+     (fonts, CSS) excluded from the JS budget but tracked separately:
+       Fonts   < 90 KB     (two variable-font files)
+       CSS     < 30 KB     (gzipped)
+     Document the actuals in docs/v2_perf_budget.md after measuring.
+
+B2.  Run ANALYZE=true npm run build. The analyzer report identifies
+     the heaviest dependencies. For each over-budget route, identify
+     and remediate:
+       - Markdown library too heavy → swap to custom renderer
+       - Date library → use Intl.DateTimeFormat instead
+       - Chart library on landing → move to project page or lazy
+     Document remediations.
+
+B3.  Code splitting verification:
+       - /projects/<slug> dynamically imports Presentation, Body,
+         Links so unused projects don't ship in the landing bundle.
+       - /chat lazy-loads its markdown renderer.
+       - /styleguide is dev-only — confirm it's not in production
+         builds (or behind a build-time flag).
+
+B4.  Image policy: there are no images in v2 by default. If suite 20
+     added an avatar to /about, that image is sized appropriately
+     (avif/webp, < 30KB).
+
+B5.  Font loading: next/font with display: swap; preconnect to
+     font-source domain not needed (next/font self-hosts).
+
+§C VERIFICATION COMMANDS
+------------------------
+  ANALYZE=true npm run build
+  test -f docs/v2_perf_budget.md
+
+§D NON-GOALS
+------------
+  • Do NOT defer the chat-page JS so much that the input is laggy
+    on mount. Trade a few KB for responsiveness.
+  • Do NOT use Cloudflare image transformation; static-site
+    optimization via next/image is sufficient.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include per-route bundle sizes

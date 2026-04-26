@@ -1,0 +1,87 @@
+19/P03 — STREAMING DISPLAY + STATE MACHINE
+================================================
+
+GOAL
+----
+Consume the SSE stream from /api/chat and progressively reveal the
+assistant message. Manage the chat-conversation state machine.
+
+§A FILES TOUCHED
+----------------
+  src/components/llm/useChat.ts          (NEW — hook)
+  src/lib/llm/streamReader.ts            (NEW — SSE consumer)
+  src/lib/llm/chatTypes.ts               (modify — add client-side types)
+
+§B ACCEPTANCE
+-------------
+B1.  useChat hook:
+       export function useChat(): {
+         messages: ChatMessage[];
+         status: "idle" | "streaming" | "error";
+         submit: (text: string) => Promise<void>;
+         retry: () => Promise<void>;
+         clear: () => void;
+         stopStreaming: () => void;
+         lastError?: string;
+       };
+
+B2.  ChatMessage type (client side):
+       { id: string;
+         role: "user" | "assistant";
+         content: string;
+         citations?: Citation[];
+         status: "complete" | "streaming" | "error";
+         createdAt: number; }
+
+B3.  submit(text):
+       1. Push a user message (status complete) immediately
+       2. Push an assistant placeholder (empty content, status streaming)
+       3. POST /api/chat with messages.slice() (history including the
+          new user msg)
+       4. Read SSE response via streamReader:
+            on "token" event → append delta to placeholder.content
+            on "meta"  event → set placeholder.citations
+            on stream end    → set placeholder.status = complete
+            on error         → set placeholder.status = error,
+                               record lastError
+       5. Set status back to "idle" or "error"
+
+B4.  streamReader(response): an async generator wrapping fetch's
+     ReadableStream. Parses SSE frames per the spec
+     (`event: <name>\ndata: <payload>\n\n`). Yields { event, data }.
+
+B5.  stopStreaming aborts the in-flight fetch (AbortController),
+     sets the placeholder.status to "complete" with whatever text
+     arrived. The next submit retries fresh.
+
+B6.  retry() re-issues the last submit using the same user message
+     that produced an error. Does not change history.
+
+B7.  Token reveal cadence: tokens are appended to content as they
+     arrive. No additional throttling. (Anthropic's rate naturally
+     produces ~30-80 tokens/second; that is comfortable to read
+     without further pacing.)
+
+B8.  Tests (mock the API):
+       - happy path: 5 token deltas → final content is concatenation
+       - meta event populates citations
+       - 429 response → status "error" with helpful message
+       - stopStreaming aborts cleanly
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/llm/useChat.ts
+  test -f src/lib/llm/streamReader.ts
+  npx vitest run src/components/llm/__tests__/useChat.test.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT animate the cursor between tokens (a blinking caret at
+    the streaming insertion point is fine; animated typing effects
+    are out).
+  • Do NOT auto-retry on transient errors. Surface the error and
+    let the user retry.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

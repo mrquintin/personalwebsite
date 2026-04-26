@@ -1,0 +1,86 @@
+14/P04 — ROUTING STRUCTURE AND PROJECTS INDEX
+================================================
+
+GOAL
+----
+Define the v2 route tree. Replace lingering v1 routes. Build the
+/projects index page (a simple list/grid linking to per-project pages).
+
+§A FILES TOUCHED
+----------------
+  src/app/page.tsx                       (stays a stub for now; suite 15 owns landing)
+  src/app/projects/page.tsx              (NEW — index)
+  src/app/projects/[slug]/page.tsx       (rewrite — replaced fully in suite 16; here just a stub)
+  src/app/about/page.tsx                 (stub for now; suite 16 owns)
+  src/app/resume/page.tsx                (stub; suite 16 owns)
+  src/app/chat/page.tsx                  (NEW; suite 19 fills)
+  src/app/hivemind/page.tsx              (DELETE; redirects via next.config.ts to /projects/hivemind)
+  src/app/purposeless-efficiency/page.tsx (DELETE; redirect)
+  src/app/theseus/page.tsx               (DELETE; redirect)
+  next.config.ts                         (add redirects)
+  src/content/projects/index.ts          (NEW — projects metadata for the index page)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/projects/index.ts exports:
+       export const projects = [
+         { slug: "hivemind", code: "HVM", title: "Hivemind",
+           tagline: "<one line, ≤80 chars, drawn from existing thesis>",
+           status: "in-progress" | "shipped" | "exploration" },
+         { slug: "purposeless-efficiency", code: "PRP", title: "Purposeless Efficiency",
+           tagline: "...", status: "..." },
+         { slug: "theseus", code: "THS", title: "Theseus",
+           tagline: "...", status: "..." },
+       ];
+     Tagline is sourced from existing repo content
+     (src/content/projects/<slug>/thesis.ts, etc.) and capped at 80
+     chars. If a tagline cannot be sourced from existing content,
+     ask the implementer to flag and skip rather than invent.
+
+B2.  /projects/page.tsx renders Container size="base" with:
+       <h1>Projects</h1>
+       Stack of three Card components, one per project. Each Card
+       href={"/projects/" + slug}, title=title, meta={code + " · " + status},
+       children=tagline.
+
+B3.  Per-project routes /projects/[slug]/page.tsx — stubbed to
+     render <StubPlaceholder /> for now. Suite 16/P04-P06 fills.
+
+B4.  Old slug-direct routes /hivemind, /theseus,
+     /purposeless-efficiency are removed and replaced by Next.js
+     redirects in next.config.ts:
+       redirects: async () => [
+         { source: "/hivemind", destination: "/projects/hivemind", permanent: true },
+         { source: "/purposeless-efficiency", destination: "/projects/purposeless-efficiency", permanent: true },
+         { source: "/theseus", destination: "/projects/theseus", permanent: true },
+       ]
+     Permanent (308) so SEO carries over.
+
+B5.  /chat/page.tsx is a stub that renders <StubPlaceholder /> for
+     now. Suite 19 implements.
+
+B6.  generateStaticParams in /projects/[slug]/page.tsx returns the
+     three slugs from src/content/projects/index.ts. Unknown slugs
+     trigger notFound().
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/projects/page.tsx
+  test -f src/app/projects/[slug]/page.tsx
+  test -f src/app/chat/page.tsx
+  test -f src/content/projects/index.ts
+  ! test -d src/app/hivemind || (echo "FAIL"; false)
+  ! test -d src/app/theseus || (echo "FAIL"; false)
+  ! test -d src/app/purposeless-efficiency || (echo "FAIL"; false)
+  grep -n 'redirects' next.config.ts
+  npm run build
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT remove src/lib/panels.ts. The slug→title mapping is
+    consumed elsewhere.
+  • Do NOT add /resume or /about as redirects; they are real pages.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

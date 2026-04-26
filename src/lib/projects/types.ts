@@ -4,6 +4,24 @@ export type ProjectKind =
 export type ProjectStatus =
   | "active" | "draft" | "shipping" | "shipped" | "archived";
 
+export type ProjectMetadataStatus = "exploration" | "in-progress" | "shipped";
+
+export type ProjectExternalLink = {
+  label: string;
+  href: string;
+};
+
+export type ProjectMetadata = {
+  slug: string;
+  code: string;
+  title: string;
+  tagline: string;
+  status: ProjectMetadataStatus;
+  framing: string;
+  externalLinks?: ProjectExternalLink[];
+  seedQuestion?: string;
+};
+
 export type ProjectVisibility = "default" | "teaser";
 
 export type ProjectLink = {

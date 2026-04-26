@@ -1,0 +1,57 @@
+21/P02 — LIGHTHOUSE PASS
+==========================
+
+GOAL
+----
+Lighthouse scores against v2 targets. Address each category until
+all routes meet the bar.
+
+§A FILES TOUCHED
+----------------
+  .lighthouserc.json                     (modify — v2 routes + thresholds)
+  package.json                           (lighthouse:ci script)
+  docs/v2_lighthouse.md                  (NEW — measurement log)
+
+§B ACCEPTANCE
+-------------
+B1.  Targets per route (mobile profile, default Lighthouse settings):
+       Performance     >= 90
+       Accessibility   >= 95
+       Best Practices  >= 95
+       SEO             >= 95
+
+B2.  .lighthouserc.json updated to run against:
+       /, /projects, /projects/hivemind,
+       /projects/purposeless-efficiency, /projects/theseus,
+       /about, /resume, /chat
+     Asserts the targets above; CI fails if any fall below.
+
+B3.  Common remediations expected during this prompt:
+       - LCP: ensure hero text uses a system fallback during font
+         load (font-display: swap is enabled).
+       - CLS: reserve space for any async-loaded element (chat
+         placeholder).
+       - INP: throttle textarea autoresize; debounce expensive
+         render passes in the chat list.
+       - Best Practices: HTTPS-only, no console errors at runtime,
+         no deprecated APIs.
+       - SEO: every page has unique title + description; canonical
+         URL set; lang="en" on <html>.
+
+B4.  /chat may have a softer Performance threshold (>= 80) due to
+     the runtime cost of markdown rendering. Document the rationale
+     in docs/v2_lighthouse.md if you opt for this — the auditor's
+     bias is against soft thresholds.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npm run lighthouse:ci      # uses .lighthouserc.json
+
+§D NON-GOALS
+------------
+  • Do NOT skip /chat from the Lighthouse run.
+  • Do NOT inline-base64 images for LCP; v2 has no hero image.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include per-route scores

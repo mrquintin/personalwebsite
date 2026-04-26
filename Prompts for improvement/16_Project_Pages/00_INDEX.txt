@@ -1,0 +1,46 @@
+PROMPT SET 16 — PROJECT PAGES
+===============================
+
+CONTEXT
+-------
+Per-project pages at /projects/<slug>. Each page is a long-scroll
+composition of: hero, simple presentation (suite 17), prose body,
+external links, related-content callouts. About and Resume share
+the same chassis with content variations.
+
+LAYOUT (top to bottom, per project page)
+----------------------------------------
+  Hero block       title + status pill + 1-line tagline + 2-3 sentence framing
+  Presentation     embedded 3-5 phase deck (suite 17)
+  Body             prose narrative, broken by H2/H3, with anchored links
+  Related links    GitHub, papers, demo URL (when available)
+  Footer CTA       "ask my LLM about this project" → /chat?seed=<slug>
+
+ABOUT PAGE LAYOUT
+-----------------
+  Hero (name + role)
+  Long-form bio
+  Beliefs / colophon panels (existing content, simplified)
+  Contact links
+
+RESUME PAGE LAYOUT
+------------------
+  Hero (name)
+  Identity block
+  Experience timeline
+  Skills
+  Education
+  Download PDF link
+
+SCOPE
+-----
+  P01  ProjectPage chassis (shared layout)
+  P02  Project hero block
+  P03  Body composition primitives (Prose, Anchor, Aside)
+  P04  HVM page content
+  P05  PRP page content
+  P06  THS page content
+  P07  About page
+  P08  Resume page
+  P09  Mobile parity (single-column flow, larger touch targets)
+  P10  Tests + ship gate

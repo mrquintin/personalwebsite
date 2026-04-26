@@ -1,0 +1,59 @@
+19/P06 — CHAT MOBILE / RESPONSIVE
+====================================
+
+GOAL
+----
+Make /chat work on iPhone-class viewports without keyboard / safe-area
+issues. Per principle 11.
+
+§A FILES TOUCHED
+----------------
+  src/styles/chat.css                            (modify)
+  src/components/llm/ChatSurface.tsx             (modify)
+  src/components/llm/ChatInput.tsx               (modify)
+
+§B ACCEPTANCE
+-------------
+B1.  Use 100dvh (not 100vh) for full-height layout. Important on
+     iOS where vh excludes the URL bar — leads to scrollable
+     overflow when the bar is shown.
+
+B2.  ChatInput container uses
+       padding-bottom: max(var(--s-4), env(safe-area-inset-bottom));
+     so it clears the iPhone home indicator.
+
+B3.  When the soft keyboard opens on iOS, the chat list must remain
+     scrollable and the latest message must remain visible.
+     Implementation:
+       - viewport meta includes interactive-widget=resizes-content
+         (so the layout viewport shrinks when keyboard opens)
+       - ChatMessageList listens to visualViewport.height changes
+         (via window.visualViewport's resize event) and adjusts its
+         own height accordingly
+       - autoscroll fires after each visualViewport change
+
+B4.  Touch target sizes: Send button >= 44×44px. Per-message copy
+     buttons >= 32×32px (smaller is acceptable since they're not
+     primary).
+
+B5.  Textarea autosizes up to 6 rows then scrolls.
+
+B6.  Long messages: assistant messages wrap with overflow-wrap:
+     anywhere so URLs / code don't overflow horizontally.
+
+B7.  Test on iOS Safari and Chrome Android (manual). Document
+     verification in IMPL_RESULT.
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -n '100dvh\|safe-area-inset-bottom\|visualViewport' src/styles/chat.css src/components/llm/
+
+§D NON-GOALS
+------------
+  • Do NOT use position: fixed for the input row (keyboard interaction
+    issues on iOS). Use sticky or flex.
+  • Do NOT hide the header on mobile.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL — include manual iOS + Android test notes

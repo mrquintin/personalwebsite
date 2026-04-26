@@ -1,0 +1,78 @@
+13/P05 — COMPONENT PRIMITIVES
+================================
+
+GOAL
+----
+Five reusable primitives every page consumes: Button, Link, Surface,
+Card, Badge. No project-specific styling lives at this level.
+
+§A FILES TOUCHED
+----------------
+  src/components/primitives/Button.tsx       (NEW)
+  src/components/primitives/Link.tsx         (NEW — wraps next/link)
+  src/components/primitives/Surface.tsx      (NEW)
+  src/components/primitives/Card.tsx         (NEW)
+  src/components/primitives/Badge.tsx        (NEW)
+  src/styles/primitives.css                  (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Button:
+       Props: variant: "solid" | "outline" | "ghost" (default outline)
+              size: "sm" | "md" | "lg" (default md)
+              tone: "neutral" | "accent" | "danger" (default neutral)
+              loading?: boolean
+              children
+              ...standard <button> props
+       Renders mono font, --t-base-size, --d-tap transition on
+       background-color, focus-visible ring in --accent.
+       Loading state shows a textual ellipsis ("...") not a spinner.
+
+B2.  Link (replaces direct next/link usage in app code):
+       Props: href, children, variant: "underline" | "subtle" (default underline), external?: boolean
+       External=true links open in new tab with rel="noopener noreferrer" and append a "↗" glyph.
+       Underline variant: text-decoration-thickness 1px, underline-offset 2px.
+
+B3.  Surface:
+       Props: tone: "base" | "mute" | "raise" (default base)
+              padding: spacing-token number (default 5)
+              border?: boolean (default false)
+       Renders <section> with bg = --bg / --bg-mute / --bg-raise
+       and optional 1px border in --line. Used as the wrapper for
+       prose blocks, project hero blocks, etc.
+
+B4.  Card:
+       Props: href? (when present, the entire card is a Link)
+              title, meta?, children
+       Renders a Surface(raise) with a heading row and body. If href
+       is set, hover transitions border to --line-strong over --d-fast.
+       Used by landing-page project teasers.
+
+B5.  Badge:
+       Props: tone: "neutral" | "accent" | "warn" | "ok" (default neutral)
+              children
+       Small mono text in a 1px-bordered pill, padding (var(--s-1) var(--s-2)).
+       Used for "live", "draft", "v2" status pips.
+
+B6.  All five primitives have .test.tsx files in
+     src/components/primitives/__tests__/ verifying:
+       - render with default props
+       - render with each variant
+       - keyboard focus-visible behavior (jsdom limitation: simulate)
+       - external Link gets target=_blank and rel attrs
+
+§C VERIFICATION COMMANDS
+------------------------
+  for f in Button Link Surface Card Badge; do test -f src/components/primitives/$f.tsx; done
+  test -f src/styles/primitives.css
+  npx vitest run src/components/primitives/__tests__/
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT introduce a UI library (shadcn, Radix, MUI). Direct CSS.
+  • Do NOT add icon support to Button/Link in this prompt; if needed,
+    callers compose <span aria-hidden> children.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

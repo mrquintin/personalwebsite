@@ -1,0 +1,27 @@
+PROMPT SET 13 — VISUAL DESIGN SYSTEM
+======================================
+
+CONTEXT
+-------
+v1 had design tokens scattered across tokens.css, experience.css,
+coherence-engine.css, theseus-experience.css, prp-prose.css. v2
+consolidates into a single tokens.css and a small set of primitive
+components. This is the foundation suites 14-19 build on.
+
+The user's stated aesthetic: "techie lean" — preserved. v2 looks like
+v1 in typographic character but ships a cleaner token sheet, a
+documented motion system, and primitive components.
+
+REFERENCES
+----------
+  docs/v2_principles.md (suite 12/P03) — every prompt here cites a
+  principle by number for each major decision.
+
+SCOPE
+-----
+  P01  Typography scale + faces
+  P02  Color tokens (dark + light, semantic)
+  P03  Spacing + layout rhythm
+  P04  Motion tokens + curves
+  P05  Component primitives (Button, Link, Surface, Card, Badge)
+  P06  /styleguide page rebuilt as the design-system reference

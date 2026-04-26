@@ -1,0 +1,76 @@
+18/P06 — RETRIEVER
+====================
+
+GOAL
+----
+Given a user query, return the top-k corpus chunks most relevant to
+answer it. Light reranking on top of vector similarity.
+
+§A FILES TOUCHED
+----------------
+  src/lib/llm/retriever.ts               (NEW)
+  src/lib/llm/retriever.test.ts          (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Function signature:
+       export type Retrieved = {
+         chunkId: string;
+         text: string;
+         heading?: string;
+         section?: string;
+         path: string;
+         topics: string[];
+         kind: string;
+         score: number;          // 0-1, higher is better
+         citeOkay: boolean;
+       };
+       export async function retrieve(
+         query: string,
+         opts?: { k?: number; topicHints?: string[]; minScore?: number }
+       ): Promise<Retrieved[]>;
+
+B2.  Default k = 8. Default minScore = 0.55 (tune empirically with
+     evaluation harness in P10).
+
+B3.  Pipeline:
+       1. Embed the query via getEmbedder()
+       2. Call store.searchSimilar(emb, k * 2, { citeOkay: undefined })
+          (over-fetch so the rerank has options)
+       3. Score adjustment:
+            base score = 1 - cosine_distance
+            voice_weight bonus: + (voiceWeight - 1) * 0.05
+            topic match bonus: + 0.03 per matched topicHint, capped at 0.10
+       4. Sort by adjusted score, take top k
+       5. Drop any below minScore
+       6. Return list
+
+B4.  Error cases:
+       - No chunks returned (empty corpus or all below threshold) →
+         return [] (do NOT throw; the chat handler must handle this)
+       - Embedding API failure → throw with a typed error so the
+         chat handler can return a clean error to the client.
+
+B5.  Tests with seeded fixtures:
+       - Inject 10 fake chunks with known embeddings via the store
+         interface (test uses an in-memory Embedder + a sqlite or
+         pg-mem variant of the store for unit purposes; or against
+         a test DB if available)
+       - Verify top-k ordering matches expected
+       - Verify topic-hint boost shifts ordering as expected
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/lib/llm/retriever.ts
+  npx vitest run src/lib/llm/retriever.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT implement BM25 hybrid retrieval here. Vector + topic
+    boost is sufficient for v2.
+  • Do NOT implement query expansion / HyDE. Adds latency and
+    complexity for marginal v2 gains.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

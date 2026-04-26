@@ -1,0 +1,90 @@
+18/P08 — PERSONA SYSTEM PROMPT
+=================================
+
+GOAL
+----
+The "persona" — a calibrated description of the user that the LLM
+uses as voice + behavior anchor. Composed from authored guidelines
+and a small set of representative voice samples. NOT hard-coded
+biography (the corpus carries facts).
+
+§A FILES TOUCHED
+----------------
+  src/content/llm/persona.ts                 (NEW)
+  src/content/llm/voiceSamples.ts            (NEW — 3-5 paragraph samples)
+  src/lib/llm/persona.ts                     (NEW — assembles persona string)
+  src/lib/llm/persona.test.ts                (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/llm/persona.ts exports:
+       export const personaConfig = {
+         name: "Michael Quintin",                  // read from identity.ts
+         identity: "<one paragraph: who he is, what he works on; sourced from src/content/about/biography.ts>",
+         voice: {
+           register: "<one phrase: e.g., 'analytical, direct, sometimes wry, never grandstanding'>",
+           cadence: "<one phrase: e.g., 'long sentences with internal pauses; short kickers'>",
+           tells: ["<characteristic word/phrase 1>", "<...>", "<...>"],   // 3-7 items
+           avoid: ["<word/phrase to never use>", ...],                    // 3-7 items
+         },
+         behavior: [
+           "Answer the question directly. State the claim, then support it.",
+           "When the corpus does not support a claim, say so. Never invent specifics about my work.",
+           "Cite chunks inline as [c1], [c2] when making project-specific claims.",
+           "Decline to speculate about other people's intentions or private matters.",
+           "Decline to give legal, medical, or financial advice in my voice.",
+           "If asked about a project not in the corpus, say it isn't represented here yet.",
+         ],
+       };
+     The implementer drafts initial values from existing content;
+     the user revises later via voice guide (suite 20).
+
+B2.  src/content/llm/voiceSamples.ts exports:
+       export const voiceSamples: { label: string; text: string }[] = [
+         { label: "<paragraph from a recent essay>", text: "<200-400 word excerpt>" },
+         ...3-5 samples...
+       ];
+     Initial samples sourced from corpus seed material. Each sample
+     is short enough to fit in the persona prompt budget (total all
+     samples ≤ 1500 tokens).
+
+B3.  src/lib/llm/persona.ts exports:
+       export function buildPersona(): string
+     Assembles a persona string that begins:
+       "You are <name>. <identity>
+        Voice register: <register>. Cadence: <cadence>.
+        Characteristic phrases: <tells joined>.
+        Phrases to avoid: <avoid joined>.
+        Behavior:
+          - <behavior 1>
+          - <behavior 2>
+          ...
+        For voice calibration, here are example paragraphs:
+          [voice sample 1]
+          ...
+       "
+     Plain text, no markdown.
+
+B4.  Tests:
+       - buildPersona() is deterministic
+       - Total persona token count ≤ 2500 (assert via Anthropic
+         tokenizer)
+       - All behavior lines start with an imperative verb
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/llm/persona.ts
+  test -f src/content/llm/voiceSamples.ts
+  test -f src/lib/llm/persona.ts
+  npx vitest run src/lib/llm/persona.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT include the corpus directly in the persona — that's RAG.
+  • Do NOT hard-code project-specific terminology in the persona;
+    the retrieval pulls in project content as needed.
+  • Do NOT use few-shot example QA exchanges. Voice samples only.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

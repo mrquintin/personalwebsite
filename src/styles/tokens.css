@@ -2,47 +2,87 @@
  * tokens.css — operator's portfolio
  * Canonical custom properties. Consumed by every component.
  * Dark is canonical; light is opt-in (toggle implemented separately).
+ *
+ * Vertical rhythm rule (suite 13/P03):
+ *   All vertical spacing between content blocks is a multiple of
+ *   var(--s-2) (8px). Text within a block follows the line-height
+ *   of its type role. This rule is for prose; UI elements may use
+ *   finer increments via the --s-* scale.
  * --------------------------------------------------------------------------- */
 
 :root,
 :root[data-theme="dark"] {
+  /* ----- v2 semantic colour palette (suite 13/P02) -----
+     Dark is canonical. Hex with alpha (#RRGGBBAA) keeps tokens
+     self-contained — no rgba(). All fg/bg pairs documented in
+     docs/v2_audit.md ## Contrast deviations meet WCAG AA. */
+
   /* surface */
-  --bg-0:        oklch(0.14 0 0);
-  --bg-1:        oklch(0.17 0 0);
-  --bg-2:        oklch(0.21 0 0);
-  --bg-3:        oklch(0.26 0 0);
-  --rule:        oklch(0.32 0 0);
+  --bg:           #0c0e10;            /* base background          */
+  --bg-mute:      #14171a;            /* muted surface            */
+  --bg-raise:     #1b1f23;            /* raised surface (cards)   */
+  --bg-overlay:   #06070824;          /* modal overlay            */
 
   /* foreground */
-  --fg-mute:     oklch(0.55 0 0);
-  --fg-dim:      oklch(0.72 0 0);
-  --fg:          oklch(0.92 0 0);
-  --fg-hi:       oklch(1.00 0 0);
+  --fg:           #e8e6e1;            /* primary text             */
+  --fg-mute:      #8b8a85;            /* secondary text           */
+  --fg-faint:     #9a9994;            /* tertiary text — adjusted to clear AA-normal (4.5:1) on --bg and --bg-mute */
+  --fg-inverse:   #0c0e10;            /* text on accent surface   */
 
-  /* accent + state */
-  --accent:      oklch(0.78 0.17 65);
-  --accent-dim:  oklch(0.55 0.12 65);
-  --danger:      oklch(0.68 0.19 25);
-  --ok:          oklch(0.72 0.15 145);
+  /* borders + dividers */
+  --line:         #232629;            /* hairline                 */
+  --line-strong:  #3a3d40;            /* emphatic border          */
 
-  /* type stacks */
-  --font-mono:  "Berkeley Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
-  --font-sans:  "Inter", "Söhne", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  /* accent — warm gold/amber inherited from v1 (B3). Do not change without authorization. */
+  --accent:       #c9a96e;            /* primary accent (mono)    */
+  --accent-mute:  #c9a96e22;          /* hover/wash               */
+  --accent-fg:    #0c0e10;            /* text on accent           */
 
-  /* type scale (size / line-height) */
-  --t-xxs-size: 11px;  --t-xxs-lh: 16px;
-  --t-xs-size:  12px;  --t-xs-lh:  18px;
-  --t-sm-size:  13px;  --t-sm-lh:  20px;
-  --t-base-size:15px;  --t-base-lh:24px;
-  --t-md-size:  17px;  --t-md-lh:  28px;
-  --t-lg-size:  22px;  --t-lg-lh:  30px;
-  --t-xl-size:  30px;  --t-xl-lh:  36px;
-  --t-2xl-size: 44px;  --t-2xl-lh: 48px;
-  --t-3xl-size: 64px;  --t-3xl-lh: 64px;
+  /* status — used sparingly (chat error states only) */
+  --warn:         #d18b3a;
+  --error:        #dc6e69;            /* adjusted from #d2615c to clear AA on bg-raise (see audit) */
+  --ok:           #6da16a;
 
-  /* spacing (8px base, with 4px half-step) */
-  --s-0:   0;
+  /* ----- v1 aliases (transitional) -------------------------
+     Active components in src/components/* still reference v1
+     names. Aliases map them onto the v2 palette so the visual
+     ramp degrades gracefully until each component is migrated
+     in subsequent suite-13 prompts. New code MUST consume the
+     semantic v2 tokens above; do not introduce new --bg-N or
+     --fg-hi/dim references. */
+  --bg-0:        var(--bg);
+  --bg-1:        var(--bg-mute);
+  --bg-2:        var(--bg-raise);
+  --bg-3:        var(--line);
+  --rule:        var(--line);
+  --fg-hi:       var(--fg);
+  --fg-dim:      var(--fg-mute);
+  --accent-dim:  var(--accent-mute);
+  --danger:      var(--error);
+
+  /* type stacks — two faces, period. mono for technical + headlines,
+     serif for long-form. --font-mono / --font-serif are injected by
+     next/font on <html>; the tokens below are the consumable stacks. */
+  --t-mono:  var(--font-mono),  ui-monospace, monospace;
+  --t-serif: var(--font-serif), Georgia, serif;
+
+  /* type scale — base 16px, ratio 1.25, 7 steps */
+  --t-sm-size:    13px;  --t-sm-lh:    20px;
+  --t-base-size:  16px;  --t-base-lh:  26px;
+  --t-md-size:    18px;  --t-md-lh:    28px;
+  --t-lg-size:    22px;  --t-lg-lh:    32px;
+  --t-xl-size:    28px;  --t-xl-lh:    36px;
+  --t-2xl-size:   36px;  --t-2xl-lh:   44px;
+  --t-3xl-size:   48px;  --t-3xl-lh:   56px;
+
+  /* tracking */
+  --t-tight:  -0.01em;
+  --t-normal: 0;
+  --t-wide:   0.05em;
+
+  /* spacing — single 4px-grid scale (suite 13/P03). All spacing in v2
+     components draws from --s-1..--s-10. See vertical-rhythm rule at
+     the top of this file. */
   --s-1:   4px;
   --s-2:   8px;
   --s-3:   12px;
@@ -53,6 +93,13 @@
   --s-8:   64px;
   --s-9:   96px;
   --s-10:  128px;
+
+  /* layout containers — three widths cover the v2 surface area:
+     narrow for prose/chat, base for project pages, wide for landing
+     teaser grids. Container.tsx is the only consumer. */
+  --container-narrow:  640px;
+  --container-base:    900px;
+  --container-wide:    1200px;
 
   /* borders */
   --r-0: 0;
@@ -67,17 +114,29 @@
   --z-toast:     90;
   --z-boot:     100;
 
-  /* duration + easing */
-  --d-flash: 120ms;
-  --d-fast:  160ms;
-  --d-norm:  240ms;
-  --d-slow:  420ms;
-  --ease:    cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  /* motion vocabulary (suite 13/P04) — five durations, three curves.
+     Functional motion only: every animation has a no-motion path via the
+     reduced-motion block at the bottom of this file. See
+     docs/v2_motion_guide.md for the use-case map. */
+  --d-instant: 0ms;     /* state change with no animation        */
+  --d-tap:     80ms;    /* button press feedback                 */
+  --d-fast:    160ms;   /* focus ring, hover state               */
+  --d-norm:    280ms;   /* page transition fade                  */
+  --d-slow:    480ms;   /* chat message arrival                  */
 
-  /* R01: accordion-specific timing — longer, decelerating curve so width
-     animates without snapping at rest. Reusable for any large layout move. */
-  --d-accordion: 420ms;
-  --ease-accordion: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);    /* decelerate to rest */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);     /* state toggles      */
+  --ease-linear: linear;                            /* text streaming    */
+
+  /* legacy motion aliases (transitional) — components in src/components/*
+     and src/_legacy_v1/* still reference --d-flash, --d-accordion, --ease,
+     --ease-accordion. Aliased onto the v2 motion vocabulary so existing
+     timings degrade gracefully until each component is migrated. New code
+     MUST consume the v2 tokens above. */
+  --d-flash:        var(--d-fast);
+  --d-accordion:    var(--d-slow);
+  --ease:           var(--ease-out);
+  --ease-accordion: var(--ease-out);
 
   /* layout */
   --statusbar-h: 0px; /* R04: status bar removed; reserved height collapses */
@@ -89,31 +148,58 @@
   color-scheme: dark;
 }
 
-/* light: derived by lightness inversion, low chroma, accent retained */
+/* light: explicit attribute override of dark default (see B1).
+   prefers-color-scheme is intentionally NOT used here so the
+   theme toggle (suite 14/P07) can override the OS preference. */
 :root[data-theme="light"] {
-  --bg-0:        oklch(0.98 0 0);
-  --bg-1:        oklch(0.95 0 0);
-  --bg-2:        oklch(0.91 0 0);
-  --bg-3:        oklch(0.86 0 0);
-  --rule:        oklch(0.78 0 0);
-  --fg-mute:     oklch(0.48 0 0);
-  --fg-dim:      oklch(0.34 0 0);
-  --fg:          oklch(0.18 0 0);
-  --fg-hi:       oklch(0.08 0 0);
-  --accent:      oklch(0.62 0.18 65);
-  --accent-dim:  oklch(0.48 0.13 65);
-  --danger:      oklch(0.55 0.20 25);
-  --ok:          oklch(0.55 0.16 145);
+  /* surface */
+  --bg:           #fbfaf8;
+  --bg-mute:      #f1efeb;
+  --bg-raise:     #ffffff;
+  --bg-overlay:   #00000018;
+
+  /* foreground */
+  --fg:           #1a1a1a;
+  --fg-mute:      #555550;
+  --fg-faint:     #6a6a64;            /* tertiary text — adjusted to clear AA-normal (4.5:1) on --bg and --bg-mute */
+  --fg-inverse:   #fbfaf8;
+
+  /* borders + dividers */
+  --line:         #e3e0d8;
+  --line-strong:  #c8c4b8;
+
+  /* accent — darkened from #8a6a2a to #856528 to clear AA-normal (4.5:1)
+     against --bg-mute (#f1efeb) for accent-coloured small text such as
+     `.t-meta` (suite 21/P03 axe sweep). See docs/v2_a11y.md. */
+  --accent:       #856528;
+  --accent-mute:  #85652818;
+  --accent-fg:    #fbfaf8;
+
+  /* status */
+  --warn:         #a35e08;            /* adjusted from #b46a0a to clear AA normal (see audit) */
+  --error:        #a73a35;
+  --ok:           #3f6e3a;
+
+  /* v1 aliases (see dark block) */
+  --bg-0:        var(--bg);
+  --bg-1:        var(--bg-mute);
+  --bg-2:        var(--bg-raise);
+  --bg-3:        var(--line);
+  --rule:        var(--line);
+  --fg-hi:       var(--fg);
+  --fg-dim:      var(--fg-mute);
+  --accent-dim:  var(--accent-mute);
+  --danger:      var(--error);
+
   color-scheme: light;
 }
 
-/* prefers-reduced-motion: collapse durations */
+/* prefers-reduced-motion: collapse all non-instant durations.
+   --d-instant is intentionally absent (already 0). Aliases (--d-flash,
+   --d-accordion) inherit zero through their var() chain. */
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --d-flash: 0ms;
-    --d-fast:  0ms;
-    --d-norm:  0ms;
-    --d-slow:  0ms;
-    --d-accordion: 0ms;
-  }
+  :root { --d-tap:  0ms; }
+  :root { --d-fast: 0ms; }
+  :root { --d-norm: 0ms; }
+  :root { --d-slow: 0ms; }
 }

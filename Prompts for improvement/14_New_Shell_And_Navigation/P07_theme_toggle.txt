@@ -1,0 +1,67 @@
+14/P07 — THEME TOGGLE AND PERSISTENCE
+========================================
+
+GOAL
+----
+A small toggle that switches between dark, light, and system. Per
+principle 7: dark default, light supported, system respected. State
+persists across visits in localStorage.
+
+§A FILES TOUCHED
+----------------
+  src/components/shell/ThemeToggle.tsx       (NEW)
+  src/components/shell/ThemeInit.tsx         (modify — already exists from P01)
+  src/components/shell/SiteHeader.tsx        (modify — wire toggle in)
+  src/components/shell/SiteFooter.tsx        (modify — also expose toggle in footer for mobile)
+
+§B ACCEPTANCE
+-------------
+B1.  ThemeToggle is a single button. Default label: a small mono
+     character that reflects current effective theme:
+       "◐"   for system (auto)
+       "○"   for light
+       "●"   for dark
+     Click cycles: dark → light → system → dark.
+
+B2.  Behavior:
+       - State stored in localStorage["theme"] = "dark" | "light" | "system"
+       - Effective theme: if "system", read prefers-color-scheme; else value.
+       - data-theme on <html> set to "dark" or "light" (never "system").
+       - When "system" is selected, listen to matchMedia change events
+         and update data-theme accordingly without page reload.
+
+B3.  ThemeInit (from P01) becomes:
+       (function() {
+         try {
+           const saved = localStorage.getItem("theme");
+           const sys = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+           const effective = (saved === "light" || saved === "dark") ? saved : sys;
+           document.documentElement.setAttribute("data-theme", effective);
+         } catch (e) { /* localStorage may be unavailable */ }
+       })();
+
+B4.  Toggle placement: in the header on desktop (right side, before
+     the hamburger placeholder), and at the top of the mobile
+     drawer. NOT in the footer (kept simple).
+
+B5.  aria-label="Theme: dark / light / system" updates dynamically
+     to read "Theme: <current>".
+
+B6.  No FOUC: ThemeInit runs synchronously before paint (inlined in
+     <head>). The theme attribute is on <html> before React hydrates.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/shell/ThemeToggle.tsx
+  grep -n 'localStorage.setItem("theme"' src/components/shell/ThemeToggle.tsx
+  grep -n 'data-theme' src/components/shell/ThemeInit.tsx
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add custom themes beyond dark / light. Two values + system.
+  • Do NOT animate the theme switch (CSS variable changes are
+    instant; users find theme-fade annoying).
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

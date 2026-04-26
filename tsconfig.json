@@ -19,5 +19,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "_archive_nashlab", "_archive_operator"]
+  "exclude": ["node_modules", "_archive_nashlab", "_archive_operator", "src/_legacy_v1"]
 }

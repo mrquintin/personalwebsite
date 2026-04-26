@@ -1,0 +1,59 @@
+15/P02 — BIO BLOCK
+====================
+
+GOAL
+----
+A short bio block under the hero. 2-4 sentences. Tells the visitor
+what the user does and what perspective they bring. No life story.
+
+§A FILES TOUCHED
+----------------
+  src/components/landing/Bio.tsx         (NEW)
+  src/content/landing/bio.ts             (NEW — bio copy)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/landing/bio.ts exports:
+       export const bio = {
+         heading: "Briefly",     // mono small heading
+         body: [
+           "<sentence 1>",
+           "<sentence 2>",
+           "<optional sentence 3>",
+           "<optional sentence 4>",
+         ],
+       };
+     Body sentences are sourced from src/content/about/biography.ts
+     and identity.ts. The implementer composes a v2 bio from
+     existing fragments rather than authoring new prose. If the
+     existing bio is too long (more than 4 sentences fit), pick the
+     four most informative and note in a comment which were dropped.
+
+B2.  Bio.tsx layout:
+       <Surface tone="mute" padding={6} border>
+         <Stack gap=3>
+           <p className="t-meta" style={{ color: var(--accent) }}>
+             {heading}
+           </p>
+           {body.map(s => <p className="t-prose">{s}</p>)}
+         </Stack>
+       </Surface>
+
+B3.  Container size="base" wraps the section. Vertical padding:
+     var(--s-6) above and below.
+
+B4.  No images, no avatar.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/landing/Bio.tsx
+  test -f src/content/landing/bio.ts
+
+§D NON-GOALS
+------------
+  • Do NOT extend the bio beyond 4 sentences.
+  • Do NOT include credentials/awards in the landing bio. /resume covers them.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

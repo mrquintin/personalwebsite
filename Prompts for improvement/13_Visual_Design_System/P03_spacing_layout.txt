@@ -1,0 +1,79 @@
+13/P03 — SPACING AND LAYOUT RHYTHM
+=====================================
+
+GOAL
+----
+A single spacing scale based on a 4px grid. A small set of layout
+primitives (Stack, Cluster, Container, Divider) sized on that scale.
+
+§A FILES TOUCHED
+----------------
+  src/styles/tokens.css                  (replace spacing section)
+  src/components/primitives/Stack.tsx    (NEW)
+  src/components/primitives/Cluster.tsx  (NEW)
+  src/components/primitives/Container.tsx (NEW)
+  src/components/primitives/Divider.tsx  (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Spacing scale (replace v1's --s-*):
+       --s-1:   4px;
+       --s-2:   8px;
+       --s-3:   12px;
+       --s-4:   16px;
+       --s-5:   24px;
+       --s-6:   32px;
+       --s-7:   48px;
+       --s-8:   64px;
+       --s-9:   96px;
+       --s-10:  128px;
+
+B2.  Layout containers:
+       --container-narrow:  640px;   (essays, chat)
+       --container-base:    900px;   (project pages)
+       --container-wide:    1200px;  (landing teaser grids)
+
+     Container.tsx accepts size="narrow" | "base" | "wide" (default
+     base) and renders <div> with max-width clamped to the chosen
+     value, centered, plus horizontal padding of var(--s-5) on
+     mobile / var(--s-6) on >=768px.
+
+B3.  Stack.tsx is a vertical-rhythm primitive:
+       <Stack gap={4}>...</Stack>
+     Renders flex column with gap = var(--s-{n}). Default gap = 4.
+     Children separator-free.
+
+B4.  Cluster.tsx is the horizontal sibling of Stack:
+       <Cluster gap={3} align="center">...</Cluster>
+     flex row, wrap, with configurable gap and align-items.
+
+B5.  Divider.tsx renders a single hr:
+       <hr role="presentation" /> styled as 1px line in --line color,
+     with vertical margin of var(--s-5).
+
+B6.  Vertical rhythm rule (documented at the top of tokens.css):
+     "All vertical spacing between content blocks is a multiple of
+     var(--s-2) (8px). Text within a block follows the line-height
+     of its type role." This rule is for prose; UI elements may use
+     finer increments via the --s-* scale.
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -cE '^\s*--s-[0-9]+:' src/styles/tokens.css   # exactly 10
+  grep -cE '^\s*--container-(narrow|base|wide):' src/styles/tokens.css   # exactly 3
+  test -f src/components/primitives/Stack.tsx
+  test -f src/components/primitives/Cluster.tsx
+  test -f src/components/primitives/Container.tsx
+  test -f src/components/primitives/Divider.tsx
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT use Tailwind. v2 keeps the project's existing CSS-tokens
+    + scoped CSS approach.
+  • Do NOT add a Grid primitive yet — Container/Stack/Cluster are
+    sufficient for suites 14-19. If a real grid need emerges, add it
+    in a later refinement.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

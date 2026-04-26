@@ -1,0 +1,94 @@
+12/P04 — REPOSITORY HYGIENE
+==============================
+
+GOAL
+----
+After demolition (P02), the repo has dead routes, unused dependencies,
+orphan tests, and stale docs. This prompt prunes them so suite 13
+starts from a clean baseline.
+
+§A FILES TOUCHED
+----------------
+  package.json                           (remove unused deps + scripts)
+  package-lock.json                      (regenerated)
+  .eslintrc.json                         (drop rules that only legacy code triggered)
+  .stylelintrc.json                      (same)
+  e2e/*.spec.ts                          (delete spec files for removed surfaces; keep skipped describes only where v2 will restore the surface)
+  scripts/                               (remove ship-gate scripts that target removed components; suite 22 adds new ones)
+  docs/                                  (mark CHANGELOG.md, critique-log.md, easter-eggs.md as ARCHIVED if their content references v1 only)
+
+§B ACCEPTANCE
+-------------
+B1.  Dependency audit. Run `npx depcheck` (install if not present;
+     `--break-system-packages` flag should NOT be used for npm
+     packages, only pip). Capture the unused-dependencies and
+     unused-devDependencies lists. For each, decide:
+       (a) remove it, OR
+       (b) keep it because suites 14-22 will reintroduce its caller
+     If keeping, add a comment in package.json (in a top-level
+     "comments" field is hacky; instead document the kept-but-unused
+     deps in docs/v2_dep_decisions.md, NEW file).
+
+B2.  Scripts cleanup. The "scripts" field in package.json currently
+     has entries pointing to ship-gate scripts that targeted the
+     archived suites (e.g., r01_r02 invariants, accordion ship-gate).
+     Remove them. Keep: build, dev, start, lint, typecheck, test,
+     test:e2e (or whatever the project's standard).
+
+B3.  E2E test cleanup. e2e/*.spec.ts files that exercise the
+     accordion shell are removed. e2e/smoke.spec.ts is rewritten in a
+     minimal form that asserts:
+       (a) GET / returns 200
+       (b) GET /about returns 200
+       (c) GET /resume returns 200
+     The rewritten smoke test is the only e2e file kept. Suites 15,
+     16, 19 add real e2e coverage.
+
+B4.  ESLint and Stylelint configs are simplified. Remove rules that
+     only existed for legacy components. Keep: standard typescript
+     rules, react-hooks rules, accessibility rules (jsx-a11y),
+     stylelint-standard for CSS.
+
+B5.  docs/ pruning. For each .md in docs/:
+       (a) if its content references only v1 components/concepts and
+           does not describe content the LLM-of-me corpus will use,
+           rename to docs/_archived_v1/<filename>
+       (b) if it contains content the corpus will reuse (voice-guide,
+           design-philosophy), keep at root and append a note
+           "## v2 status: under revision (suite 13/20 updates this)"
+     docs/v2_audit.md and docs/v2_principles.md (from P01, P03) stay
+     at root, untouched.
+
+B6.  Dependency tree health. After all removals:
+       npm install
+       npm audit
+     Both must complete with zero high or critical vulnerabilities.
+     Document the remaining low/medium audit warnings in
+     docs/v2_dep_decisions.md so a future maintainer knows whether
+     to chase them.
+
+§C VERIFICATION COMMANDS
+------------------------
+  npx depcheck                           # unused deps surfaced; review
+  test -f docs/v2_dep_decisions.md
+  cat e2e/smoke.spec.ts | wc -l          # rewritten file is short (~30-50 lines)
+  ls e2e/ | wc -l                        # only smoke.spec.ts remains
+  npm run build && echo BUILD_OK
+  npx tsc --noEmit && echo TYPECHECK_OK
+  npm run lint
+  npm run test:e2e
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT remove dependencies the LLM-of-me suite (18) will need:
+    @anthropic-ai/sdk (if not installed, leave it for 18 to add),
+    pg, drizzle-orm or prisma, postgres-js — none of these may be
+    present yet; do not preemptively add them either.
+  • Do NOT delete content/voice files. That is suite 20.
+  • Do NOT modify tokens.css. Suite 13 owns it.
+
+§E REPORT
+---------
+End your response with:
+    IMPL_RESULT: PASS
+ or IMPL_RESULT: FAIL (reasons above)

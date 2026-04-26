@@ -1,0 +1,313 @@
+[session started model=claude-opus-4-7 session=b6ffe14a]
+
+[rate_limit_event]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && ls -la
+  [result: total 2168 drwx------@  42 michaelquintin  staff    1344 Apr 25 17:47 . drwx------    6 michaelquintin  staff     192 Apr 23 22:06 .. -rw-r--r--    1 michaelquintin  staff   10244 Apr 25 12:46 .DS_Sto ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && ls src/components/presentation/ 2>/dev/null && echo "---" &
+  [result: SimplePresentation.tsx __tests__ types.ts --- landing.spec.ts projects-mobile.spec.ts projects.spec.ts smoke.spec.ts]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && ls src/components/presentation/__tests__/ && echo "---" && 
+  [result: SimplePresentation.test.tsx --- chat-preview.css presentation.css primitives.css print.css prose.css reset.css tokens.css transitions.css typography.css]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/SimplePresentation.tsx
+  [result: 1	"use client"; 2	import { useCallback, useEffect, useRef, useState } from "react"; 3	import Surface from "../primitives/Surface"; 4	import Cluster from "../primitives/Cluster"; 5	import Button from " ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/types.ts
+  [result: 1	import type { ReactNode } from "react"; 2	 3	export type Phase = { 4	  id: string; 5	  heading: string; 6	  body: ReactNode; 7	}; 8	 9	export type DeckProps = { 10	  id: string; 11	  title: string;  ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/styles/presentation.css
+  [result: 1	.p-presentation { 2	  --p-fade-out: 180ms; 3	  --p-fade-in: 320ms; 4	} 5	 6	.p-presentation__phase { 7	  opacity: 1; 8	  transition: opacity var(--p-fade-in) var(--ease-out); 9	} 10	 11	.p-presentat ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && find src -name "*.ts" -o -name "*.tsx" | xargs grep -l "hvm
+  [result: src/content/presentations/prp.tsx src/content/presentations/hvm.tsx src/content/presentations/ths.tsx src/components/projects/hivemind/Presentation.tsx src/components/projects/purposeless-efficiency/P ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/hvm.tsx
+  [result: 1	import type { Phase } from "../../components/presentation/types"; 2	 3	export const hvmPhases: Phase[] = [ 4	  { 5	    id: "what", 6	    heading: "What Hivemind is", 7	    body: ( 8	      <> 9	      ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/prp.tsx
+  [result: 1	import type { Phase } from "../../components/presentation/types"; 2	 3	// Sources (every claim grounded in existing repo content): 4	//   - src/content/projects/purposeless-efficiency/preface.ts 5	/ ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/ths.tsx
+  [result: 1	import type { Phase } from "../../components/presentation/types"; 2	 3	// Sources (every claim grounded in existing repo content): 4	//   - src/content/projects/theseus/thesis.ts 5	//   - src/conten ...]
+
+
+[TOOL ToolSearch] select:TodoWrite
+
+
+[TOOL TodoWrite] 
+  [result: Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/__tests__/SimplePresentation.test.tsx
+  [result: 1	import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"; 2	import { render, screen, fireEvent } from "@testing-library/react"; 3	import SimplePresentation from "../SimplePresentatio ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/primitives/Button.tsx
+  [result: 1	import type { ButtonHTMLAttributes, ReactNode } from "react"; 2	 3	type ButtonVariant = "solid" | "outline" | "ghost"; 4	type ButtonSize = "sm" | "md" | "lg"; 5	type ButtonTone = "neutral" | "accent ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/projects.spec.ts
+  [result: 1	import { test, expect } from "@playwright/test"; 2	import hivemindMeta from "../src/content/projects/hivemind/metadata"; 3	import purposelessMeta from "../src/content/projects/purposeless-efficiency ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/playwright.config.ts
+  [result: 1	import { defineConfig, devices } from "@playwright/test"; 2	 3	export default defineConfig({ 4	  testDir: "./e2e", 5	  fullyParallel: true, 6	  retries: process.env.CI ? 2 : 0, 7	  reporter: "list", ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/projects/hivemind/Presentation.tsx
+  [result: 1	import SimplePresentation from "../../presentation/SimplePresentation"; 2	import { hvmPhases } from "../../../content/presentations/hvm"; 3	 4	export default function HivemindPresentation() { 5	  re ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat package.json
+  [result: {   "name": "personalwebsite",   "version": "0.1.0",   "private": true,   "packageManager": "npm@10.9.2",   "engines": {     "node": ">=20"   },   "scripts": {     "dev": "next dev",     "build": "nex ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/vitest.config.ts
+  [result: 1	import { defineConfig } from "vitest/config"; 2	import path from "node:path"; 3	 4	export default defineConfig({ 5	  oxc: { 6	    jsx: { runtime: "automatic" }, 7	  }, 8	  test: { 9	    environment: ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -E "(--s-5|--s-6|--s-2|--s-3)" src/styles/tokens.css |
+  [result:  *   var(--s-2) (8px). Text within a block follows the line-height   --s-2:   8px;   --s-3:   12px;   --s-5:   24px;   --s-6:   32px;]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "padding={6}\|Surface" src/components/primitives/S
+  [result: src/components/primitives/Surface.tsx:3:type SurfaceTone = "base" | "mute" | "raise"; src/components/primitives/Surface.tsx:6:export type SurfaceProps = HTMLAttributes<HTMLElement> & { src/components/ ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/primitives/Surface.tsx
+  [result: 1	import type { CSSProperties, HTMLAttributes, ReactNode } from "react"; 2	 3	type SurfaceTone = "base" | "mute" | "raise"; 4	type SpacingToken = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; 5	 6	export ty ...]
+Now I'll update the presentation.css for mobile + a11y, and update SimplePresentation.tsx:
+
+[TOOL Write] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/styles/presentation.css
+  [result: The file /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/styles/presentation.css has been updated successfully. (file state is current in your context  ...]
+
+
+[TOOL TodoWrite] 
+  [result: Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable]
+
+
+[TOOL Edit] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/SimplePresentation.tsx
+  [result: The file /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/SimplePresentation.tsx has been updated successfully. (file state is c ...]
+
+
+[TOOL Write] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/__tests__/decks.test.ts
+  [result: File created successfully at: /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/presentation/__tests__/decks.test.ts (file state is current in ...]
+
+
+[TOOL TodoWrite] 
+  [result: Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "Presentation" src/app/projects/ 2>/dev/null | hea
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && find src/app -type d | head -20 && echo "---" && find src/a
+  [result: src/app src/app/chat src/app/changelog src/app/projects src/app/projects/[slug] src/app/resume src/app/about src/app/styleguide --- src/app/projects/page.tsx src/app/projects/[slug]/page.tsx]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -n "Presentation\|presentation" "src/app/projects/[slu
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "HivemindPresentation\|PurposelessPresentation\|Th
+  [result: src/components/projects/hivemind/Presentation.tsx:4:export default function HivemindPresentation() { src/components/projects/theseus/Presentation.tsx:4:export default function TheseusPresentation() {]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "from.*projects/hivemind/Presentation\|HivemindPre
+  [result: src/components/projects/hivemind/Presentation.tsx:1:import SimplePresentation from "../../presentation/SimplePresentation"; src/components/projects/hivemind/Presentation.tsx:4:export default function  ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/app/projects/[slug]/page.tsx
+  [result: 1	import type { Metadata } from "next"; 2	import ProjectPage from "@/components/projects/ProjectPage"; 3	import { getProjectMetadata } from "@/lib/projects/loader"; 4	import { projects } from "@/conte ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "Presentation\|p-presentation\|deck-id" src/compon
+  [result: src/components/projects/ProjectPage.tsx:7:type SlotName = "Presentation" | "Body" | "Links"; src/components/projects/ProjectPage.tsx:28:  const [Presentation, Body, Links] = await Promise.all([ src/co ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/projects/ProjectPage.tsx
+  [result: 1	import type { ComponentType } from "react"; 2	import { notFound } from "next/navigation"; 3	import StubPlaceholder from "@/components/StubPlaceholder"; 4	import ProjectShell from "@/components/proje ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && ls src/components/projects/ && echo "---" && ls src/compone
+  [result: ProjectHero.tsx ProjectPage.tsx ProjectShell.tsx ProjectsTable.tsx StatusPill.tsx __tests__ hivemind purposeless-efficiency theseus --- Body.tsx Links.tsx Presentation.tsx]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/projects/purposeless-efficiency/Presentation.tsx
+  [result: 1	import SimplePresentation from "../../presentation/SimplePresentation"; 2	import { prpPhases } from "../../../content/presentations/prp"; 3	 4	export default function PurposelessEfficiencyPresentati ...]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/components/projects/theseus/Presentation.tsx
+  [result: 1	import SimplePresentation from "../../presentation/SimplePresentation"; 2	import { thsPhases } from "../../../content/presentations/ths"; 3	 4	export default function TheseusPresentation() { 5	  ret ...]
+
+
+[TOOL Write] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/presentations.spec.ts
+  [result: File created successfully at: /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/e2e/presentations.spec.ts (file state is current in your context — no need to ...]
+Now let me run the vitest tests first:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npx vitest run src/components/presentation/__tests__/decks.
+  [result:  RUN  v4.1.4 /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website    Test Files  1 passed (1)       Tests  51 passed (51)    Start at  17:59:24    Duration  1.4 ...]
+Vitest decks pass. Now let me also run the existing SimplePresentation tests to confirm I didn't break them:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npx vitest run src/components/presentation/__tests__/Simple
+  [result:  RUN  v4.1.4 /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website    Test Files  1 passed (1)       Tests  10 passed (10)    Start at  17:59:30    Duration  1.4 ...]
+Now Playwright. First I need to ensure the dev server / build works:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && curl -s -o /dev/null -w "%{http_code}" http://localhost:300
+  [result: Exit code 7 000]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && ls .next 2>/dev/null | head
+  [result: BUILD_ID app-build-manifest.json app-path-routes-manifest.json build-manifest.json cache cache 2 diagnostics export-marker.json images-manifest.json next-minimal-server.js.nft.json]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat next.config.ts
+  [result: import type { NextConfig } from "next"; import createMDX from "@next/mdx"; // eslint-disable-next-line @typescript-eslint/no-require-imports const pkg = require("./package.json");  const withMDX = cre ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npm run build 2>&1 | tail -50
+[system:task_started]
+[system:task_notification]
+  [result: > personalwebsite@0.1.0 build > next build     ▲ Next.js 15.5.15     Creating an optimized production build ...  ⚠ Compiled with warnings in 2.3s  ./node_modules/vite/dist/node/module-runner.js Critic ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat .eslintrc.json
+  [result: {   "extends": "next/core-web-vitals" }]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat .github/workflows/ci.yml 2>/dev/null | head -60
+  [result: name: CI  on:   push:     branches: [main]   pull_request:  concurrency:   group: ${{ github.workflow }}-${{ github.ref }}   cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}  jobs:   build:  ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && git log --oneline -5 src/content/presentations/prp.tsx src/
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && git status src/content/presentations/ 2>&1 | head
+  [result: On branch main Untracked files:   (use "git add <file>..." to include in what will be committed) 	src/content/presentations/  nothing added to commit but untracked files present (use "git add" to trac ...]
+
+
+[TOOL Edit] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/prp.tsx
+  [result: The file /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/prp.tsx has been updated successfully. (file state is current in your co ...]
+
+
+[TOOL Edit] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/ths.tsx
+  [result: The file /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/content/presentations/ths.tsx has been updated successfully. (file state is current in your co ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npm run build 2>&1 | tail -40
+[system:task_started]
+[system:task_notification]
+  [result: ○  (Static)   prerendered as static content ●  (SSG)      prerendered as static HTML (uses generateStaticParams) ƒ  (Dynamic)  server-rendered on demand   > personalwebsite@0.1.0 postbuild > next-site ...]
+Build succeeded. Now run playwright:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npx playwright test e2e/presentations.spec.ts 2>&1 | tail -
+[system:task_started]
+[system:task_notification]
+  [result:     [2m    2 × waiting for element to be visible, enabled and stable[22m     [2m      - element is not visible[22m     [2m    - retrying click action[22m     [2m      - waiting 100ms[22m      ...]
+The dots fail Playwright's visibility check. Let me investigate by checking computed dimensions:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat test-results/presentations--projects-pu-b460b-clickable
+  [result: # Instructions  - Following Playwright test failed. - Explain why, be concise, respect Playwright best practices. - Provide a snippet of code with the fix, if possible.  # Test info  - Name: presentat ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && curl -s http://localhost:3000/projects/hivemind 2>&1 | head
+  [result: --- -rw-r--r--@ 1 michaelquintin  staff  21 Apr 25 18:00 .next/BUILD_ID]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npm run start 2>&1 & sleep 4 curl -s http://localhost:3000/
+[system:task_started]
+[system:task_notification]
+  [result: <persisted-output> Output too large (34KB). Full output saved to: /Users/michaelquintin/.claude/projects/-Users-michaelquintin-Desktop-Main-Desktop---Michael-s-MacBook-Pro-Projects-Personal-Website/b6 ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && curl -s http://localhost:3000/projects/hivemind | grep -oE 
+  [result: <button type="button" role="tab" aria-selected="true" aria-label="Go to phase 1" class="p-presentation__dot p-presentation__dot--active"> <button type="button" role="tab" aria-selected="false" aria-la ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && curl -s http://localhost:3000/_next/static/css/163612427fe0
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && curl -s http://localhost:3000/_next/static/css/163612427fe0
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "presentation.css\|presentation\"" src/app src/sty
+  [result: (Bash completed with no output)]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && grep -rn "import.*\.css" src/app/layout.tsx src/styles/ 2>&
+  [result: src/app/layout.tsx:3:import "./globals.css";]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && cat src/app/globals.css 2>&1 | head -30
+  [result: /* ---------------------------------------------------------------------------  * globals.css — suite 14/P01  * Tokens-only imports + base body rules. No component-specific styling here;  * components ...]
+
+
+[TOOL Edit] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/app/globals.css
+  [result: <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>]
+
+
+[TOOL Read] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/app/globals.css
+  [result: 1	/* --------------------------------------------------------------------------- 2	 * globals.css — suite 14/P01 3	 * Tokens-only imports + base body rules. No component-specific styling here; 4	 * co ...]
+
+
+[TOOL Edit] /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/app/globals.css
+  [result: The file /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website/src/app/globals.css has been updated successfully. (file state is current in your context — no nee ...]
+Now stop the running server and rebuild:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && pkill -f "next start" 2>/dev/null; pkill -f "next-server" 2
+  [result: done]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npm run build 2>&1 | tail -10
+[system:task_started]
+[system:task_notification]
+  [result: > personalwebsite@0.1.0 build:resume-pdf > tsx scripts/resume/build-pdf.ts  [build-pdf] starting next on :4321 [build-pdf] launching headless chromium [build-pdf] navigating to http://127.0.0.1:4321/r ...]
+
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npx playwright test e2e/presentations.spec.ts 2>&1 | tail -
+
+[rate_limit_event]
+[system:task_started]
+[system:task_notification]
+  [result: Running 12 tests using 8 workers    ✓   6 [chromium] › e2e/presentations.spec.ts:29:9 › /projects/purposeless-efficiency presentation deck › deck is visible with phase 1 heading by default (500ms)   ✓ ...]
+All 12 e2e tests pass. Let me also run vitest one more time to confirm everything is still passing:
+
+[TOOL Bash] cd "/Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website" && npx vitest run src/components/presentation/__tests__/decks.
+[system:task_started]
+[system:task_notification]
+  [result:  RUN  v4.1.4 /Users/michaelquintin/Desktop/Main Desktop - Michael's MacBook Pro/Projects/Personal_Website    Test Files  1 passed (1)       Tests  51 passed (51)    Start at  18:03:39    Duration  1.9 ...]
+
+
+[TOOL TodoWrite] 
+  [result: Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable]
+Summary:
+
+- `src/styles/presentation.css` — added narrow-viewport overrides (Surface vertical padding drops to `--s-5`, dots become 12×12px) and a `.p-presentation__nav` flex layout with 96px-min, 44px-tall equal-flex buttons.
+- `src/components/presentation/SimplePresentation.tsx` — switched the prev/next row from `Cluster` to a flex `nav` div; both buttons now carry explicit `type="button"`, `aria-disabled` when disabled, and `tabIndex={-1}` when disabled (not focusable). The phase region already has `aria-live="polite"`, focus moves to the phase heading on advance, and there is no Escape-to-close behavior — the existing tests cover those.
+- `src/components/presentation/__tests__/decks.test.ts` — new vitest suite asserting, for each of `hvmPhases`/`prpPhases`/`thsPhases`: length 4, non-empty heading and body per phase, heading length 1..60, and body word count 30..200. **51/51 passing.**
+- `e2e/presentations.spec.ts` — new Playwright spec covering all three project pages: deck visibility, phase 1 heading default, next-button advancing (phase 1 leaves DOM/viewport via fade-out unmount), `ArrowRight` keyboard advance, and dots being clickable to jump to a target phase. **12/12 passing.**
+- Two incidental fixes to unblock the verification build: the `presentation.css` was never imported into `globals.css` (added the `@import`), and two pre-existing unescaped apostrophes in `prp.tsx`/`ths.tsx` blocked the build (escaped to `&apos;`).
+
+Verification:
+- `npx vitest run src/components/presentation/__tests__/decks.test.ts` → 51 passed
+- `npx playwright test e2e/presentations.spec.ts` → 12 passed
+
+IMPL_RESULT: PASS
+
+[completed: cost=$3.150179249999999 duration=443662ms turns=71]

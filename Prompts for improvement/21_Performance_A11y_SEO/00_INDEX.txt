@@ -1,0 +1,16 @@
+PROMPT SET 21 — PERFORMANCE, A11Y, SEO
+=========================================
+
+CONTEXT
+-------
+After v2 is functionally complete, this suite ensures it ships at
+quality. Lighthouse + axe + manual audit pass.
+
+SCOPE
+-----
+  P01  Performance budget + bundle analysis
+  P02  Lighthouse pass with targets
+  P03  Accessibility audit (WCAG 2.1 AA)
+  P04  SEO meta + structured data
+  P05  Sitemap + robots.txt
+  P06  OpenGraph + Twitter cards

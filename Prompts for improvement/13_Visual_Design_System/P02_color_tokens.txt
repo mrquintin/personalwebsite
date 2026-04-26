@@ -1,0 +1,87 @@
+13/P02 — COLOR TOKENS (DARK + LIGHT, SEMANTIC)
+=================================================
+
+GOAL
+----
+Replace v1's color tokens with a semantic v2 palette. Per principle 7:
+dark-first, light variant supported, prefers-color-scheme respected.
+
+§A FILES TOUCHED
+----------------
+  src/styles/tokens.css                  (replace color section)
+
+§B ACCEPTANCE
+-------------
+B1.  The token sheet defines TWO color blocks: a default dark block
+     under :root, and a light block under :root[data-theme="light"]
+     OR @media (prefers-color-scheme: light) — pick the explicit
+     attribute approach so the toggle in suite 14/P07 can override
+     the OS preference.
+
+B2.  Semantic names only. No raw hex assignments outside the token
+     sheet. The semantic set (and its dark + light values):
+
+       Surface
+         --bg                base background          dark: #0c0e10  light: #fbfaf8
+         --bg-mute           muted surface             dark: #14171a  light: #f1efeb
+         --bg-raise          raised surface (cards)    dark: #1b1f23  light: #ffffff
+         --bg-overlay        modal overlay             dark: #06070824  light: #00000018
+       Foreground
+         --fg                primary text              dark: #e8e6e1  light: #1a1a1a
+         --fg-mute           secondary text            dark: #8b8a85  light: #555550
+         --fg-faint          tertiary text             dark: #5a5a55  light: #888880
+         --fg-inverse        text on accent surface    dark: #0c0e10  light: #fbfaf8
+       Borders + dividers
+         --line              hairline                  dark: #232629  light: #e3e0d8
+         --line-strong       emphatic border           dark: #3a3d40  light: #c8c4b8
+       Accent
+         --accent            primary accent (mono)     dark: #c9a96e  light: #8a6a2a
+         --accent-mute       hover/wash                dark: #c9a96e22 light: #8a6a2a18
+         --accent-fg         text on accent            dark: #0c0e10  light: #fbfaf8
+       Status (used sparingly — chat error states only)
+         --warn              dark: #d18b3a   light: #b46a0a
+         --error             dark: #d2615c   light: #a73a35
+         --ok                dark: #6da16a   light: #3f6e3a
+
+B3.  The accent color is the warm gold/amber (#c9a96e) inherited from
+     v1's character. If a different accent is preferred the
+     implementer flags it in a comment but does not change the value
+     without explicit authorization.
+
+B4.  Contrast: every fg/bg pair must meet WCAG AA (4.5:1 for normal
+     text, 3:1 for large text). The implementer checks each pair
+     using a contrast calculator (e.g., the WebAIM checker). Any pair
+     that fails is documented in docs/v2_audit.md ## Contrast
+     deviations and adjusted until it passes.
+
+B5.  Reduced-motion is unrelated to color. No tokens here are
+     duration/easing.
+
+B6.  No raw hex outside tokens.css after this prompt. Verify by grep:
+       grep -rE '#[0-9A-Fa-f]{3,8}' src/components src/app/globals.css \
+         | grep -v '/_legacy_v1/' | grep -v '/styles/tokens.css'
+     The result must be empty (or only contain decorative SVG fills
+     that legitimately need a literal value, in which case document
+     them in tokens.css comments).
+
+§C VERIFICATION COMMANDS
+------------------------
+  grep -nE '^\s*--(bg|fg|line|accent|warn|error|ok)' src/styles/tokens.css | wc -l   # count: ~24+ entries
+  grep -nE 'data-theme="light"|prefers-color-scheme' src/styles/tokens.css
+  # contrast check: implementer reports each pair's ratio in the IMPL_RESULT block
+  npm run build
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add gradient tokens. The site is flat.
+  • Do NOT introduce hue rotations or per-project color themes. The
+    palette is project-agnostic.
+  • Do NOT use rgba() in tokens; use hex with alpha (#RRGGBBAA) so
+    tokens are self-contained.
+
+§E REPORT
+---------
+End with the IMPL_RESULT line and a contrast-table summary:
+  fg / bg              dark ratio   light ratio
+  fg / bg-mute         ...          ...
+  ...

@@ -1,0 +1,70 @@
+19/P05 — CHAT CONTROLS
+=========================
+
+GOAL
+----
+Small set of high-leverage controls: clear, retry, scroll-to-bottom,
+copy-message.
+
+§A FILES TOUCHED
+----------------
+  src/components/llm/ChatHeader.tsx          (modify — clear button)
+  src/components/llm/Message.tsx             (modify — copy button)
+  src/components/llm/ChatMessageList.tsx     (modify — autoscroll + jump)
+  src/components/llm/RetryAffordance.tsx     (NEW — retry shown after errored message)
+
+§B ACCEPTANCE
+-------------
+B1.  Clear button in the chat header:
+       Label: "clear"
+       Action: confirm dialog ("clear this conversation? cannot be
+       undone."), then useChat.clear().
+
+B2.  Per-message copy:
+       For assistant messages, a small "copy" Button (variant="ghost"
+       size="sm") in the bottom-right of the message body. Clicking
+       copies plain text (no markdown markers, no [c1] markers) to
+       clipboard via navigator.clipboard.writeText. Brief visual
+       confirmation ("copied" replaces "copy" for 1.5s).
+
+B3.  Retry affordance:
+       When a message has status="error", render RetryAffordance
+       below the message:
+         <Surface tone="mute" border padding=4>
+           <Cluster gap=3>
+             <span className="t-mono-body" style={{color: var(--error)}}>
+               failed: {lastError}
+             </span>
+             <Button variant="outline" size="sm" onClick={retry}>retry</Button>
+           </Cluster>
+         </Surface>
+
+B4.  Autoscroll behavior in ChatMessageList:
+       - When the list scroll position is within 60px of bottom AND
+         a new token arrives, scroll to bottom smoothly.
+       - When the user scrolls up past 60px, autoscroll PAUSES.
+         A floating "↓ jump to bottom" button appears in the lower-
+         right corner.
+       - Click the jump button → scroll to bottom (smooth) and
+         resume autoscroll.
+
+B5.  Stop streaming control:
+       While a message is streaming, the submit button label changes
+       to "stop" (still ghost variant) and clicking it calls
+       useChat.stopStreaming().
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/llm/RetryAffordance.tsx
+  grep -n 'navigator.clipboard.writeText' src/components/llm/Message.tsx
+  grep -n 'jump to bottom' src/components/llm/ChatMessageList.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT add per-message thumbs-up/down. Future work; suite 21
+    may add a feedback channel if needed.
+  • Do NOT add edit-message functionality.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

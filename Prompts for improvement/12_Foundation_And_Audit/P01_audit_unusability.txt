@@ -1,0 +1,81 @@
+12/P01 — AUDIT CURRENT UNUSABILITY
+=====================================
+
+GOAL
+----
+Produce a written audit of why the current site is "completely
+unusable" (user's words). The audit is a reference document later
+suites point to when justifying removals or rewrites. Do NOT make
+code changes in this prompt.
+
+§A FILES TOUCHED
+----------------
+  docs/v2_audit.md                       (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  docs/v2_audit.md exists and contains four sections:
+
+       ## Navigation friction
+         — Enumerate concrete moments where a visitor cannot work out
+           what to do next. Walk through: landing → expand a panel →
+           inside the panel → trying to read a project's content.
+           Each friction is one paragraph naming the specific element
+           (component path + line if precise) that produces it. At
+           least 6 frictions; cap at 12.
+
+       ## Conceptual overload
+         — Each project panel currently exposes a simulation interface
+           that requires terminology (coherence layers, three orders,
+           diamond cases) before the visitor knows what the project IS.
+           List every place where terminology lands before context.
+           At least 4 cases.
+
+       ## Visual confusion
+         — The accordion + toggle + scaffold + dossier nesting creates
+           visible chrome inside chrome inside chrome. Enumerate every
+           visual frame currently rendered inside an expanded panel
+           (file path of the component + the chrome it contributes).
+           At least 5 frames.
+
+       ## Mobile failure modes
+         — The narrow viewport vertical accordion duplicates the
+           desktop accordion's confusion in a smaller space. Enumerate
+           the specific places this happens. At least 3.
+
+B2.  Every claim in the audit is grounded in a real file path. No
+     paraphrase of generic UX heuristics; this is a project-specific
+     audit. If a claim cannot be grounded in a path, drop the claim
+     rather than dilute the document.
+
+B3.  At the end, a section ## Surface area to remove lists every
+     component path that is a candidate for removal in P02. Group by
+     directory. For each, one sentence on why it is removable in v2.
+
+B4.  At the end, a section ## What to preserve names every component
+     or content file v2 keeps. Voice files, content data files,
+     project source-of-truth files (src/lib/coherenceEngine/*,
+     src/lib/prp/*, src/lib/theseus/*, src/content/projects/*).
+     The corpus for the future LLM-of-me will draw on much of this.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f docs/v2_audit.md
+  # Each section heading must be present
+  grep -nE '^## (Navigation friction|Conceptual overload|Visual confusion|Mobile failure modes|Surface area to remove|What to preserve)' docs/v2_audit.md
+  # Each frame/path claim must point at a real file
+  grep -oE 'src/[A-Za-z0-9/_.-]+' docs/v2_audit.md | sort -u | head -30 | while read p; do test -e "$p" || echo "MISSING: $p"; done
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT modify code, styles, or content yet.
+  • Do NOT propose solutions in this document. The audit names
+    problems; the design principles in P03 propose solutions.
+  • Do NOT rely on heuristics like "cognitive load" without naming
+    the file that creates the load.
+
+§E REPORT
+---------
+End your response with:
+    IMPL_RESULT: PASS
+ or IMPL_RESULT: FAIL (reasons above)

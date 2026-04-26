@@ -1,0 +1,106 @@
+12/P02 — DEMOLISH ACCORDION SHELL
+====================================
+
+GOAL
+----
+Remove the accordion-based shell, the experience/dossier toggle, and
+the simulation components from the active site. Move (do NOT delete)
+the source files into _legacy_v1/ so the work is preserved but no
+longer reachable from any v2 route.
+
+§A FILES TOUCHED
+----------------
+This prompt is largely a series of `git mv` operations to a new
+directory tree. Specifically:
+
+  src/components/shell/Accordion.tsx           → _legacy_v1/shell/
+  src/components/shell/Panel.tsx                → _legacy_v1/shell/
+  src/components/shell/PanelSpine.tsx           → _legacy_v1/shell/
+  src/components/shell/ExperienceHost.tsx       → _legacy_v1/shell/
+  src/components/shell/Shell.tsx                → _legacy_v1/shell/
+  src/components/shell/TopRail.tsx              → _legacy_v1/shell/
+  src/components/panels/                        → _legacy_v1/panels/  (entire directory)
+  src/components/dossier/                       → _legacy_v1/dossier/ (entire directory)
+  src/components/projects/{book,hivemind,theseus}/  → _legacy_v1/projects/{...}/
+  src/lib/accordion/                            → _legacy_v1/lib/accordion/
+  src/lib/coherenceEngine/                      → KEEP IN PLACE (data is reused as corpus material)
+  src/lib/prp/                                  → KEEP IN PLACE (same)
+  src/lib/theseus/                              → KEEP IN PLACE (same)
+  src/lib/experience-config.ts                  → _legacy_v1/lib/
+  src/styles/coherence-engine.css               → _legacy_v1/styles/
+  src/styles/experience.css                     → _legacy_v1/styles/
+  src/styles/prp-prose.css                      → _legacy_v1/styles/
+  src/styles/theseus-experience.css             → _legacy_v1/styles/
+
+Files KEPT (reused by v2):
+  src/styles/tokens.css       (rewritten in 13/P01–P06)
+  src/styles/reset.css
+  src/styles/print.css
+  src/styles/reading-mode.css
+  src/lib/panels.ts           (project list still useful)
+  src/content/                (all content, voice files, microcopy)
+  src/lib/{commands,hotkeys,projects}/  (utilities reused by v2)
+
+§B ACCEPTANCE
+-------------
+B1.  Every moved file lives under src/_legacy_v1/. The move preserves
+     directory structure under the legacy root for archeology.
+
+B2.  The site still BUILDS. The current routes in src/app/ that import
+     the moved components are temporarily edited to render a stub
+     placeholder ("v2 under construction") instead of importing legacy
+     components. The stub is a single shared component:
+
+       src/components/StubPlaceholder.tsx
+         — renders centered text: "this page is being rebuilt in v2.
+            see /docs/v2_audit.md for the plan."
+         — used by every page.tsx whose original imports were moved.
+
+     This means: src/app/page.tsx, src/app/{about,resume,hivemind,
+     purposeless-efficiency,theseus,projects/[slug]}/page.tsx all
+     import StubPlaceholder for now. Suites 14-16 replace these stubs
+     with real v2 pages.
+
+B3.  Tests that exercise removed components are SKIPPED, not deleted.
+     Each test file gets a `describe.skip(...)` wrapper with a comment:
+       // SKIPPED: legacy v1 component, see _legacy_v1/. Restored when v2 covers same surface.
+     Files affected (search before editing): tests/accordion/*,
+     src/stores/coherenceEngineExperience*.test.ts,
+     src/stores/theseusExperience.test.ts, e2e/*.spec.ts that hit
+     the accordion.
+
+B4.  Imports that broke from the move are surfaced. After the move,
+     run `npm run build` and capture every "Cannot find module" or
+     TypeScript error. Each error must be addressed by either:
+       (a) updating the import to reference _legacy_v1/ (only if the
+           caller is itself moved to _legacy_v1/), or
+       (b) replacing the caller's usage with StubPlaceholder.
+     There must be ZERO unhandled build errors at the end.
+
+B5.  The build output is documented at the bottom of docs/v2_audit.md
+     under a new section "## Demolition build state" that lists
+     (i) the routes now rendering StubPlaceholder, (ii) any tests
+     skipped, (iii) any dependencies that became unused.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -d src/_legacy_v1
+  test -f src/components/StubPlaceholder.tsx
+  ! test -d src/components/shell || (echo "FAIL: shell still in active tree"; false)
+  npm run build
+  npm run typecheck   # if defined; else: npx tsc --noEmit
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT delete any source file. Move only.
+  • Do NOT remove src/lib/{coherenceEngine,prp,theseus}/ — those files
+    contain content the LLM-of-me corpus will reuse (suite 18).
+  • Do NOT modify content under src/content/. That is voice/copy
+    territory; suite 20 handles content.
+  • Do NOT update tokens.css yet. Suite 13/P01–P06 owns tokens.
+
+§E REPORT
+---------
+End your response with:
+    IMPL_RESULT: PASS
+ or IMPL_RESULT: FAIL (reasons above)

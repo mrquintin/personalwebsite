@@ -1,0 +1,54 @@
+17/P03 — PRP SIMPLE PRESENTATION
+===================================
+
+GOAL
+----
+A 4-phase deck for the PRP project page slot.
+
+§A FILES TOUCHED
+----------------
+  src/content/presentations/prp.tsx                        (NEW)
+  src/components/projects/purposeless-efficiency/Presentation.tsx (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  EXACTLY 4 phases:
+
+       Phase 1 — "The distinction"
+         Body: 2 paragraphs. What is purposeless efficiency vs.
+         purposeful efficiency. One concrete one-line example each.
+         Source from existing src/content/projects/purposeless-efficiency/preface.ts and pillars.ts.
+
+       Phase 2 — "Why it matters"
+         Body: 2 paragraphs. Stakes — what goes wrong when
+         purposeless efficiency goes unrecognised? Two cases drawn
+         from existing repo content.
+
+       Phase 3 — "What I'm doing about it"
+         Body: 2 paragraphs. The manuscript-in-progress and what it
+         covers, surface-level. Avoid Diamond Method / atlas
+         terminology — too deep.
+
+       Phase 4 — "Status & where to go"
+         Body: 1-2 paragraphs. Current status, where to read more,
+         link to /chat for questions.
+
+B2.  Total deck word count: 250-450.
+
+B3.  Same source-fidelity rule.
+
+B4.  Wrapper component as in P02.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/presentations/prp.tsx
+  test -f src/components/projects/purposeless-efficiency/Presentation.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT exceed 4 phases.
+  • Do NOT use deep-suite terminology.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

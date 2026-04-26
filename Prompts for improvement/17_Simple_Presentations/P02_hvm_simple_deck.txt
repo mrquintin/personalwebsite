@@ -1,0 +1,68 @@
+17/P02 — HVM SIMPLE PRESENTATION
+===================================
+
+GOAL
+----
+A 4-phase deck that lives inside the HVM project page (suite 16/P04
+slot). Explains Hivemind at a "what does it do, briefly" level.
+
+§A FILES TOUCHED
+----------------
+  src/content/presentations/hvm.tsx               (NEW — phases as data + JSX)
+  src/components/projects/hivemind/Presentation.tsx (NEW — wrapper)
+
+§B ACCEPTANCE
+-------------
+B1.  hvm.tsx exports `hvmPhases: Phase[]` with EXACTLY 4 phases:
+
+       Phase 1 — "What Hivemind is"
+         Body: 2 short paragraphs. Plain language: who is it for,
+         what does it do, what's the one-line pitch. Source from
+         existing src/content/projects/hivemind/thesis.ts.
+
+       Phase 2 — "What problem it solves"
+         Body: 2 short paragraphs. Where deliberation goes wrong;
+         what failure mode Hivemind addresses. Source from
+         hivemind workflow.ts and capabilities.ts.
+
+       Phase 3 — "How it works, briefly"
+         Body: 2-3 short paragraphs. Surface-level mechanism: scoring
+         underneath, deliberation surface above. No technical
+         terminology beyond what a non-engineer can absorb in 30s.
+         Avoid: "cosine similarity", "layer scoring", "decision
+         policy gates" — all too deep for v2.
+
+       Phase 4 — "Where it sits"
+         Body: 1-2 short paragraphs. Status, what's shipped vs
+         exploration, where to go next (link to /chat for deeper
+         questions, link to GitHub if applicable).
+
+B2.  Total deck word count target: 250-450 words across 4 phases.
+     Significantly shorter than v1 deep-suite specifications. Per
+     principle 3 (one idea per screen), each phase advances exactly
+     one teach-worthy idea.
+
+B3.  Source-fidelity rule: every claim grounded in existing repo
+     content. The implementer flags phases that cannot be filled
+     from existing prose.
+
+B4.  Presentation.tsx wrapper:
+       export default function HivemindPresentation() {
+         return <SimplePresentation id="hvm" title="Hivemind, briefly" phases={hvmPhases} />;
+       }
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/presentations/hvm.tsx
+  test -f src/components/projects/hivemind/Presentation.tsx
+  grep -E 'hvmPhases.length' src/content/presentations/hvm.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT exceed 4 phases.
+  • Do NOT introduce widgets.
+  • Do NOT use deep-suite terminology that requires explanation.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

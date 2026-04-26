@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "files": [
+    {
+      "path": "writings/notes/seed.md",
+      "title": "Seed note",
+      "kind": "note",
+      "date": "2026-04-25",
+      "topics": ["seed"],
+      "private": false,
+      "citeOkay": true,
+      "voiceWeight": 1.0
+    }
+  ]
+}

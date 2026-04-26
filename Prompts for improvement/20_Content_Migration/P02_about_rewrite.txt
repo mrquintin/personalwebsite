@@ -1,0 +1,65 @@
+20/P02 — ABOUT / BIO REWRITE
+==============================
+
+GOAL
+----
+Rewrite the About / bio content for v2 voice and length. Keep what
+is true; cut what is performative.
+
+§A FILES TOUCHED
+----------------
+  src/content/about/biography.ts         (modify)
+  src/content/about/biography.mdx        (modify or replace; align with .ts)
+  src/content/about/identity.ts          (modify — refresh tagline + summary)
+  src/content/about/beliefs.ts           (review; trim to essentials)
+  src/content/about/colophon.ts          (review; concise)
+
+§B ACCEPTANCE
+-------------
+B1.  identity.ts:
+       export const identity = {
+         fullName: "Michael Quintin",
+         tagline: "<one line ≤ 80 chars>",
+         summary: "<2-3 sentences for SEO description>",
+         email: "<email>",
+         location: "<city, state/country>",
+         currentRole: "<role title or status>",
+         pronouns?: "...",
+       };
+     The implementer reads existing values; refreshes only where
+     needed to match v2 voice. Don't change facts; the user's facts
+     are theirs.
+
+B2.  biography.ts long-form bio: 4-7 paragraphs. Reduces v1 bio if
+     it exceeds. Each paragraph is a discrete claim or chapter:
+       - what I do now
+       - how I got here (career)
+       - what I believe my edge is (concrete, not boastful)
+       - what I'm building / writing
+       - how to reach me
+
+B3.  beliefs.ts: the existing list of stances. Trim to 5-9 entries.
+     Each is one sentence. Voice-guide compliant.
+
+B4.  colophon.ts: 4-8 lines on the site itself. Tools, fonts,
+     hosting. Used by /about ColophonBlock (suite 16/P07).
+
+B5.  No content claim that cannot be sourced from existing repo
+     material. The implementer flags any v1 claim that the v2
+     rewrite would eliminate (e.g., a claim that's no longer true
+     or that the user has signaled is over-stated).
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/content/about/biography.ts
+  test -f src/content/about/identity.ts
+  npm run lint   # voice-lint catches forbidden words
+
+§D NON-GOALS
+------------
+  • Do NOT add credentials/awards. /resume covers them.
+  • Do NOT add a "What I'm reading right now" widget.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

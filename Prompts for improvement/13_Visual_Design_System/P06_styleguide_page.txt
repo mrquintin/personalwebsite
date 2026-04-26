@@ -1,0 +1,67 @@
+13/P06 — STYLEGUIDE PAGE (DESIGN-SYSTEM REFERENCE)
+=====================================================
+
+GOAL
+----
+Rebuild /styleguide as the live reference for the design system.
+A future maintainer (or the user) opens /styleguide and sees every
+type role, color pair, spacing increment, motion duration, and
+primitive component rendered with examples.
+
+§A FILES TOUCHED
+----------------
+  src/app/styleguide/page.tsx            (replace stub from suite 12)
+  src/components/styleguide/             (NEW directory)
+    TypeSpecimen.tsx
+    ColorSwatch.tsx
+    SpacingRuler.tsx
+    MotionDemo.tsx
+    PrimitiveGallery.tsx
+
+§B ACCEPTANCE
+-------------
+B1.  /styleguide is a single long-scroll page with sections in this
+     order: Typography, Color, Spacing, Motion, Primitives. Each
+     section has a heading and a brief one-paragraph framing
+     citing relevant principles by number from
+     docs/v2_principles.md.
+
+B2.  Typography section: TypeSpecimen renders each .t-* utility
+     class with sample text (pangram). Each specimen labels its
+     class, font-size, line-height.
+
+B3.  Color section: ColorSwatch shows each semantic token with its
+     name, hex value (read at runtime via CSS.supports + computed
+     style; or hard-code via a token map you import), and the
+     contrast ratio against --bg and --bg-mute. Toggle between
+     dark and light themes via a button at the top of the section.
+
+B4.  Spacing section: SpacingRuler displays each --s-N token as a
+     horizontal bar of that width, labelled.
+
+B5.  Motion section: MotionDemo renders five small example
+     animations (one per duration token). Each has a "play" button.
+     Under prefers-reduced-motion, the play buttons still work but
+     the animation completes instantly.
+
+B6.  Primitives section: PrimitiveGallery renders every variant of
+     Button, Link, Surface, Card, Badge.
+
+B7.  /styleguide is NOT linked from the public navigation. It's a
+     developer tool. Add a meta robots="noindex" to its page-level
+     head config.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/styleguide/page.tsx
+  test -d src/components/styleguide
+  curl -s http://localhost:3000/styleguide | grep -q 'Typography\|Color\|Spacing\|Motion\|Primitives'    # after running npm run dev
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT use the styleguide page to host project content.
+  • Do NOT add interactivity beyond what's needed to show variants.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

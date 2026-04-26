@@ -1,0 +1,44 @@
+16/P02 — PROJECT HERO BLOCK
+==============================
+
+GOAL
+----
+A consistent hero rendered at the top of every project page.
+
+§A FILES TOUCHED
+----------------
+  src/components/projects/ProjectHero.tsx     (NEW)
+
+§B ACCEPTANCE
+-------------
+B1.  Layout (inside Container size="base"):
+       Stack gap=4
+         <Cluster gap=3 align="baseline">
+           <span className="t-meta">{code}</span>
+           <Badge tone="neutral">{status}</Badge>
+         </Cluster>
+         <h1 className="t-headline">{title}</h1>
+         <p className="t-mono-body">{tagline}</p>
+         <p className="t-prose">{framing}</p>
+
+B2.  Vertical padding: var(--s-8) above, var(--s-6) below.
+
+B3.  Status badge tone mapping:
+       "exploration"  → tone="neutral"
+       "in-progress"  → tone="accent"
+       "shipped"      → tone="ok"
+
+B4.  No images, no banners, no decorative SVGs.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/projects/ProjectHero.tsx
+
+§D NON-GOALS
+------------
+  • Do NOT add per-project color theming. The page color is the
+    site palette; the project's identity comes from words.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

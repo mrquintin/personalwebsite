@@ -1,0 +1,60 @@
+14/P06 — PAGE TRANSITIONS
+============================
+
+GOAL
+----
+Subtle cross-page fade. Not a router-blocking animation. Per
+principle 8 (motion is functional): the fade communicates "you've
+landed somewhere new" and nothing more.
+
+§A FILES TOUCHED
+----------------
+  src/app/template.tsx                   (NEW — Next.js per-route
+                                          template wrapper that
+                                          remounts on route change)
+  src/styles/transitions.css             (NEW; imported in globals)
+  src/app/globals.css                    (add @import)
+
+§B ACCEPTANCE
+-------------
+B1.  template.tsx is a server component that wraps {children} in:
+       <div className="page-transition">{children}</div>
+
+B2.  .page-transition CSS:
+       .page-transition {
+         animation: page-in var(--d-norm) var(--ease-out) forwards;
+       }
+       @keyframes page-in {
+         from { opacity: 0; }
+         to   { opacity: 1; }
+       }
+
+B3.  Reduced motion:
+       @media (prefers-reduced-motion: reduce) {
+         .page-transition { animation: none; }
+       }
+
+B4.  No transform travel. Pure opacity. Per principle 10's reduced-
+     motion path, opacity-only transitions are the lightest possible
+     animation; they do not need a separate fallback beyond setting
+     animation: none.
+
+B5.  Total budget: 0 added JS bytes. CSS-only. Do NOT introduce
+     framer-motion, view-transitions API, or AnimatePresence.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/app/template.tsx
+  test -f src/styles/transitions.css
+  grep -n '@import "./styles/transitions.css"' src/app/globals.css
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT use the View Transitions API (Safari support inconsistent
+    in 2026, fallback complexity not worth the gain).
+  • Do NOT animate page outgoing fade — it interferes with browser
+    history. In/only.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

@@ -1,0 +1,63 @@
+15/P01 — HERO BLOCK
+=====================
+
+GOAL
+----
+A first-paragraph-fold hero that names the user, says what they do,
+and offers a primary CTA into /chat.
+
+§A FILES TOUCHED
+----------------
+  src/components/landing/Hero.tsx        (NEW)
+  src/content/landing/hero.ts            (NEW — hero copy)
+
+§B ACCEPTANCE
+-------------
+B1.  src/content/landing/hero.ts exports:
+       export const hero = {
+         name: "Michael Quintin",   // read from src/content/about/identity.ts if present
+         tagline: "<one line ≤ 80 chars; e.g., 'researcher and builder of strategic-analytical software'>",
+         description: "<2-3 short sentences elaborating; sourced from existing biography.ts where possible>",
+         primaryCta: { label: "Ask my LLM about my work", href: "/chat" },
+         secondaryCta: { label: "Read my projects", href: "/projects" },
+       };
+     If existing identity/biography content does not support a
+     1-2 sentence v2 hero, the implementer flags this and uses
+     placeholder copy that the user (or suite 20) replaces later.
+
+B2.  Hero.tsx renders inside Container size="base":
+       Stack gap=5
+         <h1 className="t-headline">{name}</h1>
+         <p className="t-mono-body">{tagline}</p>
+         <p className="t-prose">{description}</p>
+         <Cluster gap=3>
+           <Link href={primaryCta.href}>...</Link>  // accent-styled
+           <Link href={secondaryCta.href}>...</Link> // subtle
+         </Cluster>
+
+B3.  Vertical breathing room: padding-top var(--s-9), padding-bottom
+     var(--s-7). On mobile var(--s-7) / var(--s-6).
+
+B4.  No background image. No video. No animated text.
+     The hero is words.
+
+B5.  Per principle 2: the description paragraph must render within
+     the first 600 viewport pixels on a 1024×768 screen. Verify by
+     checking computed positions in dev tools or a Playwright
+     screenshot test (added in P05).
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/components/landing/Hero.tsx
+  test -f src/content/landing/hero.ts
+
+§D NON-GOALS / DO NOT DO
+------------------------
+  • Do NOT add a hero image, illustration, or photograph.
+  • Do NOT use animated text reveals.
+  • Do NOT call the chat-CTA "Talk to my AI"; the wording is
+    "Ask my LLM about my work" — sets expectation for a tool, not a chat partner.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

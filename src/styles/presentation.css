@@ -1,0 +1,75 @@
+.p-presentation {
+  --p-fade-out: 180ms;
+  --p-fade-in: 320ms;
+}
+
+.p-presentation__phase {
+  opacity: 1;
+  transition: opacity var(--p-fade-in) var(--ease-out);
+}
+
+.p-presentation__phase--out {
+  opacity: 0;
+  transition: opacity var(--p-fade-out) var(--ease-out);
+}
+
+.p-presentation__dots {
+  display: inline-flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.p-presentation__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 120ms var(--ease-out), background-color 120ms var(--ease-out);
+}
+
+.p-presentation__dot:hover {
+  opacity: 0.85;
+}
+
+.p-presentation__dot--active {
+  background: currentcolor;
+  opacity: 1;
+}
+
+.p-presentation__heading:focus {
+  outline: none;
+}
+
+.p-presentation__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.p-presentation__nav-btn {
+  flex: 1 1 0;
+  min-width: 96px;
+  min-height: 44px;
+}
+
+@media (max-width: 639px) {
+  .p-presentation {
+    padding: var(--s-5) !important;
+  }
+
+  .p-presentation__dot {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-presentation__phase,
+  .p-presentation__phase--out {
+    transition: none;
+  }
+}

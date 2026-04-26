@@ -9,7 +9,7 @@ import { buildRegistry } from "@/lib/commands/registry";
 import { fuzzyRank } from "./useFuzzy";
 import ResultRow from "./ResultRow";
 import { useHotkey } from "@/lib/hotkeys/useHotkey";
-import { COPY } from "@/content/microcopy";
+import { microcopy } from "@/content/microcopy";
 
 const HISTORY_KEY = "operator.palette.history";
 const HISTORY_MAX = 5;
@@ -89,7 +89,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
         if (i === SEQ.length) {
           i = 0;
           setOpen(true);
-          setToast("you have good taste. welcome.");
+          setToast(microcopy.meta.konamiToast);
         }
       } else {
         i = k === SEQ[0] ? 1 : 0;
@@ -118,7 +118,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
     if (!cmd || pendingId) return;
     // sudo theatre
     if (q.startsWith("sudo ")) {
-      setToast("operator.michael.quintin ALL=(ALL) ALL — permission granted");
+      setToast(microcopy.meta.sudoToast);
     }
     try {
       const cur: string[] = JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]");
@@ -148,7 +148,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
                   transition={{ duration: 0.16 }}
                 />
               </Dialog.Overlay>
-              <Dialog.Content asChild aria-label="Command palette">
+              <Dialog.Content asChild aria-label={microcopy.meta.paletteTitle}>
                 <motion.div
                   className="palette"
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -156,15 +156,15 @@ export default function Palette({ buildVersion, suppressed }: Props) {
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.16 }}
                 >
-                  <VisuallyHidden asChild><Dialog.Title>Command palette</Dialog.Title></VisuallyHidden>
-                  <VisuallyHidden asChild><Dialog.Description>Type a command or fuzzy-search the site.</Dialog.Description></VisuallyHidden>
+                  <VisuallyHidden asChild><Dialog.Title>{microcopy.meta.paletteTitle}</Dialog.Title></VisuallyHidden>
+                  <VisuallyHidden asChild><Dialog.Description>{microcopy.meta.paletteDescription}</Dialog.Description></VisuallyHidden>
                   <div className="palette-input-row">
-                    <span className="palette-chevron">›</span>
+                    <span className="palette-chevron">{microcopy.meta.paletteChevron}</span>
                     <input
                       ref={inputRef}
                       value={q}
                       onChange={(e) => { setQ(e.target.value); setSel(0); }}
-                      placeholder={COPY.paletteOpen}
+                      placeholder={microcopy.placeholders.paletteSearch}
                       spellCheck={false}
                       autoComplete="off"
                       role="combobox"
@@ -172,7 +172,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
                       aria-controls="palette-results"
                       aria-activedescendant={items[sel] ? `palette-row-${sel}` : undefined}
                     />
-                    <kbd className="palette-kbd">ESC</kbd>
+                    <kbd className="palette-kbd">{microcopy.meta.paletteEscKbd}</kbd>
                   </div>
                   <div className="palette-divider" />
                   <div
@@ -180,10 +180,10 @@ export default function Palette({ buildVersion, suppressed }: Props) {
                     id="palette-results"
                     role="listbox"
                     aria-live="polite"
-                    aria-label={`${items.length} results`}
+                    aria-label={microcopy.meta.paletteResultsLabel(items.length)}
                   >
                     {items.length === 0 && (
-                      <div className="palette-empty">no commands matched. / to filter.</div>
+                      <div className="palette-empty">{microcopy.emptyStates.noResults}</div>
                     )}
                     {items.map((r, i) => (
                       <ResultRow
@@ -200,7 +200,7 @@ export default function Palette({ buildVersion, suppressed }: Props) {
                     ))}
                   </div>
                   <div className="palette-divider" />
-                  <div className="palette-footer">{COPY.paletteFooter}</div>
+                  <div className="palette-footer">{microcopy.meta.paletteFooter}</div>
                 </motion.div>
               </Dialog.Content>
             </Dialog.Portal>

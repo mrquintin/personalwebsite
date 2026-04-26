@@ -1,0 +1,70 @@
+18/P04 — EMBEDDER
+===================
+
+GOAL
+----
+Wrap the embedding API behind a single typed interface. Default to
+Voyage AI; expose an OpenAI fallback the user can switch to via env.
+
+§A FILES TOUCHED
+----------------
+  src/lib/llm/embedder.ts                (NEW — interface + Voyage impl)
+  src/lib/llm/embedderOpenAI.ts          (NEW — fallback impl)
+  src/lib/llm/embedderFactory.ts         (NEW — selects impl by env)
+  src/lib/llm/embedder.test.ts           (NEW — uses recorded fixtures)
+  package.json                           (add deps: voyageai or openai)
+
+§B ACCEPTANCE
+-------------
+B1.  Interface:
+       export type Embedding = number[];   // length = model.dim
+       export interface Embedder {
+         readonly model: string;
+         readonly dim: number;
+         embed(texts: string[]): Promise<Embedding[]>;
+       }
+
+B2.  Voyage implementation (default):
+       model: "voyage-3" (1024 dims) — pick voyage-3 over voyage-2
+              for 2026; document the choice in comments.
+       Batches up to 128 inputs per request.
+       Uses VOYAGE_API_KEY from env.
+       Throws a typed RateLimitError on 429 so the ingestion script
+       can backoff.
+
+B3.  OpenAI implementation (fallback):
+       model: "text-embedding-3-large" (3072 dims, can be reduced
+              via dimensions param to 1024 to match Voyage).
+       Default dimensions: 1024 (matches Voyage so the vector store
+              schema doesn't change when switching providers).
+
+B4.  Factory:
+       export function getEmbedder(): Embedder
+     Reads env var EMBEDDER ("voyage" | "openai", default "voyage").
+     Returns the configured instance. Caches a singleton.
+
+B5.  Tests use recorded HTTP fixtures (e.g., MSW or recorded
+     responses) so the test suite does not call live APIs. The
+     fixtures verify correct request shape (URL, headers, body),
+     correct decoding of response, batch size limits.
+
+B6.  Cost tracking: the Embedder returns a usage record alongside
+     the embeddings (tokens consumed). The ingestion script logs
+     cumulative cost at the end.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f src/lib/llm/embedder.ts
+  test -f src/lib/llm/embedderOpenAI.ts
+  test -f src/lib/llm/embedderFactory.ts
+  npx vitest run src/lib/llm/embedder.test.ts
+
+§D NON-GOALS
+------------
+  • Do NOT implement local/on-device embedding. The site is hosted;
+    embeddings happen at ingest time (offline) or via API.
+  • Do NOT add a third provider in this prompt.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL

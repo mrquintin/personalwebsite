@@ -1,10 +1,11 @@
-import type { Project } from "@/lib/projects/types";
+import type { Project, ProjectMetadata } from "@/lib/projects/types";
 
 export const project: Project = {
   slug: "hivemind",
   code: "HVM",
   title: "Hivemind",
-  tagline: "Strategic analytical software.",
+  tagline:
+    "Strategic analytical software for groups making consequential decisions.",
   kind: "company",
   status: "active",
   startedISO: "2024-06-01",
@@ -20,7 +21,19 @@ export const project: Project = {
     { label: "michael@hivemind.ai",    href: "mailto:michael@hivemind.ai" },
   ],
   summary:
-    "Hivemind is strategic analytical software. It decomposes strategy problems into evaluable hypotheses with weighted evidence and probabilistic aggregation. The output is a structured brief, not a chat transcript.",
+    "Hivemind is software that helps teams reason through hard strategic decisions. It breaks a question into testable sub-claims, attaches weighted evidence to each, and rolls the result up into a structured brief — citations, confidence intervals, dissents — that a team can argue with and update without redoing the work. It exists because the memos behind consequential decisions usually hide their assumptions; a graph that lays them out is one a team can attack.",
+};
+
+export const meta: Pick<
+  ProjectMetadata,
+  "slug" | "code" | "title" | "tagline" | "framing" | "status"
+> = {
+  slug: project.slug,
+  code: project.code,
+  title: project.title,
+  tagline: project.tagline,
+  framing: project.summary,
+  status: "in-progress",
 };
 
 export default project;

@@ -1,0 +1,57 @@
+16/P10 — PROJECT PAGES SHIP GATE
+===================================
+
+GOAL
+----
+Tests + acceptance gate for the project-page suite.
+
+§A FILES TOUCHED
+----------------
+  e2e/projects.spec.ts                                (NEW)
+  src/components/projects/__tests__/ProjectPage.test.tsx (NEW)
+  scripts/ship-gates/projects.ts                      (NEW)
+  package.json                                        (add ship-gate:projects script)
+
+§B ACCEPTANCE
+-------------
+B1.  e2e/projects.spec.ts:
+       For each slug in [hivemind, purposeless-efficiency, theseus]:
+         - GET /projects/<slug> returns 200
+         - h1 contains the project title
+         - At least one section anchor exists (id="...")
+         - Footer CTA "ask my LLM about <project>" links to /chat
+         - Status badge is present and matches metadata.status
+
+B2.  ProjectPage.test.tsx unit tests:
+       - Unknown slug renders notFound
+       - Known slug loads metadata, presentation slot, body slot,
+         links slot
+       - generateStaticParams returns three slugs
+
+B3.  scripts/ship-gates/projects.ts runs:
+       Gate A: npm run typecheck
+       Gate B: npm run lint
+       Gate C: npx vitest run src/components/projects/__tests__/
+       Gate D: npx playwright test e2e/projects.spec.ts
+       Gate E: npm run build
+     Exits 0 if all pass, 1 with summary if any fails.
+
+B4.  package.json: "ship-gate:projects": "tsx scripts/ship-gates/projects.ts"
+
+B5.  Document in docs/v2_audit.md ## Suite 16 status — list the four
+     pages built (3 projects + about + resume) and remaining gaps.
+
+§C VERIFICATION COMMANDS
+------------------------
+  test -f e2e/projects.spec.ts
+  test -f scripts/ship-gates/projects.ts
+  npm run ship-gate:projects
+
+§D NON-GOALS
+------------
+  • Do NOT add visual regression at this stage. Suite 22 owns visual
+    regression baselining.
+
+§E REPORT
+---------
+IMPL_RESULT: PASS / FAIL
