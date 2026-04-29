@@ -1,56 +1,41 @@
-import Card from "@/components/primitives/Card";
-import Cluster from "@/components/primitives/Cluster";
 import Container from "@/components/primitives/Container";
 import Link from "@/components/primitives/Link";
 import Stack from "@/components/primitives/Stack";
 import { projects } from "@/content/projects/index";
 
-const PROJECT_TEASERS_STYLES = `
-.project-teasers {
-  padding-top: var(--s-7);
-  padding-bottom: var(--s-7);
-}
-.project-teasers__grid {
-  width: 100%;
-}
-.project-teasers__grid > * {
-  flex: 1 1 100%;
-  min-width: 0;
-  display: block;
-}
-@media (min-width: 768px) {
-  .project-teasers__grid > * {
-    flex: 1 1 calc(50% - var(--s-4));
-  }
-}
-@media (min-width: 900px) {
-  .project-teasers__grid > * {
-    flex: 1 1 calc((100% - 2 * var(--s-4)) / 3);
-  }
-}
-`;
-
 export default function ProjectTeasers() {
   return (
-    <Container as="section" size="wide" className="project-teasers">
-      <style>{PROJECT_TEASERS_STYLES}</style>
+    <Container as="section" size="wide" className="site-section project-teasers">
       <Stack gap={5}>
-        <h2 className="t-h2">Projects</h2>
-        <Cluster gap={4} align="stretch" className="project-teasers__grid">
+        <div className="project-teasers__header">
+          <div>
+            <p className="site-eyebrow">Current work</p>
+            <h2 className="site-heading">Projects</h2>
+          </div>
+          <Link href="/projects" variant="subtle" className="site-action">
+            View all
+          </Link>
+        </div>
+        <div className="project-teasers__grid">
           {projects.map((p) => (
-            <Card
+            <Link
               key={p.slug}
               href={"/projects/" + p.slug}
-              title={p.title}
-              meta={p.code + " · " + p.status}
+              variant="subtle"
+              className="project-card"
             >
-              {p.tagline}
-            </Card>
+              <span className="project-card__meta">
+                <span>{p.code}</span>
+                <span>{p.status}</span>
+              </span>
+              <div>
+                <h3 className="project-card__title">{p.title}</h3>
+                <p className="project-card__text">{p.tagline}</p>
+              </div>
+              <span className="project-card__open">Open</span>
+            </Link>
           ))}
-        </Cluster>
-        <Link href="/projects" variant="subtle">
-          See all projects ↗
-        </Link>
+        </div>
       </Stack>
     </Container>
   );

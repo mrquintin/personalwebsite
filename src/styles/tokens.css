@@ -76,7 +76,7 @@
   --t-3xl-size:   48px;  --t-3xl-lh:   56px;
 
   /* tracking */
-  --t-tight:  -0.01em;
+  --t-tight:  0;
   --t-normal: 0;
   --t-wide:   0.05em;
 

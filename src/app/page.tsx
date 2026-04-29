@@ -3,8 +3,6 @@ import Bio from "@/components/landing/Bio";
 import ChatPreview from "@/components/landing/ChatPreview";
 import Hero from "@/components/landing/Hero";
 import ProjectTeasers from "@/components/landing/ProjectTeasers";
-import Container from "@/components/primitives/Container";
-import Link from "@/components/primitives/Link";
 import identity from "@/content/about/identity";
 
 const HOME_DESCRIPTION =
@@ -28,18 +26,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-function ResumeCta() {
-  return (
-    <Container as="section" size="base" style={{ paddingTop: "var(--s-5)", paddingBottom: "var(--s-7)" }}>
-      <p className="t-prose">
-        <Link href="/resume" variant="underline">
-          Download my resume
-        </Link>
-      </p>
-    </Container>
-  );
-}
-
 export default function HomePage() {
   return (
     <>
@@ -47,7 +33,6 @@ export default function HomePage() {
       <Bio />
       <ProjectTeasers />
       <ChatPreview />
-      <ResumeCta />
     </>
   );
 }

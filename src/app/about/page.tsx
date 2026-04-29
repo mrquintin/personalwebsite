@@ -60,14 +60,14 @@ export default function AboutPage() {
   );
 
   return (
-    <Container as="main" size="base" style={{ paddingTop: "var(--s-7)", paddingBottom: "var(--s-9)" }}>
+    <Container as="main" size="wide" className="site-page">
       <JsonLd data={PROFILE_LD} />
       <Stack gap={7}>
         <AboutHero name={identity.name} roles={identity.roles} based={identity.based} />
         <AboutBody paragraphs={biography} />
         <Beliefs items={beliefs} />
         <ColophonBlock tech={colophon.tech} type={colophon.type} tagline={colophon.tagline} />
-        <Cluster gap={4}>
+        <Cluster gap={4} className="site-link-list">
           {externalLinks.map((c) => (
             <Link key={c.href} href={c.href} variant="subtle" external>
               {c.label}

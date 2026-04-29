@@ -8,81 +8,40 @@ type Props = {
 
 export default function ResumeTimeline({ heading, items }: Props) {
   return (
-    <Stack gap={4} as="section">
-      <h2 className="t-meta" style={{ margin: 0, color: "var(--accent)" }}>
-        {heading}
-      </h2>
-      <Stack gap={5} as="ul" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+    <section className="resume-timeline">
+      <h2 className="site-eyebrow">{heading}</h2>
+      <ul className="resume-timeline__list">
         {items.map((r, i) => (
-          <li
-            key={`${r.org}-${i}`}
-            style={{
-              borderLeft: "1px solid var(--rule)",
-              paddingLeft: "var(--s-4)",
-            }}
-          >
+          <li key={`${r.org}-${i}`} className="resume-role">
             <Stack gap={2}>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "space-between",
-                  gap: "var(--s-3)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "var(--t-sm-size)",
-                  color: "var(--fg)",
-                }}
-              >
+              <div className="resume-role__top">
                 <span>
                   <strong style={{ fontWeight: 600 }}>{r.title}</strong>
-                  <span style={{ color: "var(--fg-mute)" }}> · {r.org}</span>
+                  <span className="resume-role__org"> · {r.org}</span>
                 </span>
-                <span
-                  style={{
-                    color: r.end === "Present" ? "var(--accent)" : "var(--fg-mute)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "var(--t-xs-size)",
-                  }}
-                >
+                <span className="resume-role__date">
                   {r.start} – {r.end}
                 </span>
               </div>
               {r.scope && (
-                <p
-                  style={{
-                    margin: 0,
-                    color: "var(--fg-dim)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "var(--t-sm-size)",
-                  }}
-                >
+                <p className="resume-role__scope" style={{ margin: 0 }}>
                   {r.scope}
                 </p>
               )}
               {r.bullets.length > 0 && (
-                <Stack
-                  gap={1}
-                  as="ul"
-                  style={{
-                    listStyle: "none",
-                    margin: 0,
-                    padding: 0,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "var(--t-sm-size)",
-                  }}
-                >
+                <ul className="resume-role__bullets">
                   {r.bullets.map((b, j) => (
-                    <li key={j} style={{ color: "var(--fg)", paddingLeft: "var(--s-3)", textIndent: "calc(-1 * var(--s-3))" }}>
-                      <span aria-hidden="true" style={{ color: "var(--fg-faint)" }}>· </span>
+                    <li key={j}>
+                      <span aria-hidden="true" className="belief-list__n">· </span>
                       {b}
                     </li>
                   ))}
-                </Stack>
+                </ul>
               )}
             </Stack>
           </li>
         ))}
-      </Stack>
-    </Stack>
+      </ul>
+    </section>
   );
 }

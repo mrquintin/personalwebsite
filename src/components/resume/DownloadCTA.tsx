@@ -6,8 +6,7 @@ export default function DownloadCTA() {
       <a
         href="/resume.pdf"
         download
-        className="p-link p-link--underline"
-        style={{ fontFamily: "var(--font-mono)", fontSize: "var(--t-sm-size)" }}
+        className="site-action"
       >
         Download as PDF
       </a>

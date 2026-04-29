@@ -15,13 +15,9 @@ type Props = {
 export default function ResumeIdentity({ name, role, email, location, links }: Props) {
   return (
     <Stack gap={3} as="header">
-      <h1 className="t-headline" style={{ margin: 0 }}>
-        {name}
-      </h1>
-      <p className="t-mono-body" style={{ margin: 0, color: "var(--fg-mute)" }}>
-        {role}
-      </p>
-      <Cluster gap={3} className="t-meta" style={{ color: "var(--fg-faint)" }}>
+      <h1 className="site-title">{name}</h1>
+      <p className="site-subhead">{role}</p>
+      <Cluster gap={3} className="resume-header__links">
         {location && <span>{location}</span>}
         <Link href={`mailto:${email}`} variant="subtle">
           {email}

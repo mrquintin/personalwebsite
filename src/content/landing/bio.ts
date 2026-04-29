@@ -11,11 +11,14 @@
 //     was naming the antecedent of P4-S2's pronoun "It", so the fourth
 //     entry below substitutes "Theseus" for "It".
 export const bio = {
-  heading: "Briefly",
+  heading: "Throughline",
   body: [
-    "His current projects share a single throughline: the production of structure where the dominant institutions produce noise.",
-    "Hivemind is a strategic analytical software company.",
-    "Purposeless Efficiency, the first volume of a five-book series, is the corresponding written argument: that efficiency severed from purpose has become the dominant production logic of the late industrial era, and that this severance has consequences that any honest political economy must now treat as central.",
-    "Theseus is a knowledge system for monitoring ideological contradiction — a slow, structured collaborator for the operator-philosopher who wants to know, at any given moment, where their stated commitments contradict themselves.",
+    "The work is deliberately narrow: produce structure where institutions, tools, and incentives usually produce noise.",
+    "The software, book, and knowledge-system projects are different surfaces for the same problem: helping serious operators preserve reasoning across time.",
+  ],
+  facts: [
+    { label: "Company", value: "Hivemind" },
+    { label: "Book", value: "Purposeless Efficiency" },
+    { label: "System", value: "Theseus" },
   ],
 };

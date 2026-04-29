@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import Container from "@/components/primitives/Container";
 import Link from "@/components/primitives/Link";
 import { footerLinks } from "@/content/site/footer";
@@ -16,17 +15,10 @@ export function SiteFooter() {
       <Container size="wide" className="shell-footer__inner">
         <p className="shell-footer__copyright">{microcopy.meta.copyrightLine}</p>
         <nav aria-label={microcopy.nav.footerLabel} className="shell-footer__links">
-          {allLinks.map((link, i) => (
-            <Fragment key={link.href}>
-              {i > 0 && (
-                <span aria-hidden="true" className="shell-footer__sep">
-                  {" · "}
-                </span>
-              )}
-              <Link href={link.href} variant="subtle" external={link.external}>
-                {link.label}
-              </Link>
-            </Fragment>
+          {allLinks.map((link) => (
+            <Link key={link.href} href={link.href} variant="subtle" external={link.external}>
+              {link.label}
+            </Link>
           ))}
         </nav>
       </Container>

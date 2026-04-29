@@ -28,34 +28,19 @@ export default function ProjectShell({
   relatedLinks,
 }: ProjectShellProps) {
   return (
-    <Container as="article" size="base" className="ps-shell">
+    <Container as="article" size="base" className="ps-shell site-page">
       <div className="ps-shell-sections">
-        <header>
+        <header className="ps-shell__header">
           <Stack gap={3}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--s-3)",
-                fontFamily: "var(--font-mono)",
-                color: "var(--fg-muted, var(--fg))",
-                fontSize: "0.875rem",
-              }}
-            >
+            <div className="ps-shell__meta">
               <span>{metadata.code}</span>
               <StatusPill status={SHELL_STATUS_TO_V1[metadata.status]} />
             </div>
-            <h1 className="ph-hero__title">{metadata.title}</h1>
-            <p
-              style={{
-                margin: 0,
-                color: "var(--fg-muted, var(--fg))",
-                fontStyle: "italic",
-              }}
-            >
+            <h1 className="site-title">{metadata.title}</h1>
+            <p className="site-subhead">
               {metadata.tagline}
             </p>
-            <p style={{ margin: 0, maxWidth: "70ch" }}>{metadata.framing}</p>
+            <p className="site-lede">{metadata.framing}</p>
           </Stack>
         </header>
 
@@ -79,7 +64,9 @@ export default function ProjectShell({
           aria-label={`${metadata.title} ask the LLM`}
           className="ps-shell-footer"
         >
-          <Link href="/chat">{`ask my LLM about ${metadata.title}`}</Link>
+          <Link href="/chat" variant="subtle" className="site-action">
+            {`Ask the LLM about ${metadata.title}`}
+          </Link>
         </footer>
       </div>
     </Container>

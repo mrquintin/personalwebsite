@@ -18,13 +18,17 @@ html, body {
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--t-mono);
   font-size: var(--t-base-size);
   line-height: var(--t-base-lh);
   color: var(--fg);
-  background: var(--bg-1);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+main {
+  min-height: 68vh;
 }
 
 input, button, textarea, select {

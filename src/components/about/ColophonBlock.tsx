@@ -9,10 +9,11 @@ type Props = {
 export default function ColophonBlock({ tech, type, tagline }: Props) {
   return (
     <Stack
+      className="colophon"
       gap={2}
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: "var(--t-xs-size)",
+        fontSize: "var(--t-sm-size)",
         color: "var(--fg-mute)",
       }}
     >

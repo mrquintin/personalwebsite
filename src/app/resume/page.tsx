@@ -45,8 +45,8 @@ export default function ResumePage() {
       </Suspense>
       <Container
         as="main"
-        size="base"
-        style={{ paddingTop: "var(--s-7)", paddingBottom: "var(--s-9)" }}
+        size="wide"
+        className="site-page"
       >
         <Stack gap={7}>
           <ResumeIdentity

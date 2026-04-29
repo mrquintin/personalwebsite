@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Container from "@/components/primitives/Container";
-import Card from "@/components/primitives/Card";
+import Link from "@/components/primitives/Link";
+import Stack from "@/components/primitives/Stack";
 import { projects } from "@/content/projects";
 
 export const metadata: Metadata = {
@@ -10,21 +11,38 @@ export const metadata: Metadata = {
 
 export default function ProjectsPage() {
   return (
-    <Container size="base">
-      <h1>Projects</h1>
-      <div className="stack">
+    <Container as="main" size="wide" className="site-page">
+      <Stack gap={6}>
+        <header className="projects-index__header">
+          <div>
+            <p className="site-eyebrow">Index</p>
+            <h1 className="site-title">Projects</h1>
+          </div>
+          <p className="site-subhead">
+            Three public surfaces: software, a book, and a knowledge system.
+          </p>
+        </header>
+        <div className="project-teasers__grid">
         {projects.map((p) => (
-          <Card
+          <Link
             key={p.slug}
             href={`/projects/${p.slug}`}
-            title={p.title}
-            titleAs="h2"
-            meta={`${p.code} · ${p.status}`}
+            variant="subtle"
+            className="project-card"
           >
-            {p.tagline}
-          </Card>
+            <span className="project-card__meta">
+              <span>{p.code}</span>
+              <span>{p.status}</span>
+            </span>
+            <div>
+              <h2 className="project-card__title">{p.title}</h2>
+              <p className="project-card__text">{p.tagline}</p>
+            </div>
+            <span className="project-card__open">Open project</span>
+          </Link>
         ))}
-      </div>
+        </div>
+      </Stack>
     </Container>
   );
 }
