@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Bio from "@/components/landing/Bio";
 import ChatPreview from "@/components/landing/ChatPreview";
 import Hero from "@/components/landing/Hero";
-import ProjectTeasers from "@/components/landing/ProjectTeasers";
 import identity from "@/content/about/identity";
 
 const HOME_DESCRIPTION =
@@ -31,7 +30,6 @@ export default function HomePage() {
     <>
       <Hero />
       <Bio />
-      <ProjectTeasers />
       <ChatPreview />
     </>
   );

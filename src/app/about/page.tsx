@@ -60,7 +60,7 @@ export default function AboutPage() {
   );
 
   return (
-    <Container as="main" size="wide" className="site-page">
+    <Container as="section" size="wide" className="site-page">
       <JsonLd data={PROFILE_LD} />
       <Stack gap={7}>
         <AboutHero name={identity.name} roles={identity.roles} based={identity.based} />

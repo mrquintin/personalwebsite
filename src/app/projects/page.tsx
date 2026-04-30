@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function ProjectsPage() {
   return (
-    <Container as="main" size="wide" className="site-page">
+    <Container as="section" size="wide" className="site-page">
       <Stack gap={6}>
         <header className="projects-index__header">
           <div>

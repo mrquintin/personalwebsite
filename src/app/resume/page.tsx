@@ -44,7 +44,7 @@ export default function ResumePage() {
         <PrintMode />
       </Suspense>
       <Container
-        as="main"
+        as="section"
         size="wide"
         className="site-page"
       >

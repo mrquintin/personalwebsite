@@ -1,8 +1,7 @@
 const biography = [
-  "I run Hivemind, a strategic analytical software company. I write a five-book series on the political economy of efficiency. I maintain Theseus, a small knowledge system for tracking when my own commitments contradict themselves. The three projects share one premise: most institutions produce noise, and the work of an operator is to produce structure inside that noise.",
-  "I came to this through software, writing, and research, in that order. I started building tools because the strategy work I cared about was being lost to slide decks and chat threads — illegible a month later, even to the person who wrote them. I started writing because the same loss of structure was visible at the level of policy and culture, not only inside companies.",
-  "My edge is patience with structure. I prefer durable artifacts to atmospheric ones: hypothesis graphs over decks, calibrated arguments over takes, small models I can interrogate over large ones I have to trust. The work moves slowly on purpose. The point is not more output; the point is output that survives a second reading.",
-  "Hivemind is in alpha — a software platform for operators who reason under uncertainty. Purposeless Efficiency is at manuscript v4, around 92,000 words, on the way to 100,000 for first ship. Theseus is live at thesescodex.com and grows as my own contradictions surface.",
-  "Reach me at michael@hivemind.ai. I read every cold email. I answer the ones I can answer well. The fastest way to interest me is a specific question about one of the three projects above.",
+  "I run Hivemind, write Purposeless Efficiency, and maintain Theseus. The common problem is preserving serious reasoning when tools, institutions, and incentives tend to dissolve it.",
+  "Hivemind turns strategic questions into structured briefs a team can defend, attack, and update. Purposeless Efficiency is the written argument: optimization detached from purpose has become a central production logic of the late industrial era.",
+  "Theseus is the smaller companion project: a knowledge system for tracking contradiction across commitments over time.",
+  "Reach me at michael@hivemind.ai with a specific question about one of those projects.",
 ];
 export default biography;

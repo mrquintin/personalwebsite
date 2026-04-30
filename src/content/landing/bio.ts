@@ -13,8 +13,8 @@
 export const bio = {
   heading: "Throughline",
   body: [
-    "The work is deliberately narrow: produce structure where institutions, tools, and incentives usually produce noise.",
-    "The software, book, and knowledge-system projects are different surfaces for the same problem: helping serious operators preserve reasoning across time.",
+    "The work is deliberately narrow: preserve serious reasoning where institutions, tools, and incentives usually dissolve it.",
+    "Hivemind, Purposeless Efficiency, and Theseus are three surfaces for that same problem.",
   ],
   facts: [
     { label: "Company", value: "Hivemind" },
