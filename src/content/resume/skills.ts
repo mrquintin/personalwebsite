@@ -5,32 +5,35 @@ export type SkillGroup = { domain: string; instruments: string[] };
 
 const skills: SkillGroup[] = [
   {
-    domain: "Engineering",
-    instruments: ["TypeScript", "Next.js", "React", "Python", "Postgres", "SQL", "Vercel"],
+    domain: "Languages",
+    instruments: ["fluent Spanish", "conversational Arabic", "conversational Hungarian"],
+  },
+  {
+    domain: "Technical",
+    instruments: [
+      "Excel financial modeling",
+      "PowerPoint",
+      "Python",
+      "Java",
+      "Final Cut Pro",
+      "Final Draft 12",
+      "Scrivener",
+      "Sibelius",
+    ],
   },
   {
     domain: "Research",
     instruments: [
-      "hypothesis decomposition",
-      "scenario analysis",
-      "Bayesian reasoning",
-      "first-principles modeling",
-      "structured argumentation",
-      "red-team review",
+      "business research",
+      "market research",
+      "policy strategy",
+      "game theory",
+      "philosophy",
     ],
   },
   {
-    domain: "Communication",
-    instruments: [
-      "long-form essays",
-      "manuscript drafting",
-      "design-partner interviews",
-      "operator briefings",
-    ],
-  },
-  {
-    domain: "Operations",
-    instruments: ["product strategy", "fundraising", "small-team hiring", "OKR design"],
+    domain: "Interests",
+    instruments: ["satirical comedy writing", "piano", "acting", "golf", "varsity rowing"],
   },
 ];
 export default skills;

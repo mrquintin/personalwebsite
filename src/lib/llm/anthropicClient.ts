@@ -44,7 +44,7 @@ export class AnthropicError extends Error {
 }
 
 const DEFAULT_MODEL =
-  process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929";
+  process.env.LLM_MODEL ?? process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929";
 const DEFAULT_MAX_TOKENS = 4000;
 
 let cachedClient: AnthropicLike | null = null;

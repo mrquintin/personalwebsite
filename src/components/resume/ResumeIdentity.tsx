@@ -8,11 +8,12 @@ type Props = {
   name: string;
   role: string;
   email: string;
+  phone?: string;
   location?: string;
   links: ResumeLink[];
 };
 
-export default function ResumeIdentity({ name, role, email, location, links }: Props) {
+export default function ResumeIdentity({ name, role, email, phone, location, links }: Props) {
   return (
     <Stack gap={3} as="header">
       <h1 className="site-title">{name}</h1>
@@ -22,6 +23,11 @@ export default function ResumeIdentity({ name, role, email, location, links }: P
         <Link href={`mailto:${email}`} variant="subtle">
           {email}
         </Link>
+        {phone && (
+          <Link href={`tel:${phone.replace(/[^\d+]/g, "")}`} variant="subtle">
+            {phone}
+          </Link>
+        )}
         {links.map((l) => (
           <Link key={l.href} href={l.href} variant="subtle" external>
             {l.label}

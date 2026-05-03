@@ -12,12 +12,13 @@ import ResumeWriting from "@/components/resume/ResumeWriting";
 import education from "@/content/resume/education";
 import experience from "@/content/resume/experience";
 import identity from "@/content/resume/identity";
+import leadership from "@/content/resume/leadership";
 import skills from "@/content/resume/skills";
 import summary from "@/content/resume/summary";
 import writing from "@/content/resume/writing";
 
 const RESUME_DESCRIPTION =
-  "Resume of Michael Quintin — founder of Hivemind and author of Purposeless Efficiency. Experience, skills, education, and selected writing.";
+  "Resume of Michael Quintin — University of Chicago student, founder of The Nash Lab / Hivemind, and operator-researcher.";
 
 export const metadata: Metadata = {
   title: "Resume",
@@ -53,15 +54,17 @@ export default function ResumePage() {
             name={identity.name}
             role={identity.role}
             email={identity.email}
+            phone={identity.phone}
             location={identity.location}
             links={identity.links}
           />
           <ResumeSummary text={summary} />
-          <ResumeTimeline heading="experience" items={experience} />
-          <ResumeSkills groups={skills} />
           {education.length > 0 && (
             <ResumeTimeline heading="education" items={education} />
           )}
+          <ResumeTimeline heading="experience" items={experience} />
+          <ResumeTimeline heading="leadership & activities" items={leadership} />
+          <ResumeSkills groups={skills} />
           {writing.length > 0 && <ResumeWriting items={writing} />}
           <DownloadCTA />
         </Stack>

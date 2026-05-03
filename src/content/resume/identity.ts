@@ -3,15 +3,13 @@
 // resume-specific — it lists the work, not the social channels.
 const identity = {
   name: "Michael Quintin",
-  role: "Founder · Author · Researcher",
-  email: "michael@hivemind.ai",
-  location: "North America",
+  role: "University of Chicago · Founder · Operator-researcher",
+  email: "quintin@uchicago.edu",
+  phone: "+1 917 232 0121",
+  location: "Chicago, IL",
   links: [
-    { label: "hivemind.ai", href: "https://hivemind.ai" },
-    { label: "thesescodex.com", href: "https://thesescodex.com" },
-    { label: "github.com/mrquintin", href: "https://github.com/mrquintin" },
-    { label: "linkedin.com/in/michael-quintin", href: "https://www.linkedin.com/in/michael-quintin-5555b4283/" },
-    { label: "x.com/quintinpublic", href: "https://x.com/quintinpublic" },
+    { label: "michaelquintin.com", href: "https://www.michaelquintin.com" },
+    { label: "thenashlab.com", href: "http://www.thenashlab.com" },
   ],
 };
 export default identity;

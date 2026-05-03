@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const SERVER_DEFAULTS = {
   ANTHROPIC_API_KEY: "sk-ant-test",
+  VOYAGE_API_KEY: "pa-test",
   POSTGRES_URL: "postgres://user:pw@host:5432/db",
   POSTGRES_URL_NON_POOLING: "postgres://user:pw@host:5432/db?direct=1",
   KV_REST_API_URL: "https://kv.example.com",
@@ -52,9 +53,11 @@ describe("env", () => {
     stubAll(SERVER_DEFAULTS);
     const { env } = await import("./env");
     expect(env.LLM_MODEL).toBe("claude-opus-4-7");
+    expect(env.OPENAI_MODEL).toBe("gpt-5");
     expect(env.LLM_RATE_LIMIT_HOUR).toBe(20);
     expect(env.LLM_RATE_LIMIT_DAY).toBe(100);
     expect(env.EMBEDDER).toBe("voyage");
+    expect(env.LLM_PROVIDER).toBe("anthropic");
   });
 
   it("coerces numeric tunables from string env values", async () => {
@@ -77,6 +80,7 @@ describe("env", () => {
       POSTGRES_URL_NON_POOLING: SERVER_DEFAULTS.POSTGRES_URL_NON_POOLING,
       KV_REST_API_URL: SERVER_DEFAULTS.KV_REST_API_URL,
       KV_REST_API_TOKEN: SERVER_DEFAULTS.KV_REST_API_TOKEN,
+      VOYAGE_API_KEY: SERVER_DEFAULTS.VOYAGE_API_KEY,
       NEXT_PUBLIC_SITE_URL: SERVER_DEFAULTS.NEXT_PUBLIC_SITE_URL,
     });
     vi.stubEnv("ANTHROPIC_API_KEY", "");
@@ -89,6 +93,19 @@ describe("env", () => {
     stubAll({ ...SERVER_DEFAULTS, KV_REST_API_URL: "not-a-url" });
     const { env } = await import("./env");
     expect(() => env.KV_REST_API_URL).toThrow(/KV_REST_API_URL/);
+  });
+
+  it("allows OpenAI as the chat provider without an Anthropic key", async () => {
+    simulateServer();
+    stubAll({
+      ...SERVER_DEFAULTS,
+      LLM_PROVIDER: "openai",
+      OPENAI_API_KEY: "sk-test",
+    });
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const { env } = await import("./env");
+    expect(env.LLM_PROVIDER).toBe("openai");
+    expect(env.OPENAI_API_KEY).toBe("sk-test");
   });
 
   it("refuses to read server-only vars from a client context", async () => {

@@ -17,9 +17,10 @@ import { NextRequest } from "next/server";
 
 import {
   AnthropicError,
-  getAnthropicClient,
 } from "@/lib/llm/anthropicClient";
+import { getChatModelClient } from "@/lib/llm/chatModelClient";
 import { chatRequestSchema, type ChatMetaPayload } from "@/lib/llm/chatTypes";
+import { OpenAIChatError } from "@/lib/llm/openAIChatClient";
 import { buildPersona } from "@/lib/llm/persona";
 import { assemblePrompt } from "@/lib/llm/promptAssembly";
 import {
@@ -116,12 +117,12 @@ export async function POST(req: NextRequest): Promise<Response> {
   // 5. Open stream.
   let handle;
   try {
-    handle = await getAnthropicClient().streamMessages({
+    handle = await getChatModelClient().streamMessages({
       system: systemPrompt,
       messages: assembled.messages,
     });
   } catch (err) {
-    return anthropicErrorResponse(err);
+    return upstreamErrorResponse(err);
   }
 
   // 6. Pipe SSE.
@@ -179,14 +180,15 @@ function jsonError(status: number, error: string, detail?: string): Response {
   });
 }
 
-function anthropicErrorResponse(err: unknown): Response {
+function upstreamErrorResponse(err: unknown): Response {
   const status =
-    err instanceof AnthropicError && typeof err.status === "number"
+    (err instanceof AnthropicError || err instanceof OpenAIChatError) &&
+    typeof err.status === "number"
       ? err.status
       : undefined;
   const detail =
-    err instanceof Error ? err.message : "anthropic request failed";
-  console.error("[/api/chat] anthropic error", err);
+    err instanceof Error ? err.message : "upstream request failed";
+  console.error("[/api/chat] upstream error", err);
   return new Response(
     JSON.stringify({
       error: "upstream_error",

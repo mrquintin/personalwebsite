@@ -15,11 +15,17 @@
 
 import { z } from "zod";
 
+const optionalSecret = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().min(1).optional(),
+);
+
 const ServerEnvSchema = z.object({
-  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
-  VOYAGE_API_KEY: z.string().min(1).optional(),
-  OPENAI_API_KEY: z.string().min(1).optional(),
+  ANTHROPIC_API_KEY: optionalSecret,
+  VOYAGE_API_KEY: optionalSecret,
+  OPENAI_API_KEY: optionalSecret,
   EMBEDDER: z.enum(["voyage", "openai"]).default("voyage"),
+  LLM_PROVIDER: z.enum(["anthropic", "openai"]).default("anthropic"),
   POSTGRES_URL: z.string().min(1, "POSTGRES_URL is required"),
   POSTGRES_URL_NON_POOLING: z
     .string()
@@ -27,8 +33,38 @@ const ServerEnvSchema = z.object({
   KV_REST_API_URL: z.string().url("KV_REST_API_URL must be a URL"),
   KV_REST_API_TOKEN: z.string().min(1, "KV_REST_API_TOKEN is required"),
   LLM_MODEL: z.string().min(1).default("claude-opus-4-7"),
+  OPENAI_MODEL: z.string().min(1).default("gpt-5"),
   LLM_RATE_LIMIT_HOUR: z.coerce.number().int().positive().default(20),
   LLM_RATE_LIMIT_DAY: z.coerce.number().int().positive().default(100),
+}).superRefine((value, ctx) => {
+  if (value.LLM_PROVIDER === "anthropic" && !value.ANTHROPIC_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["ANTHROPIC_API_KEY"],
+      message: "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic",
+    });
+  }
+  if (value.LLM_PROVIDER === "openai" && !value.OPENAI_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["OPENAI_API_KEY"],
+      message: "OPENAI_API_KEY is required when LLM_PROVIDER=openai",
+    });
+  }
+  if (value.EMBEDDER === "voyage" && !value.VOYAGE_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["VOYAGE_API_KEY"],
+      message: "VOYAGE_API_KEY is required when EMBEDDER=voyage",
+    });
+  }
+  if (value.EMBEDDER === "openai" && !value.OPENAI_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["OPENAI_API_KEY"],
+      message: "OPENAI_API_KEY is required when EMBEDDER=openai",
+    });
+  }
 });
 
 const ClientEnvSchema = z.object({
@@ -47,11 +83,13 @@ const SERVER_ONLY_KEYS = new Set<keyof ServerEnv>([
   "VOYAGE_API_KEY",
   "OPENAI_API_KEY",
   "EMBEDDER",
+  "LLM_PROVIDER",
   "POSTGRES_URL",
   "POSTGRES_URL_NON_POOLING",
   "KV_REST_API_URL",
   "KV_REST_API_TOKEN",
   "LLM_MODEL",
+  "OPENAI_MODEL",
   "LLM_RATE_LIMIT_HOUR",
   "LLM_RATE_LIMIT_DAY",
 ]);

@@ -20,12 +20,15 @@ reads.
 | ---- | -------- | ------- | ----- |
 | `NEXT_PUBLIC_SITE_URL` | yes (prod) | `http://localhost:3000` | Used by `next-sitemap`, OG images, and absolute canonical URLs. Anything prefixed with `NEXT_PUBLIC_` is inlined into the client bundle by Next.js — never put a secret here. |
 
-### LLM (Anthropic)
+### LLM generation
 
 | Name | Required | Default | Notes |
 | ---- | -------- | ------- | ----- |
-| `ANTHROPIC_API_KEY` | yes | — | Server-only. Used by `src/lib/llm/anthropicClient.ts` to call the Messages API. |
-| `LLM_MODEL` | no | `claude-opus-4-7` | Override the default model id (e.g. for evals against a smaller/faster model). |
+| `LLM_PROVIDER` | no | `anthropic` | Selects the generation provider for `/api/chat`. Allowed values: `anthropic`, `openai`. |
+| `OPENAI_API_KEY` | iff `LLM_PROVIDER=openai` | — | Server-only. Used by `src/lib/llm/openAIChatClient.ts` to call the OpenAI Responses API for the on-site LLM. Never prefix this with `NEXT_PUBLIC_`. |
+| `OPENAI_MODEL` | no | `gpt-5` | OpenAI model id used when `LLM_PROVIDER=openai`. |
+| `ANTHROPIC_API_KEY` | iff `LLM_PROVIDER=anthropic` | — | Server-only. Used by `src/lib/llm/anthropicClient.ts` to call the Messages API. |
+| `LLM_MODEL` | no | `claude-opus-4-7` | Anthropic model id used when `LLM_PROVIDER=anthropic`. |
 
 ### Embeddings
 
@@ -33,7 +36,7 @@ reads.
 | ---- | -------- | ------- | ----- |
 | `EMBEDDER` | no | `voyage` | Selects the embedding provider. Allowed values: `voyage`, `openai`. |
 | `VOYAGE_API_KEY` | iff `EMBEDDER=voyage` | — | Server-only. |
-| `OPENAI_API_KEY` | iff `EMBEDDER=openai` | — | Server-only. Only needed when running the OpenAI fallback embedder. |
+| `OPENAI_API_KEY` | iff `EMBEDDER=openai` | — | Server-only. Reuses the same OpenAI key as chat generation if `LLM_PROVIDER=openai`. |
 
 ### Vector store (Vercel Postgres + pgvector)
 
@@ -60,13 +63,23 @@ reads.
 
 ## 2. Where each secret comes from
 
+### OpenAI API key
+1. Create a server-side API key from the OpenAI dashboard.
+2. In local development, copy `.env.example` to `.env.local`, set
+   `LLM_PROVIDER=openai`, and paste the value into `OPENAI_API_KEY`.
+3. In Vercel, add `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, and
+   `OPENAI_MODEL` under Project → Settings → Environment Variables.
+4. The chat route uses OpenAI's Responses API with streaming enabled;
+   the browser only talks to your own `/api/chat` route and never sees
+   the raw key.
+
 ### Anthropic API key
 1. Sign in to <https://console.anthropic.com>.
 2. Open **Settings → API Keys → Create Key**. Pick the production
    workspace; do not reuse a personal key.
 3. Copy the `sk-ant-...` value — it will not be shown again.
-4. Set `ANTHROPIC_API_KEY` in Vercel (see §3) and in your local
-   `.env.local`.
+4. Set `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` in Vercel
+   (see §3) and in your local `.env.local`.
 
 ### Voyage embedding key
 1. Sign in to <https://dash.voyageai.com>.

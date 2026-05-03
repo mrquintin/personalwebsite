@@ -2,5 +2,5 @@
 // than about/biography.ts: the resume names the work; the biography
 // names the throughline behind it.
 const summary =
-  "Founder, writer, and researcher building tools for operators who must reason under uncertainty. Currently runs Hivemind (analytical software, alpha), authors Purposeless Efficiency (Book I of a five-volume series, manuscript v4), and maintains Theseus, a knowledge system for monitoring ideological contradiction.";
+  "University of Chicago Business Economics and Fundamentals candidate building The Nash Lab / Hivemind, an AI-augmented strategic analysis software startup. Experience spans U.S. Senate policy research, fintech market analysis, film development, and student entrepreneurship programs.";
 export default summary;

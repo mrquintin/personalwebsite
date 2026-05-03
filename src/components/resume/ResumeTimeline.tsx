@@ -20,7 +20,7 @@ export default function ResumeTimeline({ heading, items }: Props) {
                   <span className="resume-role__org"> · {r.org}</span>
                 </span>
                 <span className="resume-role__date">
-                  {r.start} – {r.end}
+                  {r.end ? `${r.start} – ${r.end}` : r.start}
                 </span>
               </div>
               {r.scope && (
