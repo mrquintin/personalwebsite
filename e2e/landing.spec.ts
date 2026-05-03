@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import identity from "../src/content/about/identity";
+import { hero } from "../src/content/landing/hero";
 import { projects } from "../src/content/projects/index";
 
 test("GET / returns 200", async ({ request }) => {
@@ -12,11 +13,11 @@ test("landing page h1 contains the user's name", async ({ page }) => {
   await expect(page.locator("h1")).toContainText(identity.name);
 });
 
-test("Ask my LLM about my work CTA points to /chat", async ({ page }) => {
+test("primary CTA points to /chat", async ({ page }) => {
   await page.goto("/");
-  const link = page.getByRole("link", { name: /Ask my LLM about my work/i }).first();
+  const link = page.getByRole("link", { name: hero.primaryCta.label }).first();
   await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute("href", "/chat");
+  await expect(link).toHaveAttribute("href", hero.primaryCta.href);
 });
 
 test("three project cards exist with titles for HVM, PRP, THS", async ({ page }) => {

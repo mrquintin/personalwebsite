@@ -36,7 +36,7 @@ export default function ProjectShell({
               <span>{metadata.code}</span>
               <StatusPill status={SHELL_STATUS_TO_V1[metadata.status]} />
             </div>
-            <h1 className="site-title">{metadata.title}</h1>
+            <h1 className="site-title ph-hero__title">{metadata.title}</h1>
             <p className="site-subhead">
               {metadata.tagline}
             </p>
@@ -65,7 +65,7 @@ export default function ProjectShell({
           className="ps-shell-footer"
         >
           <Link href="/chat" variant="subtle" className="site-action">
-            {`Ask the LLM about ${metadata.title}`}
+            {`ask my LLM about ${metadata.title}`}
           </Link>
         </footer>
       </div>

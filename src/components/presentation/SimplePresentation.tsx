@@ -120,13 +120,13 @@ export default function SimplePresentation({ id, title, phases }: DeckProps) {
       </Cluster>
 
       <div aria-live="polite" className={phaseClass}>
-        <h3
+        <h4
           className="t-h3 p-presentation__heading"
           tabIndex={-1}
           ref={headingRef}
         >
           {phase.heading}
-        </h3>
+        </h4>
         <Prose>{phase.body}</Prose>
       </div>
 
